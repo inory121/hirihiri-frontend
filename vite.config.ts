@@ -24,4 +24,19 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    proxy: {
+      '/user-service': {
+        target: 'http://localhost:8081', // 用户服务
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/user-service/, '')
+      },
+      '/video-service': {
+        target: 'http://localhost:8082', // 视频服务
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/video-service/, '')
+      },
+    },
+    open: true,
+  }
 })

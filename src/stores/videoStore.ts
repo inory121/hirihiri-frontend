@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { get } from '@/utils/request'
 
-interface Video {
+export interface Video {
   auth: number
   coverUrl: string
   delDate: string
@@ -32,9 +32,8 @@ export const useVideoStore = defineStore('video', {
   getters: {},
   actions: {
     async getRecommendVideo() {
-      const res = await get<ApiResponse>('video/get/recommend')
+      const res = await get<ApiResponse>('/video-service/video/get/recommend')
       this.videoList = res.data
-      console.log(this.videoList)
     },
   },
 })

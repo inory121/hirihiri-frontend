@@ -24,34 +24,33 @@ export const useCategoryStore = defineStore('category', {
   state: () => {
     return {
       mcNames: [] as string[],
-      // visibleItems: [],
-      maxVisibleColumns: 9,
+      scNames: new Map<string, string[][]>(),
+      maxVisibleColumns: 0,
     }
   },
   getters: {
-    getVisibleItems(state) {
-      // 监听窗口大小变化，动态调整最大列数
-      window.addEventListener('resize', () => {
-        const width = window.innerWidth
-        if (width <= 1366.9) {
-          state.maxVisibleColumns = 8
-        } else if (width > 1366.9 && width <= 1700.9) {
-          state.maxVisibleColumns = 10
-        } else if (width > 1700.9 && width <= 2199.9) {
-          state.maxVisibleColumns = 11
-        } else {
-          state.maxVisibleColumns = 13
-        }
-      })
-      window.dispatchEvent(new Event('resize')) // 初始化一次
-      return state.mcNames.slice(0, state.maxVisibleColumns * 2)
+    visibleItems(): string[] {
+      return this.mcNames.slice(0, this.maxVisibleColumns * 2)
     },
   },
   actions: {
     async getCategory() {
-      const res = await get<ApiResponse>('/category/get/all')
+      const res = await get<ApiResponse>('/video-service/category/get/all')
       this.mcNames = res.data.map((item) => item.mcName)
-      console.log(this.mcNames)
+      this.scNames = res.data.reduce((acc, item) => {
+        // 提取 scList 中的所有 scName
+        const scNames = item.scList.map((subItem) => subItem.scName)
+
+        // 对 scNames 进行分组（每 4 个元素一组）
+        const groupedScNames = []
+        for (let i = 0; i < scNames.length; i += 4) {
+          groupedScNames.push(scNames.slice(i, i + 4))
+        }
+
+        // 将 mcName 作为键，分组后的 scNames 作为值存入 Map
+        acc.set(item.mcName, groupedScNames)
+        return acc
+      }, new Map<string, string[][]>())
     },
   },
 })

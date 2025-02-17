@@ -2,7 +2,7 @@ import type { AxiosRequestConfig } from 'axios'
 import axios from 'axios'
 
 const instance = axios.create({
-  baseURL: 'http://localhost:8082',
+  // baseURL: 'http://localhost',
   // baseURL: 'http://localhost:7070',
   timeout: 5000,
   // 其他配置项...
@@ -40,35 +40,37 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response) => {
     // 直接返回 response.data，简化调用方的代码
+    // ElMessage.success(response.data.message)
     return response.data
   },
   (error) => {
     // 统一处理错误响应
-    if (error.response) {
-      switch (error.response.status) {
-        case 401:
-          ElMessage.error("授权失败，请登录！")
-          console.error('shou')
-          break
-        case 404:
-          ElMessage.error("资源不存在！")
-          console.error('Resource not found')
-          break
-        case 500:
-          ElMessage.error("服务器错误！")
-          console.error('Server error')
-          break
-        default:
-          console.error('Request failed with status:', error.response.status)
-      }
-    } else if (error.request) {
-      ElMessage.error("No response received")
-      console.error('No response received:', error.request)
-    } else {
-      ElMessage.error("Request setup error")
-      console.error('Request setup error:', error.message)
-    }
-
+    // console.log(error, '**********************')
+    // switch (error.status) {
+    //   case 400:
+    //     ElMessage.error('🤔 请求参数迷路了，检查一下再出发？')
+    //     break
+    //   case 401:
+    //     ElMessage.error('🚨 闯入禁区！请先通过身份验证')
+    //     break
+    //   case 403:
+    //     ElMessage.error('🔞 未成年系统禁止访问该区域')
+    //     break
+    //   case 404:
+    //     ElMessage.error('👻 页面被幽灵带走了，试试其他入口？')
+    //     break
+    //   case 405:
+    //     ElMessage.error('🚦 请求方法违规！交警已开出代码罚单')
+    //     break
+    //   case 429:
+    //     ElMessage.error('⚡ 操作太快啦！冷却时间剩余5秒')
+    //     break
+    //   case 500:
+    //     ElMessage.error('🔥 代码着火啦！程序员正在全力灭火中')
+    //   default:
+    //     ElMessage.error(`🌌 未知异常！错误代码：${error.status}已召唤工程师处理`)
+    // }
+    // ElMessage.error("🔥 代码着火啦！程序员正在全力灭火中")
     // 抛出错误，方便调用方处理
     return Promise.reject(error)
   },
