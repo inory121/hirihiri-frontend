@@ -46,7 +46,7 @@ export const useUserStore = defineStore('user', {
   getters: {},
   actions: {
     async login() {
-      await post<UserDataApiResponse>('/user-service/user/login', {
+      await post<UserDataApiResponse>('/user/login', {
         username: this.user.username,
         password: this.password,
       })
@@ -64,7 +64,7 @@ export const useUserStore = defineStore('user', {
         })
     },
     async register() {
-      await post<UserDataApiResponse>('/user-service/user/register', {
+      await post<UserDataApiResponse>('/user/register', {
         username: this.user.username,
         password: this.password,
       }).then((res) => {
@@ -76,14 +76,14 @@ export const useUserStore = defineStore('user', {
       })
     },
     async logout() {
-      await post<UserDataApiResponse>('/user-service/user/logout')
+      await post<UserDataApiResponse>('/user/logout')
       localStorage.removeItem('hiri_token')
       this.isLogin = false
     },
 
     async getUserInfo() {
       if (localStorage.getItem('hiri_token')) {
-        await post<UserApiResponse>('/user-service/user/info')
+        await post<UserApiResponse>('/user/info')
           .then((res) => {
             if (res.code === 200) {
               this.user = res.data

@@ -32,7 +32,7 @@ export const useVideoStore = defineStore('video', {
   getters: {},
   actions: {
     async getRecommendVideo() {
-      const res = await get<ApiResponse>('/video-service/video/get/recommend')
+      const res = await get<ApiResponse>('/video/get/recommend')
       this.videoList = res.data
     },
   },

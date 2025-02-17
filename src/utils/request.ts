@@ -2,8 +2,7 @@ import type { AxiosRequestConfig } from 'axios'
 import axios from 'axios'
 
 const instance = axios.create({
-  // baseURL: 'http://localhost',
-  // baseURL: 'http://localhost:7070',
+  baseURL: 'http://localhost/api',
   timeout: 5000,
   // 其他配置项...
 })
