@@ -22,6 +22,7 @@ declare module 'vue' {
     HeaderChannel: typeof import('./src/components/HeaderChannel/HeaderChannel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    VideoCard: typeof import('./src/components/VideoCard/VideoCard.vue')['default']
     VPopover: typeof import('./src/components/Popover/VPopover.vue')['default']
   }
 }
