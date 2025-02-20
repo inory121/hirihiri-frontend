@@ -1,25 +1,44 @@
 <template>
   <!-- 主页主体 -->
   <div class="index">
-    <HeaderBar />
-    <HeaderChannel />
+    <header>
+      <HeaderBar />
+      <HeaderChannel />
+    </header>
     <!-- 主体 -->
     <main>
       <!-- 推荐 -->
       <div class="recommended-container">
         <Carousel />
         <!-- 视频卡片 -->
-        <div class="video-card-container" v-for="(item, index) in videoStore.videoList.length > 0
-          ? videoStore.videoList
-          : Array.from({ length: 11 }, () => ({}) as Video)" :key="index">
-          <el-skeleton :loading="loading" animated :throttle="{ leading: 500, trailing: 500, initVal: true }">
+        <div
+          class="video-card-container"
+          v-for="(item, index) in videoStore.videoList.length > 0
+            ? videoStore.videoList
+            : Array.from({ length: 11 }, () => ({}) as Video)"
+          :key="index"
+        >
+          <el-skeleton
+            :loading="loading"
+            animated
+            :throttle="{ leading: 500, trailing: 500, initVal: true }"
+          >
             <template #template>
               <a href="#">
-                <el-skeleton-item variant="image" style="padding-top: 50%; border-radius: 6px"></el-skeleton-item>
+                <el-skeleton-item
+                  variant="image"
+                  style="padding-top: 50%; border-radius: 6px"
+                ></el-skeleton-item>
               </a>
               <a href="#">
-                <el-skeleton-item variant="text" style="height: 25px; margin-top: 10px"></el-skeleton-item>
-                <el-skeleton-item variant="text" style="height: 15px; margin-top: 10px; width: 40%"></el-skeleton-item>
+                <el-skeleton-item
+                  variant="text"
+                  style="height: 25px; margin-top: 10px"
+                ></el-skeleton-item>
+                <el-skeleton-item
+                  variant="text"
+                  style="height: 15px; margin-top: 10px; width: 40%"
+                ></el-skeleton-item>
               </a>
             </template>
             <template #default>
@@ -37,7 +56,8 @@
                     <div class="video-card__info--bottom">
                       <a href="#">
                         up
-                        <span>{{ item.uid }}</span>&nbsp;
+                        <span>{{ item.uid }}</span
+                        >&nbsp;
                         <span>{{ item.pubDate }}</span>
                       </a>
                     </div>
