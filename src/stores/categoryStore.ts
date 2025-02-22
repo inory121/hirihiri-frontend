@@ -1,24 +1,6 @@
 import { defineStore } from 'pinia'
 import { get } from '@/utils/request'
-
-interface SubCategory {
-  rcmTag: string[]
-  descr: string
-  mcId: string
-  scId: string
-  scName: string
-  cid: number
-}
-
-interface MainCategory {
-  mcId: string
-  mcName: string
-  scList: SubCategory[]
-}
-
-interface ApiResponse {
-  data: MainCategory[]
-}
+import type { CategoryApiResponse } from '@/types/api.ts'
 
 export const useCategoryStore = defineStore('category', {
   state: () => {
@@ -35,8 +17,8 @@ export const useCategoryStore = defineStore('category', {
   },
   actions: {
     async getCategory() {
-      const res = await get<ApiResponse>('/category/get/all')
-      // const res = await get<ApiResponse>('/video-service/category/get/all')
+      const res = await get<CategoryApiResponse>('/category/get/all')
+      // const res = await get<CategoryApiResponse>('/video-service/category/get/all')
       this.mcNames = res.data.map((item) => item.mcName)
       this.scNames = res.data.reduce((acc, item) => {
         // 提取 scList 中的所有 scName

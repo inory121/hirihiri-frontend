@@ -10,7 +10,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { post } from '@/utils/request.ts'
-import {ElMessage} from "element-plus";
+import type { BaseResponse } from '@/types/api.ts'
 
 const CHUNK_SIZE = 5 * 1024 * 1024 // 5MB 分片
 const CONCURRENT_LIMIT = 3 // 并发数
@@ -19,11 +19,10 @@ const file = ref<File | null>(null)
 const progress = ref(0)
 
 // 初始化上传
-const initUpload = async (fileName: string) => {
-  const { data } = await post('/upload/init', null, {
-    params: { fileName },
+const initUpload = async () => {
+  await post<BaseResponse<string>>('/upload/init').then((res) => {
+    uploadId.value = res.data
   })
-  uploadId.value = data
 }
 
 // 上传单个分片
@@ -33,6 +32,7 @@ const uploadChunk = async (chunk: Blob, chunkNumber: number, totalChunks: number
   formData.append('uploadId', uploadId.value)
   formData.append('chunkNumber', chunkNumber.toString())
   formData.append('totalChunks', totalChunks.toString())
+  formData.append('fileName', file.value!.name)
 
   await post('/upload/chunk', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -43,6 +43,26 @@ const uploadChunk = async (chunk: Blob, chunkNumber: number, totalChunks: number
 const startUpload = async () => {
   if (!file.value) return
 
+  // 尝试恢复上传
+  // const data = await post('/upload/resume-check', null, {
+  //   params: { uploadId: uploadId.value },
+  // })
+
+  // if (data.resumable) {
+  //   const confirm = await ElMessageBox.confirm(
+  //     `发现未完成的上传（已上传${data.progress.toFixed(1)}%），是否继续?`,
+  //     '提示',
+  //     { type: 'warning' },
+  //   )
+  //
+  //   if (confirm) {
+  //     uploadId.value = data.uploadId
+  //     progress.value = data.progress
+  //   } else {
+  //     await initUpload(file.value.name)
+  //   }
+  // }
+  // else {
   await initUpload(file.value.name)
   const totalChunks = Math.ceil(file.value.size / CHUNK_SIZE)
   const chunks = Array.from({ length: totalChunks }, (_, i) => i)
@@ -65,23 +85,25 @@ const startUpload = async () => {
   }
 
   await Promise.all(queue)
-  await post('/upload/complete', null, {
+  await post<BaseResponse>('/upload/complete', null, {
     params: { uploadId: uploadId.value, fileName: file.value.name },
   }).then((res) => {
-    if (res.code == 200){
+    if (res.code == 200) {
       ElMessage.success(res.message)
-    }else if (res.code == 500){
+    } else if (res.code == 500) {
       ElMessage.error(res.message)
     }
-
   })
+  // }
 }
+// await initUpload(file.value.name)
 
 // 文件选择处理
 const handleFileSelect = (e: Event) => {
   const input = e.target as HTMLInputElement
   if (input.files?.[0]) {
     file.value = input.files[0]
+    console.log(file.value)
   }
 }
 </script>

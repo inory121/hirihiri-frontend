@@ -77,7 +77,7 @@
 import HeaderBar from '@/components/HeaderBar/HeaderBar.vue'
 import HeaderChannel from '@/components/HeaderChannel/HeaderChannel.vue'
 import Carousel from '@/components/Carousel/Carousel.vue'
-import type { Video } from '@/stores/videoStore.ts'
+import type { Video } from '@/types/api.ts'
 import { useVideoStore } from '@/stores/videoStore.ts'
 import { onMounted, ref } from 'vue'
 import FileUpload from '@/components/FileUpload.vue'

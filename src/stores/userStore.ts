@@ -1,38 +1,6 @@
 import { defineStore } from 'pinia'
 import { post } from '@/utils/request'
-
-export interface User {
-  auth: number
-  authMsg: string
-  avatar: string
-  background: string
-  coin: number
-  createDate: string
-  description: string
-  exp: number
-  nickname: string
-  sex: number
-  uid: number
-  username: string
-  vip: number
-}
-
-export interface UserData {
-  user: User
-  token: string
-}
-
-interface UserDataApiResponse {
-  data: UserData
-  code: number
-  message: string
-}
-
-interface UserApiResponse {
-  data: User
-  code: number
-  message: string
-}
+import type { User, UserApiResponse, UserDataApiResponse } from '@/types/api.ts'
 
 export const useUserStore = defineStore('user', {
   state: () => {
