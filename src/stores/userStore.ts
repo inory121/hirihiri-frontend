@@ -92,7 +92,7 @@ export const useUserStore = defineStore('user', {
           .catch(() => {
             localStorage.removeItem('hiri_token')
             this.isLogin = false
-            ElMessage.error("请求用户信息失败，请重新登录")
+            ElMessage.error('请求用户信息失败，请重新登录')
           })
       }
     },

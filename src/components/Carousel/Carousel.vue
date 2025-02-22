@@ -12,7 +12,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, onMounted } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useVideoStore } from '@/stores/videoStore.ts'
 
 const videoStore = useVideoStore()
@@ -55,10 +55,9 @@ onMounted(() => {
     height: 10%;
     font-size: 18px;
     color: #333;
-    border: 1px solid red;
     transition: color 0.2s linear;
-    &:hover{
-      color: #ff6699 !important;;
+    &:hover {
+      color: #ff6699 !important;
     }
   }
 }

@@ -21,6 +21,7 @@ declare module 'vue' {
     ElMain: typeof import('element-plus/es')['ElMain']
     ElSkeleton: typeof import('element-plus/es')['ElSkeleton']
     ElSkeletonItem: typeof import('element-plus/es')['ElSkeletonItem']
+    FileUpload: typeof import('./src/components/FileUpload.vue')['default']
     HeaderBar: typeof import('./src/components/HeaderBar/HeaderBar.vue')['default']
     HeaderChannel: typeof import('./src/components/HeaderChannel/HeaderChannel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

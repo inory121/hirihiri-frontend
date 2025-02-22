@@ -2,23 +2,40 @@
   <!-- 头部频道 -->
   <div class="header-channel">
     <div class="channel-icons">
-      <a href="#" class="channel-icons__item"><img class="icon-img"
-          src="https://i0.hdslb.com/bfs/baselabs/05b340832a490209f185542bb9690fc748bc08f7.png@38w_38h_1c" alt="" />
-        <span>动态</span></a>
-      <a href="#" class="channel-icons__item"><img class="icon-img"
+      <a href="#" class="channel-icons__item"
+        ><img
+          class="icon-img"
           src="https://i0.hdslb.com/bfs/baselabs/05b340832a490209f185542bb9690fc748bc08f7.png@38w_38h_1c"
-          alt="" /><span>热门</span></a>
+          alt=""
+        />
+        <span>动态</span></a
+      >
+      <a href="#" class="channel-icons__item"
+        ><img
+          class="icon-img"
+          src="https://i0.hdslb.com/bfs/baselabs/05b340832a490209f185542bb9690fc748bc08f7.png@38w_38h_1c"
+          alt=""
+        /><span>热门</span></a
+      >
     </div>
     <div class="right-channel-container">
       <div class="channel-items__left">
-        <VPopover v-for="(mcName, index) in categoryStore.visibleItems" :key="index" class="channel-link"
-          :placement="getPopoverPlacement(index)">
+        <VPopover
+          v-for="(mcName, index) in categoryStore.visibleItems"
+          :key="index"
+          class="channel-link"
+          :placement="getPopoverPlacement(index)"
+        >
           <template #reference>
             <a href="#">{{ mcName }}</a>
           </template>
           <template #content>
             <div class="popover-container">
-              <div class="popover-item" v-for="(scNames, index) in categoryStore.scNames.get(mcName)" :key="index">
+              <div
+                class="popover-item"
+                v-for="(scNames, index) in categoryStore.scNames.get(mcName)"
+                :key="index"
+              >
                 <a href="#" v-for="(scName, index) in scNames" :key="index">{{ scName }}</a>
               </div>
             </div>

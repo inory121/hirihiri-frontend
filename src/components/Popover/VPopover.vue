@@ -22,69 +22,69 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue'
 
 // Props 定义
 interface Props {
-  placement?: 'top' | 'bottom' | 'left' | 'right';
-  trigger?: 'hover' | 'click';
-  popStyle?: string;
+  placement?: 'top' | 'bottom' | 'left' | 'right'
+  trigger?: 'hover' | 'click'
+  popStyle?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   placement: 'bottom',
   trigger: 'hover',
   popStyle: '',
-});
+})
 
 // Refs
-const vPopRef = ref<HTMLElement | null>(null);
-const vPopCon = ref<HTMLElement | null>(null);
-const popoverDisplay = ref('none');
-const isPopoverShow = ref(false);
+const vPopRef = ref<HTMLElement | null>(null)
+const vPopCon = ref<HTMLElement | null>(null)
+const popoverDisplay = ref('none')
+const isPopoverShow = ref(false)
 
-let inTimer: ReturnType<typeof setTimeout> | undefined;
+let inTimer: ReturnType<typeof setTimeout> | undefined
 
 // 显示气泡框
 const show = () => {
-  popoverDisplay.value = '';
-  isPopoverShow.value = true;
-};
+  popoverDisplay.value = ''
+  isPopoverShow.value = true
+}
 
 // 隐藏气泡框
 const hide = () => {
-  isPopoverShow.value = false;
+  isPopoverShow.value = false
   setTimeout(() => {
-    popoverDisplay.value = 'none';
-  }, 300);
-};
+    popoverDisplay.value = 'none'
+  }, 300)
+}
 
 // 鼠标悬停事件
 const handleMouseEnter = () => {
   if (props.trigger === 'hover') {
     inTimer = setTimeout(() => {
-      show();
-    }, 100);
+      show()
+    }, 100)
   }
-};
+}
 
 const handleMouseLeave = () => {
   if (props.trigger === 'hover') {
-    clearTimeout(inTimer);
-    hide();
+    clearTimeout(inTimer)
+    hide()
   }
-};
+}
 
 // 点击事件
 const handleClick = () => {
   if (props.trigger === 'click') {
     if (isPopoverShow.value) {
-      hide();
+      hide()
     } else {
-      show();
+      show()
     }
   }
-};
+}
 
 // 点击空白处关闭气泡
 const handleOutsideClick = (event: MouseEvent) => {
@@ -94,22 +94,22 @@ const handleOutsideClick = (event: MouseEvent) => {
     !vPopRef.value.contains(event.target as Node) &&
     !vPopCon.value.contains(event.target as Node)
   ) {
-    hide();
+    hide()
   }
-};
+}
 
 // 生命周期钩子
 onMounted(() => {
   if (props.trigger === 'click') {
-    window.addEventListener('click', handleOutsideClick);
+    window.addEventListener('click', handleOutsideClick)
   }
-});
+})
 
 onUnmounted(() => {
   if (props.trigger === 'click') {
-    window.removeEventListener('click', handleOutsideClick);
+    window.removeEventListener('click', handleOutsideClick)
   }
-});
+})
 </script>
 
 <style scoped lang="less">
