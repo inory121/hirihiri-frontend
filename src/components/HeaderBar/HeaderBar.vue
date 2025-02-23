@@ -136,7 +136,7 @@
     <!-- 头部右边 -->
     <ul class="right-entry">
       <!--登录后显示的头像-->
-      <VPopover class="avatar-popover-login" v-if="userStore.isLogin">
+      <MyPopover class="avatar-popover-login" v-if="userStore.isLogin">
         <template #content>
           <div class="header-entry-large">
             <a href="#" class="nickname-item">{{ userStore.user.username }}</a>
@@ -235,7 +235,7 @@
             </div>
           </li>
         </template>
-      </VPopover>
+      </MyPopover>
       <!--未登录显示的默认头像-->
       <li v-else>
         <div class="avatar-logout" @click="userStore.showLoginWindow = !userStore.showLoginWindow">
@@ -248,58 +248,62 @@
           <svg class="icon right-icon" aria-hidden="true">
             <use xlink:href="#icon-dahuiyuanlogo"></use>
           </svg>
-          <span class="right-entry-text">大会员</span></a
-        >
+          <span class="right-entry-text">大会员</span>
+        </a>
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
           <svg class="icon right-icon" aria-hidden="true">
             <use xlink:href="#icon-xiaoxi"></use>
           </svg>
-          <span class="right-entry-text">消息</span></a
-        >
+          <span class="right-entry-text">消息</span>
+        </a>
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
           <svg class="icon right-icon" aria-hidden="true">
             <use xlink:href="#icon-dongtai"></use>
           </svg>
-          <span class="right-entry-text">动态</span></a
-        >
+          <span class="right-entry-text">动态</span>
+        </a>
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
           <svg class="icon right-icon" aria-hidden="true">
             <use xlink:href="#icon-shoucang"></use>
           </svg>
-          <span class="right-entry-text">收藏</span></a
-        >
+          <span class="right-entry-text">收藏</span>
+        </a>
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
           <svg class="icon right-icon" aria-hidden="true">
             <use xlink:href="#icon-history"></use>
           </svg>
-          <span class="right-entry-text">历史</span></a
-        >
+          <span class="right-entry-text">历史</span>
+        </a>
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
           <svg class="icon right-icon" aria-hidden="true">
             <use xlink:href="#icon-Idea"></use>
           </svg>
-          <span class="right-entry-text">创作中心</span></a
-        >
+          <span class="right-entry-text">创作中心</span>
+        </a>
       </li>
       <li>
-        <a href="#" class="right-default-entry v-popover-wrap">
+        <router-link
+          to="/platform"
+          target="_blank"
+          class="right-default-entry v-popover-wrap"
+        >
           <el-button type="primary" color="#fb7299">
             <svg class="icon" aria-hidden="true">
               <use xlink:href="#icon-upload"></use>
             </svg>
-            <span class="right-entry-text upload">投稿</span></el-button
-          >
-        </a>
+            <span class="right-entry-text upload">投稿</span>
+          </el-button>
+        </router-link>
       </li>
     </ul>
   </div>
@@ -310,7 +314,7 @@
 <script lang="ts" setup>
 import { Search } from '@element-plus/icons-vue'
 import { onMounted, ref } from 'vue'
-import VPopover from '@/components/Popover/VPopover.vue'
+import MyPopover from '@/components/MyPopover/MyPopover.vue'
 import { useUserStore } from '@/stores/userStore.ts'
 
 const userStore = useUserStore()

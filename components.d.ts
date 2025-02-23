@@ -7,7 +7,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    Carousel: typeof import('./src/components/Carousel/Carousel.vue')['default']
+    ElAside: typeof import('element-plus/es')['ElAside']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCarousel: typeof import('element-plus/es')['ElCarousel']
     ElCarouselItem: typeof import('element-plus/es')['ElCarouselItem']
@@ -19,14 +19,21 @@ declare module 'vue' {
     ElIcon: typeof import('element-plus/es')['ElIcon']
     ElInput: typeof import('element-plus/es')['ElInput']
     ElMain: typeof import('element-plus/es')['ElMain']
+    ElMenu: typeof import('element-plus/es')['ElMenu']
+    ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
+    ElMenuItemGroup: typeof import('element-plus/es')['ElMenuItemGroup']
+    ElProgress: typeof import('element-plus/es')['ElProgress']
     ElSkeleton: typeof import('element-plus/es')['ElSkeleton']
     ElSkeletonItem: typeof import('element-plus/es')['ElSkeletonItem']
-    FileUpload: typeof import('./src/components/FileUpload.vue')['default']
+    ElSubMenu: typeof import('element-plus/es')['ElSubMenu']
+    ElUpload: typeof import('element-plus/es')['ElUpload']
     HeaderBar: typeof import('./src/components/HeaderBar/HeaderBar.vue')['default']
     HeaderChannel: typeof import('./src/components/HeaderChannel/HeaderChannel.vue')['default']
+    MyPopover: typeof import('./src/components/MyPopover/MyPopover.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     VideoCard: typeof import('./src/components/VideoCard/VideoCard.vue')['default']
-    VPopover: typeof import('./src/components/Popover/VPopover.vue')['default']
+    VideoCarousel: typeof import('./src/components/VideoCarousel/VideoCarousel.vue')['default']
+    VideoUpload: typeof import('@/views/platform/upload/video/VideoUpload.vue')['default']
   }
 }

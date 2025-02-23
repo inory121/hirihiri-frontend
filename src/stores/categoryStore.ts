@@ -18,7 +18,6 @@ export const useCategoryStore = defineStore('category', {
   actions: {
     async getCategory() {
       const res = await get<CategoryApiResponse>('/category/get/all')
-      // const res = await get<CategoryApiResponse>('/video-service/category/get/all')
       this.mcNames = res.data.map((item) => item.mcName)
       this.scNames = res.data.reduce((acc, item) => {
         // 提取 scList 中的所有 scName

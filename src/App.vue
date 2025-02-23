@@ -1,10 +1,8 @@
 <template>
-  <HomePage />
+  <router-view> </router-view>
 </template>
 
-<script setup lang="ts">
-import HomePage from '@/views/HomePage.vue'
-</script>
+<script setup lang="ts"></script>
 
 <style>
 * {
@@ -14,6 +12,7 @@ import HomePage from '@/views/HomePage.vue'
 }
 
 body {
+  height: 100%;
   min-width: 1100px;
 }
 

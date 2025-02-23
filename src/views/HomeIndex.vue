@@ -9,7 +9,7 @@
     <main>
       <!-- 推荐 -->
       <div class="recommended-container">
-        <Carousel />
+        <VideoCarousel />
         <!-- 视频卡片 -->
         <div
           class="video-card-container"
@@ -70,17 +70,15 @@
       </div>
     </main>
   </div>
-  <FileUpload />
 </template>
 
 <script lang="ts" setup>
 import HeaderBar from '@/components/HeaderBar/HeaderBar.vue'
 import HeaderChannel from '@/components/HeaderChannel/HeaderChannel.vue'
-import Carousel from '@/components/Carousel/Carousel.vue'
+import VideoCarousel from '@/components/VideoCarousel/VideoCarousel.vue'
 import type { Video } from '@/types/api.ts'
 import { useVideoStore } from '@/stores/videoStore.ts'
 import { onMounted, ref } from 'vue'
-import FileUpload from '@/components/FileUpload.vue'
 
 const videoStore = useVideoStore()
 const loading = ref(true)

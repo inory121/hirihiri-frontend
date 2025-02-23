@@ -20,7 +20,7 @@
     </div>
     <div class="right-channel-container">
       <div class="channel-items__left">
-        <VPopover
+        <MyPopover
           v-for="(mcName, index) in categoryStore.visibleItems"
           :key="index"
           class="channel-link"
@@ -40,7 +40,7 @@
               </div>
             </div>
           </template>
-        </VPopover>
+        </MyPopover>
 
         <a href="#" class="channel-link">VLOG</a>
         <a href="#" class="channel-link">更多</a>
@@ -90,7 +90,7 @@
 <script lang="ts" setup>
 import { onMounted, onUnmounted } from 'vue'
 import { useCategoryStore } from '@/stores/categoryStore.ts'
-import VPopover from '@/components/Popover/VPopover.vue'
+import MyPopover from '@/components/MyPopover/MyPopover.vue'
 
 // 计算每个元素的 placement
 const getPopoverPlacement = (index: number) => {
