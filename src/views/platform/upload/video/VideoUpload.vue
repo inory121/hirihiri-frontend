@@ -1,4 +1,3 @@
-<!-- VideoUpload.vue -->
 <template>
   <div class="file-upload">
     <div class="file-upload-wrap">
@@ -8,14 +7,31 @@
       <div class="upload-text">拖拽到此处也可上传</div>
       <el-button type="primary" class="upload-btn" @click="triggerFileInput"> 开始上传</el-button>
       <input
-        accept=".mp4,.flv,.avi,.wmv,.mov,.webm,.mpeg4,.ts,.mpg,.rm,.rmvb,.mkv,.m4v"
+        accept=".mp4,.webm"
         ref="fileInput"
         type="file"
         @change="handleFileSelect"
         style="display: none"
       />
+      <div class="upload-audit-progress">
+        <span>当前审核队列</span>
+        <span class="tag">龟速</span>
+      </div>
     </div>
   </div>
+  <div class="footer-item">
+    <span class="item-list">禁止发布的视频内容</span>
+    <span class="item-list">视频大小</span>
+    <span class="item-list">视频格式</span>
+    <span class="item-list">视频码率</span>
+  </div>
+  <div class="footer-item">
+    <span class="item-list"
+      >上传视频，即表示您已同意 <a href="#">HiriHiri使用协议</a> 与
+      <a href="#">HiriHiri社区公约</a> ，请勿上传色情，反动等违法视频。</span
+    >
+  </div>
+
 </template>
 
 <script setup lang="ts">
@@ -27,7 +43,6 @@ import { ElMessage } from 'element-plus'
 
 const uploadStore = useUploadStore()
 const fileInput = ref<HTMLInputElement | null>(null)
-// const uploadId = ref('')
 
 const UPLOAD_CONFIG = {
   CHUNK_SIZE: 10 * 1024 * 1024, // 10MB
@@ -89,20 +104,7 @@ const startUpload = async () => {
       ),
     )
   }
-
   await Promise.all(queue)
-  // if (uploadStore.progress == 100) {
-  //   console.log(222)
-  //   post<BaseResponse>('/upload/complete', null, {
-  //     params: { uploadId: uploadId.value, fileName: uploadStore.file?.name },
-  //   }).then((res) => {
-  //     if (res.code == 200) {
-  //       ElMessage.success(res.message)
-  //     } else if (res.code == 500) {
-  //       ElMessage.error(res.message)
-  //     }
-  //   })
-  // }
 }
 
 // 文件选择处理
@@ -147,7 +149,35 @@ const handleFileSelect = (e: Event) => {
     .upload-btn {
       width: 200px;
       height: 44px;
+      margin-bottom: 20px;
     }
+
+    .upload-audit-progress {
+      font-size: 13px;
+      margin: 0 auto;
+
+      .tag {
+        background: rgb(228, 31, 31);
+        border-radius: 2px;
+        margin-left: 8px;
+        padding: 2px 8px;
+        color: #fff;
+      }
+    }
+  }
+}
+
+.footer-item {
+  font-size: 12px;
+  text-align: center;
+  margin-top: 20px;
+  color: #99a2aa;
+
+  .item-list {
+    margin: 0 10px;
+  }
+  a {
+    color: #409eff;
   }
 }
 </style>

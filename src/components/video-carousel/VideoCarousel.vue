@@ -68,6 +68,6 @@ onMounted(() => {
 }
 
 :deep(.el-carousel__indicators.el-carousel__indicators--horizontal) {
-  min-width: 266px;
+  min-width: 304px;
 }
 </style>

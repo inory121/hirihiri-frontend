@@ -292,18 +292,14 @@
         </a>
       </li>
       <li>
-        <router-link
-          to="/platform"
-          target="_blank"
-          class="right-default-entry v-popover-wrap"
-        >
+        <div @click="handleUploadClick" class="right-default-entry v-popover-wrap">
           <el-button type="primary" color="#fb7299">
             <svg class="icon" aria-hidden="true">
               <use xlink:href="#icon-upload"></use>
             </svg>
             <span class="right-entry-text upload">投稿</span>
           </el-button>
-        </router-link>
+        </div>
       </li>
     </ul>
   </div>
@@ -314,11 +310,23 @@
 <script lang="ts" setup>
 import { Search } from '@element-plus/icons-vue'
 import { onMounted, ref } from 'vue'
-import MyPopover from '@/components/MyPopover/MyPopover.vue'
+import MyPopover from '@/components/my-popover/MyPopover.vue'
 import { useUserStore } from '@/stores/userStore.ts'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const userStore = useUserStore()
 const input = ref('')
+const handleUploadClick = () => {
+  if (!userStore.isLogin) {
+    userStore.showLoginWindow = true
+    return
+  }
+  // 获取路由的完整路径
+  const route = router.resolve({ path: '/platform/upload' })
+  // 新标签页打开
+  window.open(route.href, '_blank')
+}
 onMounted(() => {
   userStore.setLoginState()
   userStore.getUserInfo()
@@ -575,7 +583,7 @@ onMounted(() => {
 
       .vip-item {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         justify-content: center;
         margin: 4px 0;
 
@@ -590,7 +598,8 @@ onMounted(() => {
         }
 
         .level-max {
-          display: block;
+          display: flex;
+          align-items: center;
           width: 40px;
           height: 14px;
           padding-left: 5px;

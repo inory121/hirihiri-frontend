@@ -73,6 +73,7 @@ const props = defineProps(['count', 'loading'])
     width: 100%;
     height: 100%;
     border-radius: 6px;
+    aspect-ratio: 16/9;
   }
 
   .video-card__info {

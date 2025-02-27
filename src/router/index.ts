@@ -5,39 +5,83 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'index',
       component: () => import('@/views/HomeIndex.vue'),
     },
     {
       path: '/platform',
-      name: 'platform',
       component: () => import('@/views/platform/PlatformIndex.vue'),
       redirect: '/platform/home',
       children: [
         {
           path: 'home',
-          name: 'home',
           component: () => import('@/views/platform/home/PlatformHome.vue'),
         },
         {
           path: 'upload',
-          name: 'upload',
           component: () => import('@/views/platform/upload/UploadIndex.vue'),
+          redirect: '/platform/upload/video',
           children: [
             {
               path: 'video',
-              name: 'video',
               component: () => import('@/views/platform/upload/video/VideoUpload.vue'),
             },
             {
               path: 'article',
-              name: 'article',
               component: () => import('@/views/platform/upload/article/ArticleUpload.vue'),
             },
             {
               path: 'audio',
-              name: 'audio',
               component: () => import('@/views/platform/upload/audio/AudioUpload.vue'),
+            },
+          ],
+        },
+        {
+          path: 'upload-manager',
+          component: () => import('@/views/platform/upload-manager/article/ArticleManager.vue'),
+          redirect: '/platform/upload-manager/article',
+          children: [
+            {
+              path: 'article',
+              component: () => import('@/views/platform/upload-manager/article/ArticleManager.vue'),
+            },
+          ],
+        },
+        {
+          path: 'upload-manager/appeal',
+          component: () => import('@/views/platform/upload-manager/appeal/AppealManager.vue'),
+        },
+        {
+          path: 'upload-manager/audience-zimu',
+          component: () =>
+            import('@/views/platform/upload-manager/audience-zimu/AudienceZimuManager.vue'),
+        },
+        {
+          path: 'data-up/video',
+          component: () => import('@/views/platform/data-up/DataUpVideo.vue'),
+        },
+        {
+          path: 'fans/medal',
+          component: () => import('@/views/platform/fans/FansMedal.vue'),
+        },
+        {
+          path: 'comment',
+          component: () => import('@/views/platform/comment/article/CommentArticle.vue'),
+          redirect: '/platform/comment/article',
+          children: [
+            {
+              path: 'article',
+              component: () => import('@/views/platform/comment/article/CommentArticle.vue'),
+            },
+          ],
+        },
+        {
+          path: 'inter-active',
+          component: () => import('@/views/platform/inter-active/Danmu/InterActiveDanmu.vue'),
+          redirect: '/platform/inter-active/article',
+          children: [
+            {
+              path: 'danmu',
+              component: () => import('@/views/platform/inter-active/Danmu/InterActiveDanmu.vue'),
             },
           ],
         },

@@ -90,7 +90,7 @@
 <script lang="ts" setup>
 import { onMounted, onUnmounted } from 'vue'
 import { useCategoryStore } from '@/stores/categoryStore.ts'
-import MyPopover from '@/components/MyPopover/MyPopover.vue'
+import MyPopover from '@/components/my-popover/MyPopover.vue'
 
 // 计算每个元素的 placement
 const getPopoverPlacement = (index: number) => {

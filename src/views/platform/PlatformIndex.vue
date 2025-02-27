@@ -70,11 +70,12 @@
   <el-container style="height: 100%">
     <el-aside width="200">
       <el-menu
-        default-active="0"
+        :default-active="$route.path"
         class="el-menu-vertical-demo"
         :collapse="false"
         @open="handleOpen"
         @close="handleClose"
+        :router="true"
       >
         <div class="nav-upload-btn">
           <router-link to="/platform/upload">
@@ -91,7 +92,7 @@
             </el-button>
           </router-link>
         </div>
-        <el-menu-item index="0">
+        <el-menu-item index="/platform/home">
           <template #title>
             <el-icon>
               <House />
@@ -99,8 +100,7 @@
             <span>首页</span>
           </template>
         </el-menu-item>
-
-        <el-sub-menu index="1">
+        <el-sub-menu index="/platform/upload-manager/article">
           <template #title>
             <el-icon>
               <Document />
@@ -108,12 +108,12 @@
             <span>内容管理</span>
           </template>
           <el-menu-item-group>
-            <el-menu-item index="1-1">稿件管理</el-menu-item>
-            <el-menu-item index="1-2">申诉管理</el-menu-item>
-            <el-menu-item index="1-3">字幕管理</el-menu-item>
+            <el-menu-item index="/platform/upload-manager/article">稿件管理</el-menu-item>
+            <el-menu-item index="/platform/upload-manager/appeal">申诉管理</el-menu-item>
+            <el-menu-item index="/platform/upload-manager/audience-zimu">字幕管理</el-menu-item>
           </el-menu-item-group>
         </el-sub-menu>
-        <el-menu-item index="2">
+        <el-menu-item index="/platform/data-up/video">
           <template #title>
             <el-icon>
               <DataAnalysis />
@@ -121,7 +121,7 @@
             <span>数据中心</span>
           </template>
         </el-menu-item>
-        <el-menu-item index="3">
+        <el-menu-item index="/platform/fans/medal">
           <template #title>
             <el-icon>
               <User />
@@ -129,7 +129,7 @@
             <span>粉丝管理</span>
           </template>
         </el-menu-item>
-        <el-sub-menu index="4">
+        <el-sub-menu index="/platform/comment/article">
           <template #title>
             <el-icon>
               <ChatDotRound />
@@ -137,8 +137,8 @@
             <span>互动管理</span>
           </template>
           <el-menu-item-group>
-            <el-menu-item index="4-1">评论管理</el-menu-item>
-            <el-menu-item index="4-2">弹幕管理</el-menu-item>
+            <el-menu-item index="/platform/comment/article">评论管理</el-menu-item>
+            <el-menu-item index="/platform/inter-active/danmu">弹幕管理</el-menu-item>
           </el-menu-item-group>
         </el-sub-menu>
       </el-menu>
@@ -150,15 +150,13 @@
 </template>
 
 <script lang="ts" setup>
-import MyPopover from '@/components/MyPopover/MyPopover.vue'
+import MyPopover from '@/components/my-popover/MyPopover.vue'
 import { useUserStore } from '@/stores/userStore.ts'
 
 const userStore = useUserStore()
 const handleOpen = (key: string, keyPath: string[]) => {
-  console.log(key, keyPath)
 }
 const handleClose = (key: string, keyPath: string[]) => {
-  console.log(key, keyPath)
 }
 </script>
 
@@ -266,7 +264,8 @@ const handleClose = (key: string, keyPath: string[]) => {
     }
   }
 }
-.main-content{
+
+.main-content {
   background: #f6f7f8;
 }
 </style>
