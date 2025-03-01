@@ -115,7 +115,6 @@ const handleResize = () => {
 onMounted(() => {
   window.addEventListener('resize', handleResize)
   handleResize() // 初始化
-  categoryStore.getCategory()
 })
 
 onUnmounted(() => {

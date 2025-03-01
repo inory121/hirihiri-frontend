@@ -5,7 +5,8 @@ import type { Video, VideoApiResponse } from '@/types/api.ts'
 export const useVideoStore = defineStore('video', {
   state: () => {
     return {
-      videoList: [] as Video[],
+      videoList: [] as Video[],// 推荐视频列表
+      loading: true,// 骨架屏显示
     }
   },
   getters: {},

@@ -1,6 +1,11 @@
 <template>
-  <!--登录弹框-->
-  <div class="hiri-login-mask" v-if="userStore.showLoginWindow">
+  <el-dialog
+    v-model="userStore.showLoginWindow"
+    width="820"
+    style="min-height: 430px"
+    :show-close="false"
+    :align-center="true"
+  >
     <div class="hiri-login-wrap">
       <!--关闭按钮-->
       <div class="close-btn" @click="userStore.showLoginWindow = !userStore.showLoginWindow">
@@ -84,7 +89,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </el-dialog>
 
   <!-- 头部 -->
   <div class="hiri-header__bar">
@@ -309,7 +314,7 @@
 
 <script lang="ts" setup>
 import { Search } from '@element-plus/icons-vue'
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import MyPopover from '@/components/my-popover/MyPopover.vue'
 import { useUserStore } from '@/stores/userStore.ts'
 import { useRouter } from 'vue-router'
@@ -327,130 +332,110 @@ const handleUploadClick = () => {
   // 新标签页打开
   window.open(route.href, '_blank')
 }
-onMounted(() => {
-  userStore.setLoginState()
-  userStore.getUserInfo()
-})
 </script>
 
 <style lang="less" scoped>
-//登录弹框
-.hiri-login-mask {
-  position: fixed;
-  z-index: 999;
-  width: 100%;
-  height: 100%;
+.hiri-login-wrap {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  left: 0;
-  top: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  justify-content: space-around;
+  padding: 20px 49px 13px 66px;
+  position: relative;
 
-  .hiri-login-wrap {
-    width: 820px;
-    min-height: 430px;
-    border-radius: 8px;
-    background-color: #fff;
+  .close-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+  }
+
+  .login-scan-wp {
     display: flex;
-    justify-content: space-around;
-    padding: 52px 65px 29px 92px;
-    position: relative;
+    flex-direction: column;
+    align-items: center;
 
-    .close-btn {
-      position: absolute;
-      right: 20px;
-      top: 20px;
-      width: 32px;
-      height: 32px;
-      cursor: pointer;
+    .login-scan-title {
+      font-size: 18px;
     }
 
-    .login-scan-wp {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    .login-qrcode {
+      margin-top: 26px;
+    }
 
-      .login-scan-title {
-        font-size: 18px;
+    .login-scan-desc {
+      margin-top: 18px;
+      font-size: 13px;
+      text-align: center;
+    }
+  }
+
+  .login-right-wp {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .login-tab-wp {
+      font-size: 18px;
+    }
+
+    .login-pwd-wp {
+      margin-top: 18px;
+
+      .el-form-item {
+        align-items: center;
       }
 
-      .login-qrcode {
-        margin-top: 26px;
+      .register,
+      .login {
+        width: 194px;
+        height: 40px;
+        border-radius: 8px;
+        border: 1px solid #e3e5e7;
       }
+    }
 
-      .login-scan-desc {
-        margin-top: 18px;
-        font-size: 13px;
+    .login-sns-wp {
+      margin-top: 20px;
+      font-size: 13px;
+      color: #9499a0;
+
+      .login-sns-title {
         text-align: center;
       }
-    }
 
-    .login-right-wp {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      .login-sns-content {
+        display: flex;
+        margin-top: 10px;
 
-      .login-tab-wp {
-        font-size: 18px;
-      }
-
-      .login-pwd-wp {
-        margin-top: 18px;
-
-        .el-form-item {
-          align-items: center;
-        }
-
-        .register,
-        .login {
-          width: 194px;
-          height: 40px;
-          border-radius: 8px;
-          border: 1px solid #e3e5e7;
-        }
-      }
-
-      .login-sns-wp {
-        margin-top: 20px;
-        font-size: 13px;
-        color: #9499a0;
-
-        .login-sns-title {
-          text-align: center;
-        }
-
-        .login-sns-content {
+        .login-sns-item {
           display: flex;
-          margin-top: 10px;
+          align-items: center;
+          margin-right: 30px;
+          cursor: pointer;
 
-          .login-sns-item {
-            display: flex;
-            align-items: center;
-            margin-right: 30px;
-            cursor: pointer;
-
-            img {
-              width: 28px;
-              height: 28px;
-              margin-right: 8px;
-            }
+          img {
+            width: 28px;
+            height: 28px;
+            margin-right: 8px;
           }
         }
       }
+    }
 
-      .login-agreement-wp {
-        position: absolute;
-        font-size: 13px;
-        color: #999;
-        text-align: center;
-        line-height: 19px;
-        bottom: 28px;
-        left: 32%;
-      }
+    .login-agreement-wp {
+      position: absolute;
+      font-size: 13px;
+      color: #999;
+      text-align: center;
+      line-height: 19px;
+      bottom: -60px;
+      left: 32%;
     }
   }
 }
+
+//}
 
 // 头部
 .hiri-header__bar {
@@ -699,9 +684,6 @@ onMounted(() => {
 
           &:hover {
             background-color: #e3e5e7;
-          }
-
-          .link-title {
           }
         }
       }

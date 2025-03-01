@@ -8,10 +8,11 @@ export const useUploadStore = defineStore('upload', {
       isShow: true, //true为展示投稿界面，false为展示稿件详情页
       file: null as File | null, // 上传的文件
       progress: 0, // 上传进度条
-      uploadId: '',
-      loading: false,
-      coverFile: null as File | null,
-      coverUrlBase64: '',
+      uploadId: '', // 上传id
+      loading: false, // 上传按钮加载状态
+      coverFile: null as File | null, // 封面文件
+      coverUrlBase64: '', // 裁剪后的封面
+      originalCover: '', // 原始封面字段
       VideoInfo: {
         auth: 0,
         coverUrl: '',
@@ -35,37 +36,70 @@ export const useUploadStore = defineStore('upload', {
   actions: {
     changeIsShow() {
       this.isShow = !this.isShow
+      this.resetFormState()
+    },
+    resetFormState() {
+      this.VideoInfo = {
+        ...this.VideoInfo, // 保留不需要重置的字段
+        tags: [],
+        title: '',
+        mcId: '',
+        scId: '',
+        descr: '',
+        type: 1,
+      }
+      this.coverFile = null
+      this.coverUrlBase64 = ''
     },
     confirmUpload() {
+      if (this.progress < 100) {
+        ElMessage.error('等待分片上传完成')
+        return
+      }
+      if (!this.coverFile) {
+        ElMessage.error('请上传封面')
+        return
+      }
+      if (this.VideoInfo.title.trim().length === 0) {
+        ElMessage.error('请填写标题')
+        return
+      }
+      if (!this.VideoInfo.mcId || !this.VideoInfo.scId) {
+        ElMessage.error('请选择分区')
+        return
+      }
+      if (this.VideoInfo.tags.length === 0) {
+        ElMessage.error('请填写标签')
+        return
+      }
       this.loading = true
-      if (this.progress == 100) {
+      if (this.progress === 100) {
         const formData = new FormData()
-        if (this.coverFile) {
-          formData.append('coverFile', this.coverFile)
-        }
-        const newTags = this.VideoInfo.tags.length > 0 ? this.VideoInfo.tags.join('\n') : ''
+        formData.append('coverFile', this.coverFile!)
         const newVideoInfo = {
           ...this.VideoInfo, // 浅拷贝对象
-          tags: newTags, // 替换 tags
+          tags: this.VideoInfo.tags.join('\n'), // 替换 tags
         }
         formData.append('videoInfo', JSON.stringify(newVideoInfo))
+        formData.append('uploadId', this.uploadId)
+        formData.append('fileName', this.file!.name)
         post<BaseResponse>('/upload/complete', formData, {
-          params: {
-            uploadId: this.uploadId,
-            fileName: this.file?.name,
-          },
           headers: {
             'Content-Type': 'multipart/form-data',
           },
-        }).then((res) => {
-          if (res.code == 200) {
-            this.loading = false
-            this.VideoInfo.tags = []
-            ElMessage.success(res.message)
-          } else if (res.code == 500) {
-            ElMessage.error(res.message)
-          }
         })
+          .then((res) => {
+            if (res.code === 200) {
+              ElMessage.success(res.message)
+              this.resetFormState()
+            } else if (res.code === 500) {
+              ElMessage.error(res.message)
+            }
+          })
+          .finally(() => {
+            this.loading = false
+            this.changeIsShow()
+          })
       }
     },
   },

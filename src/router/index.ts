@@ -6,11 +6,13 @@ const router = createRouter({
     {
       path: '/',
       component: () => import('@/views/HomeIndex.vue'),
+      meta: { requestAuth: false }
     },
     {
       path: '/platform',
       component: () => import('@/views/platform/PlatformIndex.vue'),
       redirect: '/platform/home',
+      meta: { requestAuth: true },
       children: [
         {
           path: 'home',
@@ -89,5 +91,11 @@ const router = createRouter({
     },
   ],
 })
-
+router.beforeEach((to, from, next) => {
+  if (to.meta.requestAuth && !localStorage.getItem('hiri_token')) {
+    next({ path: '/' })
+  } else {
+    next()
+  }
+})
 export default router

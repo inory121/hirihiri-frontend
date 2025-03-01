@@ -9,7 +9,7 @@
     <main>
       <!-- 推荐 -->
       <div class="recommended-container">
-        <VideoCarousel />
+        <VideoCarousel :loading="videoStore.loading"/>
         <!-- 视频卡片 -->
         <VideoCard
           :count="
@@ -17,7 +17,7 @@
               ? videoStore.videoList
               : Array.from({ length: 11 }, () => ({}) as Video)
           "
-          :loading="loading"
+          :loading="videoStore.loading"
         />
       </div>
     </main>
@@ -26,21 +26,10 @@
 
 <script lang="ts" setup>
 import { useVideoStore } from '@/stores/videoStore.ts'
-import { onMounted, ref } from 'vue'
 import type { Video } from '@/types/api.ts'
 
 const videoStore = useVideoStore()
-const loading = ref(true)
-onMounted(() => {
-  videoStore
-    .getRecommendVideo()
-    .then(() => {
-      loading.value = false
-    })
-    .catch(() => {
-      loading.value = true
-    })
-})
+
 </script>
 <style scoped lang="less">
 // 推荐

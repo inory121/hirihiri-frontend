@@ -10,7 +10,7 @@
       </router-link>
     </div>
     <div class="right-block">
-      <MyPopover class="avatar-popover-login">
+      <MyPopover class="avatar-popover-login" v-if="userStore.isLogin">
         <template #content>
           <div class="avatar-popover-container">
             <a href="#" class="popover-link-item">
@@ -57,6 +57,9 @@
           </a>
         </template>
       </MyPopover>
+      <div v-else>
+        <span>登录</span>
+      </div>
       <div class="tips">成为UP主的第3126天</div>
       <el-divider direction="vertical" />
       <a href="#">
@@ -67,14 +70,12 @@
     </div>
   </div>
 
-  <el-container style="height: 100%">
+  <el-container style="height: 100%; padding-top: 60px">
     <el-aside width="200">
       <el-menu
         :default-active="$route.path"
         class="el-menu-vertical-demo"
         :collapse="false"
-        @open="handleOpen"
-        @close="handleClose"
         :router="true"
       >
         <div class="nav-upload-btn">
@@ -152,31 +153,27 @@
 <script lang="ts" setup>
 import MyPopover from '@/components/my-popover/MyPopover.vue'
 import { useUserStore } from '@/stores/userStore.ts'
-
 const userStore = useUserStore()
-const handleOpen = (key: string, keyPath: string[]) => {
-}
-const handleClose = (key: string, keyPath: string[]) => {
-}
+
 </script>
 
 <style>
-.el-menu-vertical-demo:not(.el-menu--collapse) {
-  width: 200px;
+.nav-upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 32px 17px 32px;
 
-  .nav-upload-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px 32px 17px 32px;
-
-    .upload-text {
-      margin-left: 8px;
-    }
+  .upload-text {
+    margin-left: 8px;
   }
 }
 
 .header {
+  position: fixed;
+  top: 0;
+  z-index: 2;
+  width: 100%;
   display: flex;
   justify-content: space-between;
   padding: 0 100px 0 32px;

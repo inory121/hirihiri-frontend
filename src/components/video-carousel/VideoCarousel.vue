@@ -1,18 +1,43 @@
 <template>
   <!-- 轮播图 -->
   <div class="carousel">
-    <el-carousel :autoplay="false" @change="handleCarouselChange">
-      <el-carousel-item v-for="(item, index) in videoStore.videoList" :key="index">
-        <img class="carousel-img" :src="item.coverUrl" alt="" />
-      </el-carousel-item>
-    </el-carousel>
-    <!-- 当前标题 -->
-    <a href="#" class="carousel-title">{{ currentTitle }}</a>
+    <el-skeleton
+      :loading="props.loading"
+      animated
+      :throttle="{ leading: 500, trailing: 500, initVal: true }"
+    >
+      <!-- 骨架屏内容 -->
+      <template #template>
+        <a href="#">
+          <el-skeleton-item
+            variant="image"
+            style="padding-top: 65%; border-radius: 6px"
+          ></el-skeleton-item>
+        </a>
+        <a href="#">
+          <el-skeleton-item
+            variant="text"
+            style="height: 25px; margin-top: 10px"
+          ></el-skeleton-item>
+        </a>
+      </template>
+      <template #default>
+        <!-- 真实数据内容 -->
+        <el-carousel :autoplay="false" @change="handleCarouselChange">
+          <el-carousel-item v-for="(item, index) in videoStore.videoList" :key="index">
+            <img class="carousel-img" :src="item.coverUrl" alt="" />
+          </el-carousel-item>
+        </el-carousel>
+        <!-- 当前标题 -->
+        <a href="#" class="carousel-title">{{ currentTitle }}</a>
+      </template>
+    </el-skeleton>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, watch } from 'vue'
+const props = defineProps(['loading'])
+import {  ref, watch } from 'vue'
 import { useVideoStore } from '@/stores/videoStore.ts'
 
 const videoStore = useVideoStore()
@@ -31,9 +56,7 @@ watch(
 const handleCarouselChange = (current: number) => {
   currentIndex.value = current // 更新当前索引
 }
-onMounted(() => {
-  videoStore.getRecommendVideo()
-})
+
 </script>
 
 <style lang="less" scoped>
@@ -45,26 +68,34 @@ onMounted(() => {
   .carousel-img {
     width: 100%;
     height: 100%;
-    border-radius: 6px;
+    border-radius: 6px 6px 0 0;
+    object-fit: cover;
   }
 
   .carousel-title {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0 0 6px 6px;
     display: flex;
     align-items: center;
     padding-left: 10px;
-    height: 10%;
+    height: 8%;
     font-size: 18px;
     color: #333;
     transition: color 0.2s linear;
+
     &:hover {
       color: #ff6699 !important;
     }
   }
 }
 
+:deep(.el-carousel.el-carousel--horizontal) {
+  height: 75%;
+}
+
 :deep(.el-carousel__container) {
   height: 100%;
-  aspect-ratio: 16 / 10;
+  //aspect-ratio: 16 / 10;
 }
 
 :deep(.el-carousel__indicators.el-carousel__indicators--horizontal) {

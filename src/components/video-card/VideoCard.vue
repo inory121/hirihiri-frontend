@@ -18,7 +18,7 @@
         <a href="#">
           <el-skeleton-item
             variant="image"
-            style="padding-top: 50%; border-radius: 6px"
+            style="padding-top: 55%; border-radius: 6px"
           ></el-skeleton-item>
         </a>
         <a href="#">
@@ -74,6 +74,7 @@ const props = defineProps(['count', 'loading'])
     height: 100%;
     border-radius: 6px;
     aspect-ratio: 16/9;
+    object-fit: cover;
   }
 
   .video-card__info {
