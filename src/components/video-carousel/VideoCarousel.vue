@@ -24,7 +24,7 @@
       <template #default>
         <!-- 真实数据内容 -->
         <el-carousel :autoplay="false" @change="handleCarouselChange">
-          <el-carousel-item v-for="(item, index) in videoStore.videoList" :key="index">
+          <el-carousel-item v-for="(item, index) in videoStore.videoList.slice(0,7)" :key="index">
             <img class="carousel-img" :src="item.coverUrl" alt="" />
           </el-carousel-item>
         </el-carousel>

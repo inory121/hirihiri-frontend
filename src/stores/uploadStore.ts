@@ -13,6 +13,8 @@ export const useUploadStore = defineStore('upload', {
       coverFile: null as File | null, // 封面文件
       coverUrlBase64: '', // 裁剪后的封面
       originalCover: '', // 原始封面字段
+      selectCoverUrlBase64: '', // 手动上传裁剪后的封面
+      selectOriginalCover: '', // 手动上传原始封面字段
       VideoInfo: {
         auth: 0,
         coverUrl: '',
