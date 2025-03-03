@@ -3,16 +3,18 @@
   <div class="index">
     <header>
       <HeaderBar />
+      <!-- 头部banner -->
+      <div class="hiri-header__banner"></div>
       <HeaderChannel />
     </header>
     <!-- 主体 -->
     <main>
       <!-- 推荐 -->
       <div class="recommended-container">
-        <VideoCarousel :loading="videoStore.loading"/>
+        <VideoCarousel :loading="videoStore.loading" />
         <!-- 视频卡片 -->
         <VideoCard
-          :count="
+          :data="
             videoStore.videoList.length > 0
               ? videoStore.videoList
               : Array.from({ length: 11 }, () => ({}) as Video)
@@ -29,9 +31,16 @@ import { useVideoStore } from '@/stores/videoStore.ts'
 import type { Video } from '@/types/api.ts'
 
 const videoStore = useVideoStore()
-
 </script>
 <style scoped lang="less">
+// banner
+.hiri-header__banner {
+  min-height: 155px;
+  height: 9.375vw;
+  background: url('@/assets/img/banner.png');
+  background-size: cover;
+}
+
 // 推荐
 .recommended-container {
   display: grid;

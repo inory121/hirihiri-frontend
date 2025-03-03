@@ -1,13 +1,6 @@
 <template>
   <!-- 视频卡片 -->
-  <!--  <div-->
-  <!--    class="video-card-container"-->
-  <!--    v-for="(item, index) in videoStore.videoList.length > 0-->
-  <!--      ? videoStore.videoList-->
-  <!--      : Array.from({ length: 21 }, () => ({}) as Video)"-->
-  <!--    :key="index"-->
-  <!--  >-->
-  <div class="video-card-container" v-for="(item, index) in props.count" :key="index">
+  <div class="video-card-container" v-for="(item, index) in props.data" :key="index">
     <el-skeleton
       :loading="props.loading"
       animated
@@ -36,22 +29,24 @@
         <!-- 真实数据内容 -->
         <div class="video-card">
           <div class="video-card__wrap">
-            <a href="#">
+            <router-link :to="`/video/${item.vid}`" target="_blank">
               <div class="video-card__image">
                 <img :src="item.coverUrl" alt="" class="video-card-img" />
               </div>
-            </a>
+            </router-link>
             <div class="video-card__info">
               <h3 class="video-card__info--title">
-                <a href="#">{{ item.title }}</a>
+                <router-link :to="`/video/${item.vid}`" target="_blank"
+                  >{{ item.title }}
+                </router-link>
               </h3>
               <div class="video-card__info--bottom">
-                <a href="#">
+                <router-link :to="`/space/${item.uid}`" target="_blank">
                   up
                   <span>{{ item.uid }}</span
                   >&nbsp;
                   <span>{{ item.pubDate }}</span>
-                </a>
+                </router-link>
               </div>
             </div>
           </div>
@@ -62,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps(['count', 'loading'])
+const props = defineProps(['data', 'loading'])
 </script>
 
 <style scoped lang="less">

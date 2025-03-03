@@ -47,12 +47,7 @@
               注册
             </el-button>
             <!--这里必须用箭头函数,因为方法返回的是Promise,直接写会出现奇怪问题-->
-            <el-button
-              class="login"
-              color="#00aeec"
-              style="color: #fff"
-              @click="() => userStore.login()"
-            >
+            <el-button class="login" color="#00aeec" @click="() => userStore.login()">
               登录
             </el-button>
           </el-form>
@@ -96,37 +91,38 @@
     <!-- 头部左边 -->
     <ul class="left-entry">
       <li>
-        <a href="#" class="entry-title">
-          <el-icon class="left-icon">
+        <a href="/" class="entry-title">
+          <el-icon class="left-icon left-entry-text">
             <SwitchFilled />
           </el-icon>
-          <span>首页</span>
+          <span class="left-entry-text">首页</span>
         </a>
       </li>
       <li>
-        <a href="#" class="left-default-entry"><span>番剧</span></a>
+        <a href="#" class="left-default-entry"><span class="left-entry-text">番剧</span></a>
       </li>
       <li>
-        <a href="#" class="left-default-entry"><span>直播</span></a>
+        <a href="#" class="left-default-entry"><span class="left-entry-text">直播</span></a>
       </li>
       <li>
-        <a href="#" class="left-default-entry"><span>游戏中心</span></a>
+        <a href="#" class="left-default-entry"><span class="left-entry-text">游戏中心</span></a>
       </li>
       <li>
-        <a href="#" class="left-default-entry"><span>会员购</span></a>
+        <a href="#" class="left-default-entry"><span class="left-entry-text">会员购</span></a>
       </li>
       <li>
-        <a href="#" class="left-default-entry"><span>漫画</span></a>
+        <a href="#" class="left-default-entry"><span class="left-entry-text">漫画</span></a>
       </li>
       <li>
-        <a href="#" class="left-default-entry"><span>赛事</span></a>
+        <a href="#" class="left-default-entry"><span class="left-entry-text">赛事</span></a>
       </li>
       <li>
         <a href="#" class="entry-title">
-          <svg class="icon" aria-hidden="true">
-            <use xlink:href="#icon-download"></use>
-          </svg>
-          <span>下载客户端</span></a
+<!--          <svg class="icon" aria-hidden="true">-->
+<!--            <use xlink:href="#icon-download"></use>-->
+<!--          </svg>-->
+          <el-icon class="left-icon left-entry-text"><Download /></el-icon>
+          <span class="left-entry-text">下载客户端</span></a
         >
       </li>
     </ul>
@@ -258,41 +254,46 @@
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
-          <svg class="icon right-icon" aria-hidden="true">
-            <use xlink:href="#icon-xiaoxi"></use>
-          </svg>
+<!--          <svg class="icon right-icon" aria-hidden="true">-->
+<!--            <use xlink:href="#icon-xiaoxi"></use>-->
+<!--          </svg>-->
+          <el-icon class="right-icon"><Message /></el-icon>
           <span class="right-entry-text">消息</span>
         </a>
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
-          <svg class="icon right-icon" aria-hidden="true">
-            <use xlink:href="#icon-dongtai"></use>
-          </svg>
+<!--          <svg class="icon right-icon" aria-hidden="true">-->
+<!--            <use xlink:href="#icon-dongtai"></use>-->
+<!--          </svg>-->
+          <el-icon class="right-icon"><ChromeFilled /></el-icon>
           <span class="right-entry-text">动态</span>
         </a>
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
-          <svg class="icon right-icon" aria-hidden="true">
-            <use xlink:href="#icon-shoucang"></use>
-          </svg>
+<!--          <svg class="icon right-icon" aria-hidden="true">-->
+<!--            <use xlink:href="#icon-shoucang"></use>-->
+<!--          </svg>-->
+          <el-icon class="right-icon"><Star /></el-icon>
           <span class="right-entry-text">收藏</span>
         </a>
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
-          <svg class="icon right-icon" aria-hidden="true">
-            <use xlink:href="#icon-history"></use>
-          </svg>
+<!--          <svg class="icon right-icon" aria-hidden="true">-->
+<!--            <use xlink:href="#icon-history"></use>-->
+<!--          </svg>-->
+          <el-icon class="right-icon"><Clock /></el-icon>
           <span class="right-entry-text">历史</span>
         </a>
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
-          <svg class="icon right-icon" aria-hidden="true">
-            <use xlink:href="#icon-Idea"></use>
-          </svg>
+<!--          <svg class="icon right-icon" aria-hidden="true">-->
+<!--            <use xlink:href="#icon-Idea"></use>-->
+<!--          </svg>-->
+          <el-icon class="right-icon"><EditPen /></el-icon>
           <span class="right-entry-text">创作中心</span>
         </a>
       </li>
@@ -308,8 +309,6 @@
       </li>
     </ul>
   </div>
-  <!-- 头部banner -->
-  <div class="hiri-header__banner"></div>
 </template>
 
 <script lang="ts" setup>
@@ -319,6 +318,24 @@ import MyPopover from '@/components/my-popover/MyPopover.vue'
 import { useUserStore } from '@/stores/userStore.ts'
 import { useRouter } from 'vue-router'
 
+const { textColor,headerShadow,bgColor } = defineProps({
+  textColor: {
+    type: String,
+    default: '#fff', // 默认颜色为白色
+  },
+  headerShadow : {
+    type: String,
+    default: '', // 默认没有
+  },
+  bgColor: {
+    type: String,
+    default: 'transparent', // 默认颜色透明
+  },
+  position : {
+    type: String,
+    default: 'absolute',
+  },
+})
 const router = useRouter()
 const userStore = useUserStore()
 const input = ref('')
@@ -392,6 +409,7 @@ const handleUploadClick = () => {
         height: 40px;
         border-radius: 8px;
         border: 1px solid #e3e5e7;
+        color: #fff;
       }
     }
 
@@ -439,14 +457,16 @@ const handleUploadClick = () => {
 
 // 头部
 .hiri-header__bar {
-  position: absolute;
+  position: v-bind(position);
   top: 0;
   display: flex;
   align-items: center;
   height: 64px;
   width: 100%;
   padding: 0 24px;
-
+  box-shadow: v-bind(headerShadow);
+  background: v-bind(bgColor);
+  z-index: 1;
   // 左边
   .left-entry {
     display: flex;
@@ -456,7 +476,7 @@ const handleUploadClick = () => {
 
     .entry-title {
       .left-icon {
-        font-size: 20px;
+        font-size: 18px;
         margin-right: 6px;
       }
     }
@@ -465,10 +485,13 @@ const handleUploadClick = () => {
     .left-default-entry {
       display: flex;
       align-items: center;
-      color: #fff;
       height: 64px;
       line-height: 64px;
       font-size: 14px;
+
+      .left-entry-text {
+        color: v-bind(textColor);
+      }
     }
 
     .left-default-entry:hover {
@@ -531,10 +554,11 @@ const handleUploadClick = () => {
 
     .avatar-popover-login,
     .avatar-logout {
-      margin-right: 10px;
+      margin-right: 15px;
       width: 38px;
       height: 38px;
       border-radius: 50%;
+      margin-top: -3px;
 
       &:hover .hiri-avatar-img {
         transform: scale(2.5, 2.5) translate(-6px, 12px);
@@ -705,7 +729,7 @@ const handleUploadClick = () => {
     }
 
     .right-default-entry {
-      color: #fff;
+      color: v-bind(textColor);
       height: 64px;
       margin-right: 15px;
       font-size: 14px;
@@ -736,14 +760,6 @@ const handleUploadClick = () => {
       animation: jump 0.3s;
     }
   }
-}
-
-// banner
-.hiri-header__banner {
-  min-height: 155px;
-  height: 9.375vw;
-  background: url('@/assets/img/banner.png');
-  background-size: cover;
 }
 
 @keyframes jump {

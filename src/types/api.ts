@@ -48,7 +48,9 @@ export interface Video {
 export interface VideoApiResponse extends BaseResponse{
   data: Video[]
 }
-
+export interface OneVideoApiResponse extends BaseResponse{
+  data: Video
+}
 // User接口
 export interface User {
   auth: number

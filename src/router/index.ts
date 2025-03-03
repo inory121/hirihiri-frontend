@@ -6,7 +6,7 @@ const router = createRouter({
     {
       path: '/',
       component: () => import('@/views/HomeIndex.vue'),
-      meta: { requestAuth: false }
+      meta: { requestAuth: false },
     },
     {
       path: '/platform',
@@ -89,6 +89,21 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: '/video/:vid',
+      component: () => import('@/views/video/VideoIndex.vue'),
+      meta: { requestAuth: false },
+    },
+    {
+      path: '/404',
+      name: 'NotFound',
+      component: () => import('@/views/NotFound.vue'),
+      meta: { title: '页面不存在' } // 可选：添加元信息
+    },
+    {
+      path:'/:pathMatch(.*)*',
+      redirect: '/404'
+    }
   ],
 })
 router.beforeEach((to, from, next) => {

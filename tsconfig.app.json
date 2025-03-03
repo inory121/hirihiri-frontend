@@ -12,6 +12,7 @@
   ],
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "typeRoots": ["./node_modules/@types", "./src/types"],
     "types": [
       "element-plus/global"
     ],
