@@ -1,31 +1,48 @@
 <!DOCTYPE html>
 <html lang="">
-  <head>
+<head>
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vite App</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <!-- <script src="https://at.alicdn.com/t/c/font_4827454_r364iy9kii.js"></script> -->
-    <script src="/src/assets/js/iconfont.js"></script>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
-  <style>
+</head>
+<body>
+<div id="app"></div>
+<!-- <script src="https://at.alicdn.com/t/c/font_4827454_r364iy9kii.js"></script> -->
+<script src="/src/assets/js/iconfont.js"></script>
+<script type="module" src="/src/main.ts"></script>
+</body>
+<style>
     .icon {
-      width: 1em;
-      height: 1em;
-      vertical-align: -0.15em;
-      fill: currentColor;
-      overflow: hidden;
-      font-size: 18px;
+        width: 1em;
+        height: 1em;
+        vertical-align: -0.15em;
+        fill: currentColor;
+        overflow: hidden;
+        font-size: 18px;
     }
-    html{
-        height: 100vh;
+
+    html, body {
+        height: auto;
     }
-    #app{
-        height: 100%;
+
+    #app {
+        min-height: 100%;
+        height: auto;
     }
-    </style>
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    ul {
+        list-style-type: none;
+    }
+
+    a {
+        text-decoration: none;
+    }
+</style>
 </html>

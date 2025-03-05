@@ -7,6 +7,7 @@ import { onMounted, onBeforeMount } from 'vue'
 import { useUserStore } from '@/stores/userStore.ts'
 import { useCategoryStore } from '@/stores/categoryStore.ts'
 import { useVideoStore } from '@/stores/videoStore.ts'
+
 const userStore = useUserStore()
 const categoryStore = useCategoryStore()
 const videoStore = useVideoStore()
@@ -30,23 +31,4 @@ onMounted(async () => {
 })
 </script>
 
-<style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  height: 100%;
-  min-width: 1100px;
-}
-
-ul {
-  list-style-type: none;
-}
-
-a {
-  text-decoration: none;
-}
-</style>
+<style></style>

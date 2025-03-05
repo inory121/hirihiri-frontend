@@ -333,7 +333,7 @@ const { textColor,headerShadow,bgColor } = defineProps({
   },
   position : {
     type: String,
-    default: 'absolute',
+    default: 'fixed',
   },
 })
 const router = useRouter()

@@ -331,7 +331,7 @@ const rules = reactive<FormRules<ruleForm>>({
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
   type: [{ required: true, message: '请选择类型', trigger: 'blur' }],
   category: [{ required: true, message: '请选择分区', trigger: 'blur' }],
-  tags: [{ required: true, message: '请输入标签', trigger: 'change' }],
+  tags: [{ required: true, message: '请输入标签', trigger: 'blur' }],
 })
 const rcmTag = ref<string[]>([]) // 标签输入框的内容
 // 标签展示区的内容
