@@ -179,6 +179,7 @@ const userStore = useUserStore()
   padding: 0 100px 0 32px;
   height: 60px;
   box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.05);
+  background: #fff;
 
   .left-block {
     display: flex;

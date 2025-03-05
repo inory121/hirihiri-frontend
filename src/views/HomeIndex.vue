@@ -2,7 +2,7 @@
   <!-- 主页主体 -->
   <div class="index">
     <header>
-      <HeaderBar />
+      <HeaderBar position="absolute" />
       <!-- 头部banner -->
       <div class="hiri-header__banner"></div>
       <HeaderChannel />

@@ -93,42 +93,155 @@
       <div class="video-desc-container">
         <div class="desc-info-text">{{ videoStore.video.descr }}</div>
       </div>
-
-      <!--        <vue-danmaku-->
-      <!--          v-model:danmus="danmus"-->
-      <!--          loop-->
-      <!--          :channels="5"-->
-      <!--          class="danmaku-wrap"-->
-      <!--          :speeds="100"-->
-      <!--          :top="10"-->
-      <!--          :right="10"-->
-      <!--          :random-channel="true"-->
-      <!--        />-->
+      <div class="video-tag-container">
+        <el-tag v-for="tag in rcmTags" :key="tag" :disable-transitions="false">
+          {{ tag }}
+        </el-tag>
+      </div>
+      <el-divider style="margin: 10px" />
+      <div class="comment-wrap">
+        <div class="header">
+          <div class="navbar">
+            <div class="title">
+              <h2>评论</h2>
+              <span class="count">9999</span>
+            </div>
+            <div class="sort-actions">
+              <el-button link>最热</el-button>
+              <el-divider direction="vertical" />
+              <el-button link>最新</el-button>
+            </div>
+          </div>
+          <div class="commentbox">
+            <div class="user-avatar">
+              <img
+                src="https://i0.hdslb.com/bfs/baselabs/05b340832a490209f185542bb9690fc748bc08f7.png@124w_124h_1c_1s.avif"
+                alt=""
+              />
+            </div>
+            <el-input
+              style="height: 50px"
+              placeholder="wifi连接中......检测到粉丝评论输出电波......"
+            ></el-input>
+            <el-button type="primary" size="large" style="margin-left: 10px">发布</el-button>
+          </div>
+        </div>
+        <div class="contents">
+          <div class="feed">
+            <div class="comment" v-for="i in 5" :key="i">
+              <div class="user-avatar">
+                <a href="#">
+                  <img
+                    src="https://i0.hdslb.com/bfs/baselabs/05b340832a490209f185542bb9690fc748bc08f7.png@124w_124h_1c_1s.avif"
+                    alt=""
+                  />
+                </a>
+              </div>
+              <div class="comment-main">
+                <div class="comment-header">
+                  <div class="user-name"><a href="#">username</a></div>
+                  <div class="user-level">
+                    <img
+                      width="30"
+                      height="30"
+                      src="https://i0.hdslb.com/bfs/seed/jinkela/short/webui/user-profile/img/level_5.svg"
+                      alt=""
+                    />
+                  </div>
+                </div>
+                <div class="comment-content">
+                  <p>
+                    看了原文。说实话这个化合物严格意义上并不能说是用了什么高大上的“AI”，
+                    只不过用了机器学习里的分层聚类法（hierarchical
+                    clustering）来筛选化合物。而且实验团队是先选定了12*20，总共240种化合物，然后再选出其中最可能的30个做实验，其本质上是为了更快的筛选出最合适的材料来做实验，不要认为是什么deepseek，chatgpt那种神经网络的LLM，理论上有很大差别。这个技术更有可能首先应用在电池回收再利用上或者说降低换电池的成本，而不是直接替代换衰减后的电池。
+                  </p>
+                </div>
+                <div class="comment-footer">
+                  <div class="pubdate">2025-03-02 09:38</div>
+                  <div class="like">
+                    <el-icon>
+                      <CircleCheck />
+                    </el-icon>
+                    9999
+                  </div>
+                  <div class="dislike">
+                    <el-icon>
+                      <CircleClose />
+                    </el-icon>
+                  </div>
+                  <div class="reply">回复</div>
+                </div>
+              </div>
+            </div>
+            <div class="replies"></div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="right-container"></div>
+    <div class="right-container">
+      <div class="up-info-container">
+        <div class="up-info-left">
+          <div class="up-avatar-wrap">
+            <a href="#"
+              ><img
+                src="https://i0.hdslb.com/bfs/baselabs/05b340832a490209f185542bb9690fc748bc08f7.png@240w_240h_1c"
+                alt=""
+            /></a>
+          </div>
+        </div>
+        <div class="up-info-right">
+          <div class="up-info__detail">
+            <a href="#" class="up-name">HIIRO</a>
+            <a href="#" class="send-msg">
+              <el-icon>
+                <Message />
+              </el-icon>
+              发消息
+            </a>
+            <div class="up-description">Debug the World！.商务合作请加V：maguabd01</div>
+          </div>
+          <div class="up-info__btn-panel">
+            <el-button
+              :icon="CoffeeCup"
+              style="width: 110px; border: 1px solid #ff6699; color: #ff6699"
+              >充电
+            </el-button>
+            <el-button :icon="Operation" style="background-color: #e3e5e7; width: 170px">
+              已关注999万
+            </el-button>
+          </div>
+        </div>
+      </div>
+      <div class="danmaku-box">
+        <el-collapse v-model="danmuList">
+          <el-collapse-item title="弹幕列表" name="1"> 123 </el-collapse-item>
+        </el-collapse>
+      </div>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useVideoStore } from '@/stores/videoStore'
-// 引入弹幕组件
-// import vueDanmaku from 'vue3-danmaku'
 // 引入Plyr播放器
 import Plyr from 'plyr'
 import 'plyr/dist/plyr.css'
 // 引入弹幕组件
 import Danmaku from 'danmaku'
+import { CoffeeCup, Operation } from '@element-plus/icons-vue'
+
+const danmuList = ref([])
 
 const videoStore = useVideoStore()
 const route = useRoute()
 
+const rcmTags = ref<string[] | undefined>()
 const danmaku = ref('')
 const danmakuContainer = ref<HTMLElement>()
 let danmakuInstance: Danmaku | null = null
 let resizeObserver: ResizeObserver | null = null
 
-// const danmus = ref(['danmu1', 'danmu2', 'danmu3', 'danmu4'])
 const plyrPlayer = ref<HTMLVideoElement>()
 let player: Plyr | null = null
 
@@ -229,6 +342,7 @@ onMounted(async () => {
   if (!isNaN(vid)) {
     await videoStore.getVideo(vid)
   }
+  rcmTags.value = videoStore.video?.tags.split('\n')
   initPlayer()
   // 初始化弹幕
   if (danmakuContainer.value && plyrPlayer.value) {
@@ -271,6 +385,7 @@ onUnmounted(() => {
   .left-container {
     width: 65%;
     height: 100%;
+    min-width: 668px;
 
     .video-info-container {
       height: 104px;
@@ -333,6 +448,7 @@ onUnmounted(() => {
       .dm-root {
         display: flex;
         align-items: center;
+        width: 70%;
       }
     }
 
@@ -364,16 +480,180 @@ onUnmounted(() => {
       margin: 16px 0;
       font-size: 15px;
       line-height: 24px;
-      .desc-info-text{
+    }
 
+    .video-tag-container {
+      :deep(.el-tag.el-tag--primary.el-tag--light) {
+        margin: 5px;
+        cursor: pointer;
+      }
+    }
+
+    .comment-wrap {
+      margin-top: 20px;
+
+      .header {
+        .navbar {
+          display: flex;
+
+          .title {
+            display: flex;
+            align-items: center;
+
+            h2 {
+              font-size: 20px;
+              font-weight: 500;
+            }
+
+            .count {
+              margin: 0 30px 0 6px;
+              font-size: 13px;
+              color: #9499a0;
+            }
+          }
+
+          .sort-actions {
+            display: flex;
+            align-items: center;
+          }
+        }
+
+        .commentbox {
+          display: flex;
+          align-items: center;
+          margin-top: 20px;
+
+          .user-avatar {
+            img {
+              width: 62px;
+              height: 62px;
+              margin-right: 20px;
+              border-radius: 50%;
+            }
+          }
+        }
+      }
+
+      .contents {
+        .feed {
+          .comment {
+            display: flex;
+            padding-left: 80px;
+            padding-top: 22px;
+            position: relative;
+
+            .user-avatar {
+              position: absolute;
+              left: 20px;
+
+              img {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+              }
+            }
+
+            .comment-main {
+              .comment-header {
+                display: flex;
+                align-items: center;
+
+                .user-name {
+                  font-size: 13px;
+                  font-weight: 500;
+
+                  a {
+                    color: #61666d;
+                  }
+                }
+
+                .user-level {
+                  width: 30px;
+                  height: 30px;
+                  margin-left: 5px;
+                }
+              }
+
+              .comment-content {
+                font-size: 15px;
+                margin-top: 10px;
+                line-height: 24px;
+                word-break: break-word;
+              }
+
+              .comment-footer {
+                display: flex;
+                align-items: center;
+                color: #9499a0;
+                font-size: 13px;
+                margin-top: 5px;
+
+                > :not(:first-child) {
+                  margin-left: 20px;
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
 
   .right-container {
+    min-width: 350px;
     width: 350px;
     margin-left: 30px;
-    border: 1px solid red;
+
+    .up-info-container {
+      display: flex;
+      height: 104px;
+      align-items: center;
+
+      .up-info-left {
+        .up-avatar-wrap {
+          img {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+          }
+        }
+      }
+
+      .up-info-right {
+        margin-left: 12px;
+
+        .up-info__detail {
+          .up-name {
+            font-size: 15px;
+            color: #fb7299;
+            margin-right: 12px;
+            font-weight: 500;
+          }
+
+          .send-msg {
+            font-size: 13px;
+            color: #61666d;
+          }
+
+          .up-description {
+            font-size: 13px;
+            margin-top: 2px;
+            color: #9499a0;
+            white-space: nowrap;
+          }
+        }
+
+        .up-info__btn-panel {
+          margin-top: 5px;
+        }
+      }
+    }
+
+    .danmaku-box {
+      min-height: 44px;
+      background: #f1f2f3;
+      border-radius: 6px;
+    }
   }
 }
 

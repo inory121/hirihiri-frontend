@@ -37,7 +37,7 @@ export interface Video {
   pubDate: string
   scId: string
   status: number
-  tags: string[]
+  tags: string
   title: string
   type: number
   uid: number
