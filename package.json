@@ -17,6 +17,7 @@
     "@element-plus/icons-vue": "^2.3.1",
     "@types/lodash-es": "^4.17.12",
     "axios": "^1.7.9",
+    "colorthief": "^2.6.0",
     "danmaku": "^2.0.8",
     "element-plus": "^2.9.4",
     "lodash-es": "^4.17.21",

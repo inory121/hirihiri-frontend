@@ -42,7 +42,8 @@ export interface Video {
   type: number
   uid: number
   vid: number
-  videoUrl: string
+  videoUrl: string,
+  dominantColor?: [number, number, number]
 }
 
 export interface VideoApiResponse extends BaseResponse{

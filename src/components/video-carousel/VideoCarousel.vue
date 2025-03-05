@@ -11,41 +11,56 @@
         <a href="#">
           <el-skeleton-item
             variant="image"
-            style="padding-top: 65%; border-radius: 6px"
+            style="padding-top: 62%; border-radius: 6px"
           ></el-skeleton-item>
         </a>
         <a href="#">
           <el-skeleton-item
             variant="text"
-            style="height: 25px; margin-top: 10px"
+            style="height: 30px; margin-top: 10px"
           ></el-skeleton-item>
         </a>
       </template>
       <template #default>
         <!-- 真实数据内容 -->
-        <el-carousel :autoplay="false" @change="handleCarouselChange">
-          <el-carousel-item v-for="(item, index) in videoStore.videoList.slice(0,7)" :key="index">
+        <el-carousel :autoplay="true" trigger="click" :interval="5000" @change="handleCarouselChange">
+          <el-carousel-item v-for="(item, index) in videoStore.videoList.slice(0, 7)" :key="index">
             <router-link :to="`video/${item.vid}`" target="_blank">
-              <img class="carousel-img" :src="item.coverUrl" alt="" />
+              <img class="carousel-img" :src="item.coverUrl" alt="" crossorigin="anonymous" />
             </router-link>
           </el-carousel-item>
         </el-carousel>
         <!-- 当前标题 -->
-        <a href="#" class="carousel-title">{{ currentTitle }}</a>
+        <a href="#" class="carousel-title" :style="titleStyle">{{ currentTitle }}</a>
       </template>
     </el-skeleton>
   </div>
 </template>
 
 <script lang="ts" setup>
-const props = defineProps(['loading'])
-import {  ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useVideoStore } from '@/stores/videoStore.ts'
 
+const props = defineProps(['loading'])
 const videoStore = useVideoStore()
 // 定义当前标题和当前索引
 const currentIndex = ref(0)
 const currentTitle = ref('')
+// 当前颜色计算
+const currentBgColor = computed(() => {
+  const color = videoStore.videoList[currentIndex.value]?.dominantColor || [255, 255, 255]
+  return `rgba(${color.join(',')},0.8)`
+})
+// 样式绑定
+const titleStyle = computed(() => ({
+  'background-color': currentBgColor.value,
+  // transition: 'background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+}))
+
+// 处理轮播图变化事件
+const handleCarouselChange = (current: number) => {
+  currentIndex.value = current // 更新当前索引
+}
 // 监听 currentIndex 变化，更新 currentTitle
 watch(
   [() => videoStore.videoList, currentIndex],
@@ -54,11 +69,6 @@ watch(
   },
   { immediate: true, deep: true },
 )
-// 处理轮播图变化事件
-const handleCarouselChange = (current: number) => {
-  currentIndex.value = current // 更新当前索引
-}
-
 </script>
 
 <style lang="less" scoped>
@@ -66,6 +76,7 @@ const handleCarouselChange = (current: number) => {
   grid-column: 1 / 3;
   grid-row: 1 / 3;
   height: 100%;
+  position: relative;
 
   .carousel-img {
     width: 100%;
@@ -75,12 +86,20 @@ const handleCarouselChange = (current: number) => {
   }
 
   .carousel-title {
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 0 0 6px 6px;
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    padding-bottom: 15px;
+    position: absolute;
+    bottom: 80px;
+    width: 100%;
+    mask-image: linear-gradient(0, #2f3238 37%, transparent 90%);
+    background-blend-mode: multiply;
+    backdrop-filter: saturate(180%) blur(30px);
+    box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.1);
+    border-radius: 0 0 6px 6px;
     padding-left: 10px;
-    height: 8%;
+    height: 25%;
     font-size: 18px;
     color: #333;
     transition: color 0.2s linear;
