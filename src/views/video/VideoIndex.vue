@@ -7,7 +7,7 @@
       position="fixed"
     />
   </div>
-  <div class="video-container">
+  <div class="video-container" v-show="videoStore.isShow">
     <div class="left-container">
       <div class="video-info-container">
         <div class="video-info-title">
@@ -26,7 +26,7 @@
             </el-icon>
             <span class="text">9999</span>
           </div>
-          <div class="pubdate-item item">{{ videoStore.video.pubDate }}</div>
+          <div class="pubdate-item item">{{ formatDateTime(videoStore.video.pubDate) }}</div>
           <div class="copyright-item item">
             <el-icon>
               <CircleClose />
@@ -35,9 +35,11 @@
           </div>
         </div>
       </div>
+      <!--播放器-->
       <div class="player-wrap">
-        <div ref="danmakuContainer" style="position: absolute; width: 100%; height: 100%">
-          <video ref="plyrPlayer" controls autoplay>
+        <div ref="playerPlaceholder" class="player-placeholder"></div>
+        <div ref="danmakuContainer" class="danmaku-wrap">
+          <video ref="plyrPlayer" controls>
             <source :src="videoStore.video.videoUrl" type="video/mp4" />
           </video>
         </div>
@@ -128,7 +130,7 @@
         </div>
         <div class="contents">
           <div class="feed">
-            <div class="comment" v-for="i in 5" :key="i">
+            <div class="comment" v-for="i in 10" :key="i">
               <div class="user-avatar">
                 <a href="#">
                   <img
@@ -179,43 +181,82 @@
       </div>
     </div>
     <div class="right-container">
-      <div class="up-info-container">
-        <div class="up-info-left">
-          <div class="up-avatar-wrap">
-            <a href="#"
-              ><img
-                src="https://i0.hdslb.com/bfs/baselabs/05b340832a490209f185542bb9690fc748bc08f7.png@240w_240h_1c"
-                alt=""
-            /></a>
+      <div class="right-container-inner">
+        <div class="up-info-container">
+          <div class="up-info-left">
+            <div class="up-avatar-wrap">
+              <a href="#"
+                ><img
+                  src="https://i0.hdslb.com/bfs/baselabs/05b340832a490209f185542bb9690fc748bc08f7.png@240w_240h_1c"
+                  alt=""
+              /></a>
+            </div>
+          </div>
+          <div class="up-info-right">
+            <div class="up-info__detail">
+              <a href="#" class="up-name">HIIRO</a>
+              <a href="#" class="send-msg">
+                <el-icon>
+                  <Message />
+                </el-icon>
+                发消息
+              </a>
+              <div class="up-description">
+                Debug the World！.商务合作请加V：maguabd01的撒服务方式大概34
+              </div>
+            </div>
+            <div class="up-info__btn-panel">
+              <span class="charge-btn default-btn">
+                <el-icon> <CoffeeCup /> </el-icon>充电
+              </span>
+              <span class="follow-btn default-btn">
+                <el-icon>
+                  <Operation />
+                </el-icon>
+                已关注999万
+              </span>
+            </div>
           </div>
         </div>
-        <div class="up-info-right">
-          <div class="up-info__detail">
-            <a href="#" class="up-name">HIIRO</a>
-            <a href="#" class="send-msg">
-              <el-icon>
-                <Message />
-              </el-icon>
-              发消息
-            </a>
-            <div class="up-description">Debug the World！.商务合作请加V：maguabd01</div>
-          </div>
-          <div class="up-info__btn-panel">
-            <el-button
-              :icon="CoffeeCup"
-              style="width: 110px; border: 1px solid #ff6699; color: #ff6699"
-              >充电
-            </el-button>
-            <el-button :icon="Operation" style="background-color: #e3e5e7; width: 170px">
-              已关注999万
-            </el-button>
+        <div class="danmaku-box">
+          <el-collapse v-model="danmuList">
+            <el-collapse-item title="弹幕列表" name="1"> 123</el-collapse-item>
+          </el-collapse>
+        </div>
+        <div class="rec-list">
+          <div class="card-box" v-for="video in videoStore.videoList" :key="video.vid">
+            <div class="pic-box">
+              <router-link :to="`/video/${video.vid}`">
+                <img :src="video.coverUrl" alt="" />
+              </router-link>
+              <span class="duration">{{ formatDuration(video.duration) }}</span>
+            </div>
+            <div class="info">
+              <a href="#">
+                <p class="title">{{ video.title }}</p>
+              </a>
+              <div class="upname">
+                <a href="#">
+                  <!--                  <el-icon class="icon">-->
+                  <!--                    <User />-->
+                  <!--                  </el-icon>-->
+                  <span class="up">up</span>
+                  <span class="name">{{ video.uid }}</span>
+                </a>
+              </div>
+              <div class="playinfo">
+                <el-icon class="icon">
+                  <View />
+                </el-icon>
+                <span class="text">9999</span>
+                <el-icon class="icon">
+                  <Comment />
+                </el-icon>
+                <span class="text">9999</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="danmaku-box">
-        <el-collapse v-model="danmuList">
-          <el-collapse-item title="弹幕列表" name="1"> 123 </el-collapse-item>
-        </el-collapse>
       </div>
     </div>
   </div>
@@ -224,6 +265,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useVideoStore } from '@/stores/videoStore'
+import { formatDateTime, formatDuration } from '@/utils/utils'
 // 引入Plyr播放器
 import Plyr from 'plyr'
 import 'plyr/dist/plyr.css'
@@ -231,18 +273,18 @@ import 'plyr/dist/plyr.css'
 import Danmaku from 'danmaku'
 import { CoffeeCup, Operation } from '@element-plus/icons-vue'
 
-const danmuList = ref([])
-
 const videoStore = useVideoStore()
 const route = useRoute()
 
+const danmuList = ref([])
 const rcmTags = ref<string[] | undefined>()
 const danmaku = ref('')
 const danmakuContainer = ref<HTMLElement>()
+const plyrPlayer = ref<HTMLVideoElement>()
+const playerPlaceholder = ref<HTMLElement>()
+
 let danmakuInstance: Danmaku | null = null
 let resizeObserver: ResizeObserver | null = null
-
-const plyrPlayer = ref<HTMLVideoElement>()
 let player: Plyr | null = null
 
 // 初始化播放器
@@ -314,6 +356,18 @@ const initPlayer = () => {
       active: true, // 循环播放
     },
   })
+
+  player.on('ready', () => {
+    if (playerPlaceholder.value) {
+      playerPlaceholder.value.style.display = 'none' // 隐藏占位元素
+    }
+  })
+  player.on('error', () => {
+    if (playerPlaceholder.value) {
+      playerPlaceholder.value.style.display = 'block' // 显示占位元素
+      playerPlaceholder.value.innerHTML = '视频加载失败，请刷新重试'
+    }
+  })
 }
 // 销毁播放器
 const disposePlayer = () => {
@@ -321,22 +375,23 @@ const disposePlayer = () => {
   player = null
 }
 
-watch(
-  () => videoStore.video?.videoUrl,
-  (newUrl) => {
-    if (newUrl && player) {
-      player.source = {
-        type: 'video',
-        sources: [
-          {
-            src: newUrl,
-            type: 'video/mp4',
-          },
-        ],
-      }
+watch([() => videoStore.video?.videoUrl, () => route.params.vid], async ([newUrl, newVid]) => {
+  if (!isNaN(Number(newVid))) {
+    await videoStore.getVideo(Number(newVid))
+    rcmTags.value = videoStore.video?.tags.split('\n')
+  }
+  if (newUrl && player) {
+    player.source = {
+      type: 'video',
+      sources: [
+        {
+          src: newUrl,
+          type: 'video/mp4',
+        },
+      ],
     }
-  },
-)
+  }
+})
 onMounted(async () => {
   const vid = Number(route.params.vid)
   if (!isNaN(vid)) {
@@ -374,7 +429,6 @@ onUnmounted(() => {
   disposePlayer()
 })
 </script>
-
 <style scoped lang="less">
 .video-container {
   height: 100%;
@@ -424,6 +478,21 @@ onUnmounted(() => {
       position: relative;
       height: 0;
       padding-bottom: 56.25%;
+      width: 100%;
+
+      .player-placeholder {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        background-color: #000;
+        z-index: 1;
+      }
+
+      .danmaku-wrap {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
 
       :deep(.plyr) {
         position: absolute;
@@ -604,55 +673,232 @@ onUnmounted(() => {
     width: 350px;
     margin-left: 30px;
 
-    .up-info-container {
-      display: flex;
-      height: 104px;
-      align-items: center;
+    .right-container-inner {
+      position: sticky;
+      top: -800px;
 
-      .up-info-left {
-        .up-avatar-wrap {
-          img {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
+      .up-info-container {
+        display: flex;
+        height: 104px;
+        align-items: center;
+
+        .up-info-left {
+          .up-avatar-wrap {
+            img {
+              width: 48px;
+              height: 48px;
+              border-radius: 50%;
+            }
+          }
+        }
+
+        .up-info-right {
+          margin-left: 12px;
+          overflow: auto;
+
+          .up-info__detail {
+            .up-name {
+              font-size: 15px;
+              color: #fb7299;
+              margin-right: 12px;
+              font-weight: 500;
+            }
+
+            .send-msg {
+              font-size: 13px;
+              color: #61666d;
+            }
+
+            .up-description {
+              font-size: 13px;
+              margin-top: 2px;
+              color: #9499a0;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+          }
+
+          .up-info__btn-panel {
+            display: flex;
+            margin-top: 5px;
+
+            .default-btn {
+              height: 30px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              border-radius: 6px;
+              font-size: 14px;
+              transition: 0.3s all;
+            }
+
+            .charge-btn {
+              width: 109px;
+              border: 1px solid #ff6699;
+              color: #ff6699;
+              margin-right: 12px;
+
+              &:hover {
+                background-color: #ffecf1;
+              }
+            }
+
+            .follow-btn {
+              flex: 1 1 auto;
+              max-width: 200px;
+              color: #9499a0;
+              background-color: #e3e5e7;
+
+              &:hover {
+                background-color: #f1f2f3;
+              }
+            }
+
+            //button {
+            //  :nth-of-type(1):hover {
+            //    background-color: #ffecf1;
+            //  }
+            //
+            //  :nth-of-type(2):hover {
+            //    background-color: #f1f2f3;
+            //  }
+            //}
           }
         }
       }
 
-      .up-info-right {
-        margin-left: 12px;
+      .danmaku-box {
+        min-height: 44px;
+        background: #f1f2f3;
+        border-radius: 6px;
+      }
 
-        .up-info__detail {
-          .up-name {
-            font-size: 15px;
-            color: #fb7299;
-            margin-right: 12px;
-            font-weight: 500;
+      .rec-list {
+        margin-top: 18px;
+
+        .card-box {
+          display: flex;
+          margin-bottom: 12px;
+
+          .pic-box {
+            flex: 0 0 auto;
+            width: 141px;
+            height: 80px;
+            position: relative;
+
+            &:hover .duration {
+              opacity: 0;
+            }
+
+            a {
+              display: block;
+              width: 100%;
+              height: 100%;
+            }
+
+            img {
+              width: 100%;
+              height: 100%;
+              border-radius: 6px;
+              object-fit: cover;
+            }
+
+            .duration {
+              position: absolute;
+              bottom: 6px;
+              right: 6px;
+              height: 20px;
+              background-color: rgba(0, 0, 0, 0.4);
+              font-size: 13px;
+              color: #fff;
+              border-radius: 2px;
+              padding: 0 4px;
+              transition: opacity 0.3s;
+            }
           }
 
-          .send-msg {
+          .info {
             font-size: 13px;
-            color: #61666d;
-          }
+            margin-left: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
 
-          .up-description {
-            font-size: 13px;
-            margin-top: 2px;
-            color: #9499a0;
-            white-space: nowrap;
-          }
-        }
+            .title {
+              display: -webkit-box;
+              font-size: 15px;
+              font-weight: 500;
+              transition: color 0.3s;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              word-break: break-all;
+              line-break: anywhere;
+              -webkit-box-orient: vertical;
+              -webkit-line-clamp: 2;
 
-        .up-info__btn-panel {
-          margin-top: 5px;
+              &:hover {
+                color: #fb7299;
+              }
+            }
+
+            .upname {
+              height: 20px;
+              margin: 2px 0;
+
+              .up {
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+                font-size: 10px;
+                height: 15px;
+                width: 16px;
+                border: 1px solid #9499a0;
+                border-radius: 5px;
+                margin-right: 5px;
+              }
+
+              a {
+                color: #9499a0;
+                display: flex;
+                align-items: center;
+                transition: color 0.3s;
+
+                &:hover {
+                  color: #fb7299;
+                }
+
+                .icon {
+                  margin-right: 4px;
+                }
+
+                .name {
+                  line-clamp: 1;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  word-break: break-all;
+                  line-break: anywhere;
+                }
+              }
+            }
+
+            .playinfo {
+              color: #9499a0;
+              display: flex;
+              align-items: flex-start;
+
+              .icon {
+                margin-right: 4px;
+              }
+
+              .text:first-of-type {
+                margin-right: 12px;
+              }
+            }
+          }
         }
       }
-    }
-
-    .danmaku-box {
-      min-height: 44px;
-      background: #f1f2f3;
-      border-radius: 6px;
     }
   }
 }
@@ -660,6 +906,11 @@ onUnmounted(() => {
 @media (min-width: 1681px) {
   .right-container {
     width: 411px !important;
+  }
+
+  .pic-box {
+    width: 190px !important;
+    height: 106.8px !important;
   }
 }
 </style>

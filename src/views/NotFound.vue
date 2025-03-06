@@ -25,14 +25,19 @@
 </template>
 
 <script setup lang="ts">
-import HeaderBar from '@/components/header-bar/HeaderBar.vue'
+import { onMounted } from 'vue'
+
+onMounted(() => {
+  document.body.style.backgroundColor = '#f1f2f3'
+})
 </script>
 
 <style scoped lang="less">
 .error-container {
   background: #fff;
-  margin: 10px 210px;
+  margin: 10px auto 10px;
   border-radius: 10px;
   padding-bottom: 20px;
+  width: 980px;
 }
 </style>

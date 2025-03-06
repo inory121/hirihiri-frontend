@@ -8,11 +8,14 @@
 </head>
 <body>
 <div id="app"></div>
-<!-- <script src="https://at.alicdn.com/t/c/font_4827454_r364iy9kii.js"></script> -->
 <script src="/src/assets/js/iconfont.js"></script>
 <script type="module" src="/src/main.ts"></script>
 </body>
 <style>
+    @font-face {
+        font-family: 'Harmony Font';
+        src: url('src/assets/font/HarmonyOS_Sans_SC_Medium.ttf');
+    }
     .icon {
         width: 1em;
         height: 1em;
@@ -21,7 +24,9 @@
         overflow: hidden;
         font-size: 18px;
     }
-
+    html {
+        font-family: 'Harmony Font', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    }
     html, body {
         height: auto;
     }
@@ -36,6 +41,7 @@
         margin: 0;
         padding: 0;
         box-sizing: border-box;
+        font-family: inherit;
     }
 
     ul {
@@ -43,6 +49,7 @@
     }
 
     a {
+        color: #222;
         text-decoration: none;
     }
 </style>

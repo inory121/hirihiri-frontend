@@ -151,7 +151,6 @@
 </template>
 
 <script lang="ts" setup>
-import MyPopover from '@/components/my-popover/MyPopover.vue'
 import { useUserStore } from '@/stores/userStore.ts'
 const userStore = useUserStore()
 

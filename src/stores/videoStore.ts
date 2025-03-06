@@ -15,7 +15,11 @@ export const useVideoStore = defineStore('video', {
       isShow: false, // 是否显示视频详情
     }
   },
-  getters: {},
+  getters: {
+    videoDuration(state) {
+      return state.video.duration
+    },
+  },
   actions: {
     async getRecommendVideo() {
       await get<VideoApiResponse>('/video/get/recommend').then(async (res) => {
