@@ -7,26 +7,28 @@
       position="fixed"
     />
   </div>
-  <div class="video-container" v-show="videoStore.isShow">
+  <div class="video-container" v-show="isShow">
     <div class="left-container">
       <div class="video-info-container">
         <div class="video-info-title">
-          <h1 class="video-title">{{ videoStore.video.title }}</h1>
+          <h1 class="video-title">{{ videoInfo.video.title }}</h1>
         </div>
         <div class="video-info-meta">
           <div class="view-item item">
             <el-icon>
               <View />
             </el-icon>
-            <span class="text">9999</span>
+            <span class="text">{{ videoInfo.stat.view }}</span>
           </div>
           <div class="dm-item item">
             <el-icon>
               <Comment />
             </el-icon>
-            <span class="text">9999</span>
+            <span class="text">{{ videoInfo.stat.reply }}</span>
           </div>
-          <div class="pubdate-item item">{{ formatDateTime(videoStore.video.pubDate) }}</div>
+          <div class="pubdate-item item">
+            {{ formatDateTime(videoInfo.video.pubDate) }}
+          </div>
           <div class="copyright-item item">
             <el-icon>
               <CircleClose />
@@ -40,14 +42,14 @@
         <div ref="playerPlaceholder" class="player-placeholder"></div>
         <div ref="danmakuContainer" class="danmaku-wrap">
           <video ref="plyrPlayer" controls>
-            <source :src="videoStore.video.videoUrl" type="video/mp4" />
+            <source :src="videoInfo.video.videoUrl" type="video/mp4" />
           </video>
         </div>
       </div>
       <div class="sending-bar">
         <div class="video-info">
           <div class="video-info-online">999人正在看，</div>
-          <div class="video-info-dm">已装填9999条弹幕</div>
+          <div class="video-info-dm">已装填{{ videoInfo.stat.danmaku }}条弹幕</div>
         </div>
         <div class="dm-root">
           <el-input
@@ -67,25 +69,25 @@
               <el-icon class="icon">
                 <Star />
               </el-icon>
-              <span>9999</span>
+              <span>{{ videoInfo.stat.like }}</span>
             </div>
             <div class="toolbar-left-item">
               <el-icon class="icon">
                 <Star />
               </el-icon>
-              <span>9999</span>
+              <span>{{ videoInfo.stat.coin }}</span>
             </div>
             <div class="toolbar-left-item">
               <el-icon class="icon">
                 <Star />
               </el-icon>
-              <span>9999</span>
+              <span>{{ videoInfo.stat.favorite }}</span>
             </div>
             <div class="toolbar-left-item">
               <el-icon class="icon">
                 <Share />
               </el-icon>
-              <span>9999</span>
+              <span>{{ videoInfo.stat.share }}</span>
             </div>
           </div>
         </div>
@@ -93,7 +95,7 @@
       </div>
       <el-divider style="margin: 0" />
       <div class="video-desc-container">
-        <div class="desc-info-text">{{ videoStore.video.descr }}</div>
+        <div class="desc-info-text">{{ videoInfo.video.descr }}</div>
       </div>
       <div class="video-tag-container">
         <el-tag v-for="tag in rcmTags" :key="tag" :disable-transitions="false">
@@ -106,7 +108,7 @@
           <div class="navbar">
             <div class="title">
               <h2>评论</h2>
-              <span class="count">9999</span>
+              <span class="count">{{ videoInfo.stat.reply }}</span>
             </div>
             <div class="sort-actions">
               <el-button link>最热</el-button>
@@ -194,16 +196,14 @@
           </div>
           <div class="up-info-right">
             <div class="up-info__detail">
-              <a href="#" class="up-name">HIIRO</a>
+              <a href="#" class="up-name">{{ videoInfo.user.username }}</a>
               <a href="#" class="send-msg">
                 <el-icon>
                   <Message />
                 </el-icon>
                 发消息
               </a>
-              <div class="up-description">
-                Debug the World！.商务合作请加V：maguabd01的撒服务方式大概34
-              </div>
+              <div class="up-description">Debug the World！.商务合作请加V：maguabd01</div>
             </div>
             <div class="up-info__btn-panel">
               <span class="charge-btn default-btn">
@@ -224,16 +224,16 @@
           </el-collapse>
         </div>
         <div class="rec-list">
-          <div class="card-box" v-for="video in videoStore.videoList" :key="video.vid">
+          <div class="card-box" v-for="list in videoList" :key="list.video.vid">
             <div class="pic-box">
-              <router-link :to="`/video/${video.vid}`">
-                <img :src="video.coverUrl" alt="" />
+              <router-link :to="`/video/${list.video.vid}`">
+                <img :src="list.video.coverUrl" alt="" />
               </router-link>
-              <span class="duration">{{ formatDuration(video.duration) }}</span>
+              <span class="duration">{{ formatDuration(list.video.duration) }}</span>
             </div>
             <div class="info">
               <a href="#">
-                <p class="title">{{ video.title }}</p>
+                <p class="title">{{ list.video.title }}</p>
               </a>
               <div class="upname">
                 <a href="#">
@@ -241,18 +241,18 @@
                   <!--                    <User />-->
                   <!--                  </el-icon>-->
                   <span class="up">up</span>
-                  <span class="name">{{ video.uid }}</span>
+                  <span class="name">{{ list.user.username }}</span>
                 </a>
               </div>
               <div class="playinfo">
                 <el-icon class="icon">
                   <View />
                 </el-icon>
-                <span class="text">9999</span>
+                <span class="text">{{ list.stat.view }}</span>
                 <el-icon class="icon">
                   <Comment />
                 </el-icon>
-                <span class="text">9999</span>
+                <span class="text">{{ list.stat.reply }}</span>
               </div>
             </div>
           </div>
@@ -272,9 +272,11 @@ import 'plyr/dist/plyr.css'
 // 引入弹幕组件
 import Danmaku from 'danmaku'
 import { CoffeeCup, Operation } from '@element-plus/icons-vue'
+import { storeToRefs } from 'pinia'
 
 const videoStore = useVideoStore()
 const route = useRoute()
+const { videoInfo, videoList, isShow } = storeToRefs(videoStore)
 
 const danmuList = ref([])
 const rcmTags = ref<string[] | undefined>()
@@ -375,29 +377,33 @@ const disposePlayer = () => {
   player = null
 }
 
-watch([() => videoStore.video?.videoUrl, () => route.params.vid], async ([newUrl, newVid]) => {
-  if (!isNaN(Number(newVid))) {
-    await videoStore.getVideo(Number(newVid))
-    rcmTags.value = videoStore.video?.tags.split('\n')
-  }
-  if (newUrl && player) {
-    player.source = {
-      type: 'video',
-      sources: [
-        {
-          src: newUrl,
-          type: 'video/mp4',
-        },
-      ],
+watch(
+  [() => videoInfo.value.video?.videoUrl, () => route.params.vid],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async ([newUrl, newVid], [_, oldVid]) => {
+    if (!isNaN(Number(newVid)) && newVid !== oldVid) {
+      await videoStore.getVideo(Number(newVid))
+      rcmTags.value = videoStore.videoInfo.video?.tags.split('\n')
     }
-  }
-})
+    if (newUrl && player) {
+      player.source = {
+        type: 'video',
+        sources: [
+          {
+            src: newUrl,
+            type: 'video/mp4',
+          },
+        ],
+      }
+    }
+  },
+)
 onMounted(async () => {
   const vid = Number(route.params.vid)
   if (!isNaN(vid)) {
     await videoStore.getVideo(vid)
   }
-  rcmTags.value = videoStore.video?.tags.split('\n')
+  rcmTags.value = videoInfo.value.video.tags?.split('\n')
   initPlayer()
   // 初始化弹幕
   if (danmakuContainer.value && plyrPlayer.value) {

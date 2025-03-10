@@ -547,7 +547,7 @@ const handleCoverDialogSelect = (selected: string) => {
 
 // valueArr数组包含mcId和scId
 const handleCategoryChange = (valueArr: CascaderValue) => {
-  rcmTags.value = categoryStore.rcmTags(valueArr as string[])
+  rcmTags.value = categoryStore.rcmTags(valueArr as [string, string])
   // 添加类型断言和校验
   if (!Array.isArray(valueArr)) return
   // 安全访问数组元素

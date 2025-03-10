@@ -7,22 +7,35 @@ export interface BaseResponse<T = unknown> {
 }
 
 // Category接口
-interface SubCategory {
+export interface Category {
+  value: string
+  label: string
+  children: {
+    value: string
+    label: string
+    rcmTag: string[]
+  }[]
+}
+
+// SubCategory接口
+export interface SubCategory {
   rcmTag: string[]
   descr: string
   mcId: string
+  mcName: string
   scId: string
   scName: string
   cid: number
 }
 
+// MainCategory接口
 interface MainCategory {
   mcId: string
   mcName: string
   scList: SubCategory[]
 }
 
-export interface CategoryApiResponse extends BaseResponse{
+export interface CategoryApiResponse extends BaseResponse {
   data: MainCategory[]
 }
 
@@ -42,16 +55,37 @@ export interface Video {
   type: number
   uid: number
   vid: number
-  videoUrl: string,
+  videoUrl: string
   dominantColor?: [number, number, number]
 }
 
-export interface VideoApiResponse extends BaseResponse{
-  data: Video[]
+export interface VideoInfo {
+  category: SubCategory
+  video: Video
+  stat: VideoStat
+  user: User
 }
-export interface OneVideoApiResponse extends BaseResponse{
-  data: Video
+
+export interface VideoStat {
+  vid: number
+  view: number
+  danmaku: number
+  reply: number
+  favorite: number
+  coin: number
+  share: number
+  like: number
+  dislike: number
 }
+
+export interface VideoApiResponse extends BaseResponse {
+  data: VideoInfo[]
+}
+
+export interface OneVideoApiResponse extends BaseResponse {
+  data: VideoInfo
+}
+
 // User接口
 export interface User {
   auth: number
@@ -74,10 +108,10 @@ export interface UserData {
   token: string
 }
 
-export interface UserDataApiResponse extends BaseResponse{
+export interface UserDataApiResponse extends BaseResponse {
   data: UserData
 }
 
-export interface UserApiResponse extends BaseResponse{
+export interface UserApiResponse extends BaseResponse {
   data: User
 }

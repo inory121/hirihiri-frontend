@@ -24,9 +24,9 @@
       <template #default>
         <!-- 真实数据内容 -->
         <el-carousel :autoplay="true" trigger="click" :interval="5000" @change="handleCarouselChange">
-          <el-carousel-item v-for="(item, index) in videoStore.videoList.slice(0, 7)" :key="index">
-            <router-link :to="`video/${item.vid}`" target="_blank">
-              <img class="carousel-img" :src="item.coverUrl" alt="" crossorigin="anonymous" />
+          <el-carousel-item v-for="(videoInfo, index) in videoStore.videoList.slice(0, 7)" :key="index">
+            <router-link :to="`video/${videoInfo.video.vid}`" target="_blank">
+              <img class="carousel-img" :src="videoInfo.video.coverUrl" alt="" crossorigin="anonymous" />
             </router-link>
           </el-carousel-item>
         </el-carousel>
@@ -48,7 +48,7 @@ const currentIndex = ref(0)
 const currentTitle = ref('')
 // 当前颜色计算
 const currentBgColor = computed(() => {
-  const color = videoStore.videoList[currentIndex.value]?.dominantColor || [255, 255, 255]
+  const color = videoStore.videoList[currentIndex.value]?.video.dominantColor || [255, 255, 255]
   return `rgba(${color.join(',')},0.8)`
 })
 // 样式绑定
@@ -65,7 +65,7 @@ const handleCarouselChange = (current: number) => {
 watch(
   [() => videoStore.videoList, currentIndex],
   ([newList, newIndex]) => {
-    currentTitle.value = newList[newIndex]?.title || ''
+    currentTitle.value = newList[newIndex]?.video.title || ''
   },
   { immediate: true, deep: true },
 )

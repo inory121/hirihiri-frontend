@@ -70,8 +70,8 @@
     </div>
   </div>
 
-  <el-container style="height: 100%; padding-top: 60px">
-    <el-aside width="200">
+  <el-container style="height: 98vh; padding-top: 60px">
+    <el-aside width="200" style="position: fixed; height: 100%; z-index: 1; background-color: #fff">
       <el-menu
         :default-active="$route.path"
         class="el-menu-vertical-demo"
@@ -144,7 +144,7 @@
         </el-sub-menu>
       </el-menu>
     </el-aside>
-    <el-main class="main-content">
+    <el-main style="background: #f6f7f8;min-width: 1124px;margin-left: 200px">
       <router-view></router-view>
     </el-main>
   </el-container>
@@ -152,8 +152,8 @@
 
 <script lang="ts" setup>
 import { useUserStore } from '@/stores/userStore.ts'
-const userStore = useUserStore()
 
+const userStore = useUserStore()
 </script>
 
 <style>
@@ -260,9 +260,5 @@ const userStore = useUserStore()
       margin-left: 12px;
     }
   }
-}
-
-.main-content {
-  background: #f6f7f8;
 }
 </style>

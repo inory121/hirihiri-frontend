@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { post } from '@/utils/request'
+import { get,post} from '@/utils/request'
 import type { User, UserApiResponse, UserDataApiResponse } from '@/types/api.ts'
 
 export const useUserStore = defineStore('user', {
@@ -51,7 +51,7 @@ export const useUserStore = defineStore('user', {
 
     async getUserInfo() {
       if (localStorage.getItem('hiri_token')) {
-        await post<UserApiResponse>('/user/info')
+        await get<UserApiResponse>('/user/info')
           .then((res) => {
             if (res.code === 200) {
               this.user = res.data

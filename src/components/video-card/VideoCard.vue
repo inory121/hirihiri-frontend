@@ -1,6 +1,6 @@
 <template>
   <!-- 视频卡片 -->
-  <div class="video-card-container" v-for="(video, index) in props.data" :key="index">
+  <div class="video-card-container" v-for="(videoInfo, index) in props.data" :key="index">
     <el-skeleton
       :loading="props.loading"
       animated
@@ -29,23 +29,23 @@
         <!-- 真实数据内容 -->
         <div class="video-card">
           <div class="video-card__wrap">
-            <router-link :to="`/video/${video.vid}`" target="_blank">
+            <router-link :to="`/video/${videoInfo.video.vid}`" target="_blank">
               <div class="video-card__image">
-                <img :src="video.coverUrl" alt="" class="video-card-img" />
+                <img :src="videoInfo.video.coverUrl" alt="" class="video-card-img" />
               </div>
             </router-link>
             <div class="video-card__info">
               <h3 class="video-card__info--title">
-                <router-link :to="`/video/${video.vid}`" target="_blank"
-                  >{{ video.title }}
+                <router-link :to="`/video/${videoInfo.video.vid}`" target="_blank"
+                  >{{ videoInfo.video.title }}
                 </router-link>
               </h3>
               <div class="video-card__info--bottom">
-                <router-link :to="`/space/${video.uid}`" target="_blank">
+                <router-link :to="`/space/${videoInfo.video.uid}`" target="_blank">
                   up
-                  <span>{{ video.uid }}</span
+                  <span>{{ videoInfo.user.username }}</span
                   >&nbsp;
-                  <span>{{ formatTime(video.pubDate )}}</span>
+                  <span>{{ formatTime(videoInfo.video.pubDate) }}</span>
                 </router-link>
               </div>
             </div>
@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import {formatTime} from "@/utils/utils.ts";
+import { formatTime } from '@/utils/utils.ts'
 
 const props = defineProps(['data', 'loading'])
 </script>

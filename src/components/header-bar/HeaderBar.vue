@@ -43,11 +43,9 @@
               ></el-input>
             </el-form-item>
             <!--这里必须用箭头函数,因为方法返回的是Promise,直接写会出现奇怪问题-->
-            <el-button class="register" color="#fff" @click="() => userStore.register()">
-              注册
-            </el-button>
+            <el-button class="register" @click="() => userStore.register()"> 注册 </el-button>
             <!--这里必须用箭头函数,因为方法返回的是Promise,直接写会出现奇怪问题-->
-            <el-button class="login" color="#00aeec" @click="() => userStore.login()">
+            <el-button class="login" type="primary" @click="() => userStore.login()">
               登录
             </el-button>
           </el-form>
@@ -118,10 +116,12 @@
       </li>
       <li>
         <a href="#" class="entry-title">
-<!--          <svg class="icon" aria-hidden="true">-->
-<!--            <use xlink:href="#icon-download"></use>-->
-<!--          </svg>-->
-          <el-icon class="left-icon left-entry-text"><Download /></el-icon>
+          <!--          <svg class="icon" aria-hidden="true">-->
+          <!--            <use xlink:href="#icon-download"></use>-->
+          <!--          </svg>-->
+          <el-icon class="left-icon left-entry-text">
+            <Download />
+          </el-icon>
           <span class="left-entry-text">下载客户端</span></a
         >
       </li>
@@ -254,46 +254,56 @@
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
-<!--          <svg class="icon right-icon" aria-hidden="true">-->
-<!--            <use xlink:href="#icon-xiaoxi"></use>-->
-<!--          </svg>-->
-          <el-icon class="right-icon"><Message /></el-icon>
+          <!--          <svg class="icon right-icon" aria-hidden="true">-->
+          <!--            <use xlink:href="#icon-xiaoxi"></use>-->
+          <!--          </svg>-->
+          <el-icon class="right-icon">
+            <Message />
+          </el-icon>
           <span class="right-entry-text">消息</span>
         </a>
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
-<!--          <svg class="icon right-icon" aria-hidden="true">-->
-<!--            <use xlink:href="#icon-dongtai"></use>-->
-<!--          </svg>-->
-          <el-icon class="right-icon"><ChromeFilled /></el-icon>
+          <!--          <svg class="icon right-icon" aria-hidden="true">-->
+          <!--            <use xlink:href="#icon-dongtai"></use>-->
+          <!--          </svg>-->
+          <el-icon class="right-icon">
+            <ChromeFilled />
+          </el-icon>
           <span class="right-entry-text">动态</span>
         </a>
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
-<!--          <svg class="icon right-icon" aria-hidden="true">-->
-<!--            <use xlink:href="#icon-shoucang"></use>-->
-<!--          </svg>-->
-          <el-icon class="right-icon"><Star /></el-icon>
+          <!--          <svg class="icon right-icon" aria-hidden="true">-->
+          <!--            <use xlink:href="#icon-shoucang"></use>-->
+          <!--          </svg>-->
+          <el-icon class="right-icon">
+            <Star />
+          </el-icon>
           <span class="right-entry-text">收藏</span>
         </a>
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
-<!--          <svg class="icon right-icon" aria-hidden="true">-->
-<!--            <use xlink:href="#icon-history"></use>-->
-<!--          </svg>-->
-          <el-icon class="right-icon"><Clock /></el-icon>
+          <!--          <svg class="icon right-icon" aria-hidden="true">-->
+          <!--            <use xlink:href="#icon-history"></use>-->
+          <!--          </svg>-->
+          <el-icon class="right-icon">
+            <Clock />
+          </el-icon>
           <span class="right-entry-text">历史</span>
         </a>
       </li>
       <li>
         <a href="#" class="right-default-entry v-popover-wrap">
-<!--          <svg class="icon right-icon" aria-hidden="true">-->
-<!--            <use xlink:href="#icon-Idea"></use>-->
-<!--          </svg>-->
-          <el-icon class="right-icon"><EditPen /></el-icon>
+          <!--          <svg class="icon right-icon" aria-hidden="true">-->
+          <!--            <use xlink:href="#icon-Idea"></use>-->
+          <!--          </svg>-->
+          <el-icon class="right-icon">
+            <EditPen />
+          </el-icon>
           <span class="right-entry-text">创作中心</span>
         </a>
       </li>
@@ -318,12 +328,12 @@ import MyPopover from '@/components/my-popover/MyPopover.vue'
 import { useUserStore } from '@/stores/userStore.ts'
 import { useRouter } from 'vue-router'
 
-const { textColor,headerShadow,bgColor } = defineProps({
+const { textColor, headerShadow, bgColor } = defineProps({
   textColor: {
     type: String,
     default: '#fff', // 默认颜色为白色
   },
-  headerShadow : {
+  headerShadow: {
     type: String,
     default: '', // 默认没有
   },
@@ -331,7 +341,7 @@ const { textColor,headerShadow,bgColor } = defineProps({
     type: String,
     default: 'transparent', // 默认颜色透明
   },
-  position : {
+  position: {
     type: String,
     default: 'fixed',
   },
@@ -409,7 +419,6 @@ const handleUploadClick = () => {
         height: 40px;
         border-radius: 8px;
         border: 1px solid #e3e5e7;
-        color: #fff;
       }
     }
 

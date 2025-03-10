@@ -17,7 +17,7 @@
           :data="
             videoStore.videoList.length > 0
               ? videoStore.videoList
-              : Array.from({ length: 11 }, () => ({}) as Video)
+              : Array.from({ length: 11 }, () => ({}) as VideoInfo)
           "
           :loading="videoStore.loading"
         />
@@ -28,9 +28,13 @@
 
 <script lang="ts" setup>
 import { useVideoStore } from '@/stores/videoStore.ts'
-import type { Video } from '@/types/api.ts'
+import type { VideoInfo } from '@/types/api.ts'
+import { onMounted } from 'vue'
 
 const videoStore = useVideoStore()
+onMounted(() => {
+  document.body.style.backgroundColor = '#fff'
+})
 </script>
 <style scoped lang="less">
 // banner
