@@ -45,7 +45,7 @@
                   up
                   <span>{{ videoInfo.user.username }}</span
                   >&nbsp;
-                  <span>{{ formatTime(videoInfo.video.pubDate) }}</span>
+                  <span>{{ formatTime(videoInfo.video.createDate) }}</span>
                 </router-link>
               </div>
             </div>

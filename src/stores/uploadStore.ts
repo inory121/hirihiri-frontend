@@ -22,7 +22,7 @@ export const useUploadStore = defineStore('upload', {
         descr: '',
         duration: 0,
         mcId: '',
-        pubDate: '',
+        createDate: '',
         scId: '',
         status: 1,
         tags: [] as string[],

@@ -47,7 +47,7 @@ export interface Video {
   descr: string
   duration: number
   mcId: string
-  pubDate: string
+  createDate: string
   scId: string
   status: number
   tags: string
@@ -84,6 +84,50 @@ export interface VideoApiResponse extends BaseResponse {
 
 export interface OneVideoApiResponse extends BaseResponse {
   data: VideoInfo
+}
+
+export interface Danmu {
+  id?: number
+  vid: number
+  uid: number
+  content: string
+  fontsize: number
+  mode: 1 | 2 | 3 | 4
+  color: string
+  time: number
+  state: number
+  createDate?: string
+}
+
+export interface DanmakuApiResponse extends BaseResponse {
+  data: Danmu[]
+}
+
+export interface oneDanmakuApiResponse extends BaseResponse {
+  data: Danmu
+}
+
+export interface Comment {
+  id?: number
+  vid: number
+  uid: number
+  rootId: number
+  parentId: number
+  toUserId: number
+  content: string
+  like?: number
+  dislike?: number
+  createDate?: string
+  isTop?: number
+  isDeleted?: number
+}
+
+export interface CommentApiResponse extends BaseResponse {
+  data: Comment[]
+}
+
+export interface oneCommentApiResponse extends BaseResponse {
+  data: Comment
 }
 
 // User接口

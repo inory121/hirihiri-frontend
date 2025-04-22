@@ -51,7 +51,7 @@
           <a href="#" class="avatar-img">
             <img
               class="hiri-avatar-img"
-              src="https://i0.hdslb.com/bfs/baselabs/05b340832a490209f185542bb9690fc748bc08f7.png@56w_56h.png"
+              src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
               alt=""
             />
           </a>

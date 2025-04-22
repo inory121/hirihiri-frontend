@@ -5,7 +5,7 @@
       <a href="#" class="channel-icons__item"
         ><img
           class="icon-img"
-          src="https://i0.hdslb.com/bfs/baselabs/05b340832a490209f185542bb9690fc748bc08f7.png@38w_38h_1c"
+          src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
           alt=""
         />
         <span>动态</span></a
@@ -13,7 +13,7 @@
       <a href="#" class="channel-icons__item"
         ><img
           class="icon-img"
-          src="https://i0.hdslb.com/bfs/baselabs/05b340832a490209f185542bb9690fc748bc08f7.png@38w_38h_1c"
+          src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
           alt=""
         /><span>热门</span></a
       >

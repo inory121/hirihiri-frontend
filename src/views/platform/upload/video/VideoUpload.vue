@@ -1,16 +1,4 @@
 <template>
-  <!--  <div class="file-upload">-->
-  <!--    <div class="file-upload-wrap">-->
-
-  <!--      <div class="upload-text">拖拽到此处也可上传</div>-->
-  <!--      <el-button type="primary" class="upload-btn" @click="triggerFileInput"> 开始上传</el-button>-->
-  <!--      <input-->
-  <!--        accept=".mp4,.webm"-->
-  <!--        ref="fileInput"-->
-  <!--        type="file"-->
-  <!--        @change="handleFileSelect"-->
-  <!--        style="display: none"-->
-  <!--      />-->
   <el-upload
     class="file-upload"
     ref="uploadRef"

@@ -27,7 +27,7 @@ export const useVideoStore = defineStore('video', {
       loading: true, // 骨架屏显示
       isShow: false, // 是否显示视频详情
       pageNum: 0,
-      pageSize: 0,
+      pageSize: 20,
     }
   },
   getters: {
@@ -80,8 +80,6 @@ export const useVideoStore = defineStore('video', {
         if (res.code === 200) {
           this.isShow = true
           this.videoInfo = res.data
-          console.log(res.data)
-          console.log(this.videoInfo)
         } else {
           ElMessage.error('视频不存在,3秒后跳转到首页')
           router.replace({

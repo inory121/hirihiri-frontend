@@ -1,12 +1,5 @@
 <template>
   <div class="content" v-if="uploadStore.isShow">
-    <!--    <div class="upload-nav">-->
-    <!--      <router-link to="/platform/upload/video">-->
-    <!--        <span class="upload-nav-item">视频投稿</span>-->
-    <!--      </router-link>-->
-    <!--      <span class="upload-nav-item">专栏投稿</span>-->
-    <!--      <span class="upload-nav-item">音频投稿</span>-->
-    <!--    </div>-->
     <el-menu :default-active="$route.path" class="el-menu-demo" mode="horizontal" :router="true">
       <el-menu-item index="/platform/upload/video">
         <span class="upload-nav-item">视频投稿</span>

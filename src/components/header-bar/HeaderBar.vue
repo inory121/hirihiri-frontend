@@ -43,7 +43,7 @@
               ></el-input>
             </el-form-item>
             <!--这里必须用箭头函数,因为方法返回的是Promise,直接写会出现奇怪问题-->
-            <el-button class="register" @click="() => userStore.register()"> 注册 </el-button>
+            <el-button class="register" @click="() => userStore.register()"> 注册</el-button>
             <!--这里必须用箭头函数,因为方法返回的是Promise,直接写会出现奇怪问题-->
             <el-button class="login" type="primary" @click="() => userStore.login()">
               登录
@@ -144,7 +144,7 @@
             <div class="vip-item">
               <a class="vip-item__label">
                 <img
-                  src="https://i1.hdslb.com/bfs/vip/8d4f8bfc713826a5412a0a27eaaac4d6b9ede1d9.png@800w_40h_0e"
+                  src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/8d4f8bfc713826a5412a0a27eaaac4d6b9ede1d9.png"
                   alt=""
                 />
               </a>
@@ -202,22 +202,32 @@
             <div class="links-item">
               <a href="#" class="single-link-item">
                 <div class="link-title">
+                  <el-icon :size="20" style="margin-right: 16px">
+                    <User />
+                  </el-icon>
                   <span>个人中心</span>
                 </div>
               </a>
               <a href="#" class="single-link-item">
                 <div class="link-title">
+                  <el-icon :size="20" style="margin-right: 16px">
+                    <Edit />
+                  </el-icon>
                   <span>投稿管理</span>
                 </div>
               </a>
               <a href="#" class="single-link-item">
                 <div class="link-title">
+                  <el-icon :size="20" style="margin-right: 16px">
+                    <Star />
+                  </el-icon>
                   <span>推荐服务</span>
                 </div>
               </a>
             </div>
             <el-divider style="margin: 10px 0" />
             <div class="logout-item" @click="userStore.logout()">
+              <el-icon :size="20" style="margin-right: 16px"><CloseBold /></el-icon>
               <span>退出登录</span>
             </div>
           </div>
@@ -229,7 +239,7 @@
               <a href="#" class="header-entry-mini">
                 <img
                   class="hiri-avatar-img"
-                  src="https://i0.hdslb.com/bfs/baselabs/05b340832a490209f185542bb9690fc748bc08f7.png@240w_240h_1c"
+                  src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
                   alt=""
                 />
               </a>
@@ -670,7 +680,7 @@ const handleUploadClick = () => {
 
       .vip-entry-container {
         cursor: pointer;
-        background-image: url(https://i0.hdslb.com/bfs/activity-plat/static/20240724/e803d998c2d355f34ad8c36a6a729045/eAwhtOhoSo.png);
+        background-image: url(https://hirihiri.oss-cn-nanjing.aliyuncs.com/eAwhtOhoSo.png);
         display: flex;
         align-items: center;
         justify-content: space-around;
@@ -714,9 +724,14 @@ const handleUploadClick = () => {
           color: #61666d;
           font-size: 14px;
           transition: background-color 0.3s;
+          padding: 0 14px;
 
           &:hover {
             background-color: #e3e5e7;
+          }
+
+          .link-title {
+            display: flex;
           }
         }
       }
@@ -730,6 +745,7 @@ const handleUploadClick = () => {
         font-size: 14px;
         transition: background-color 0.3s;
         cursor: pointer;
+        padding: 0 14px;
 
         &:hover {
           background-color: #e3e5e7;

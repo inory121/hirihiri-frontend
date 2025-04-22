@@ -55,19 +55,26 @@ export const formatTime = (isoString: string) => {
   return `${target.getFullYear()}-${target.getMonth() + 1}-${target.getDate()}`
 }
 // 格式化视频播放页时间
-export const formatDateTime = (isoString: string) => {
+export const formatDateTime = (
+  isoString: string | undefined,
+  format: string = 'YYYY-MM-DD HH:mm:ss', // 默认格式
+) => {
+  if (!isoString) return ''
   const date = new Date(isoString)
 
   // 补零函数
   const pad = (n: number) => n.toString().padStart(2, '0')
 
-  // 分解时间部件
-  const year = date.getFullYear()
-  const month = pad(date.getMonth() + 1) // 月份补零
-  const day = pad(date.getDate())
-  const hours = pad(date.getHours())
-  const minutes = pad(date.getMinutes())
-  const seconds = pad(date.getSeconds())
+  // 定义格式化映射
+  const formatMap: { [key: string]: string } = {
+    YYYY: date.getFullYear().toString(),
+    MM: pad(date.getMonth() + 1),
+    DD: pad(date.getDate()),
+    HH: pad(date.getHours()),
+    mm: pad(date.getMinutes()),
+    ss: pad(date.getSeconds()),
+  }
 
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  // 替换格式字符串中的占位符
+  return format.replace(/YYYY|MM|DD|HH|mm|ss/g, (match) => formatMap[match] || match)
 }
