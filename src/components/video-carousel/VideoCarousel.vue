@@ -23,10 +23,23 @@
       </template>
       <template #default>
         <!-- 真实数据内容 -->
-        <el-carousel :autoplay="true" trigger="click" :interval="5000" @change="handleCarouselChange">
-          <el-carousel-item v-for="(videoInfo, index) in videoStore.videoList.slice(0, 7)" :key="index">
+        <el-carousel
+          :autoplay="true"
+          trigger="click"
+          :interval="5000"
+          @change="handleCarouselChange"
+        >
+          <el-carousel-item
+            v-for="(videoInfo, index) in videoStore.videoList.slice(0, 7)"
+            :key="index"
+          >
             <router-link :to="`video/${videoInfo.video.vid}`" target="_blank">
-              <img class="carousel-img" :src="videoInfo.video.coverUrl" alt="" crossorigin="anonymous" />
+              <img
+                class="carousel-img"
+                :src="videoInfo.video.coverUrl"
+                alt=""
+                crossorigin="anonymous"
+              />
             </router-link>
           </el-carousel-item>
         </el-carousel>
@@ -103,6 +116,9 @@ watch(
     font-size: 18px;
     color: #333;
     transition: color 0.2s linear;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
     &:hover {
       color: #ff6699 !important;
