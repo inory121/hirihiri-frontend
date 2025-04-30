@@ -239,7 +239,7 @@
               <a href="#" class="header-entry-mini">
                 <img
                   class="hiri-avatar-img"
-                  src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
+                  :src="userStore.user.avatar"
                   alt=""
                 />
               </a>

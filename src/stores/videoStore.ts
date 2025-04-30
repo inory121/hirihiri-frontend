@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { get } from '@/utils/request'
 import router from '@/router'
+import {VIDEO_API} from '@/api/video'
 import type {
   OneVideoApiResponse,
   SubCategory,
@@ -37,7 +38,7 @@ export const useVideoStore = defineStore('video', {
   },
   actions: {
     async getRecommendVideo() {
-      await get<VideoApiResponse>('/video/get/recommend', {
+      await get<VideoApiResponse>(VIDEO_API.GET_RECOMMEND_VIDEO, {
         params: {
           pageNum: this.pageNum,
           pageSize: this.pageSize,
@@ -76,7 +77,7 @@ export const useVideoStore = defineStore('video', {
       )
     },
     async getVideo(vid: number) {
-      await get<OneVideoApiResponse>(`/video/get/one/${vid}`).then((res) => {
+      await get<OneVideoApiResponse>(`${VIDEO_API.GET_BY_ID}/${vid}`).then((res) => {
         if (res.code === 200) {
           this.isShow = true
           this.videoInfo = res.data

@@ -115,7 +115,7 @@
           <div class="navbar">
             <div class="title">
               <h2>评论</h2>
-              <span class="count">{{ commentList.length }}</span>
+              <span class="count">{{ commentList?.length ? commentList?.length : '0' }}</span>
             </div>
             <div class="sort-actions">
               <el-button link class="sort">最热</el-button>
@@ -125,11 +125,7 @@
           </div>
           <div class="commentbox">
             <div class="user-avatar">
-              <img
-                v-if="userStore.isLogin"
-                src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
-                alt=""
-              />
+              <img v-if="userStore.isLogin" :src="user.avatar" alt="" />
               <img v-else src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/noface.jpg" alt="" />
             </div>
             <div class="editor edit" v-if="userStore.isLogin">
@@ -157,53 +153,12 @@
         </div>
         <div class="contents">
           <div class="feed">
-            <div class="comment" v-for="(comment, index) in commentList" :key="index">
-              <div class="user-avatar">
-                <a href="#">
-                  <img
-                    src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
-                    alt=""
-                  />
-                </a>
-              </div>
-              <div class="comment-main">
-                <div class="comment-header">
-                  <div class="user-name"><a href="#">username</a></div>
-                  <div class="user-level">
-                    <img
-                      width="30"
-                      height="30"
-                      src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/level_6.svg"
-                      alt=""
-                    />
-                  </div>
-                </div>
-                <div class="comment-content">
-                  <p>
-                    {{ comment.content }}
-                  </p>
-                </div>
-                <div class="comment-footer">
-                  <div class="createDate">
-                    {{ formatDateTime(comment.createDate, 'YYYY-MM-DD HH:mm') }}
-                  </div>
-                  <div class="like">
-                    <el-icon>
-                      <CircleCheck />
-                    </el-icon>
-                    {{ comment.like }}
-                  </div>
-                  <div class="dislike">
-                    <el-icon>
-                      <CircleClose />
-                    </el-icon>
-                  </div>
-                  <div class="reply">回复</div>
-                </div>
-              </div>
-            </div>
-            <div class="replies"></div>
+            <CommentItem v-for="comment in flatComments" :key="comment.id" :comment="comment" />
+            <!--            <el-divider style="margin: 20px 0" />-->
           </div>
+        </div>
+        <div class="end">
+          <div class="bottombar">没有更多评论</div>
         </div>
       </div>
     </div>
@@ -212,11 +167,7 @@
         <div class="up-info-container">
           <div class="up-info-left">
             <div class="up-avatar-wrap">
-              <a href="#"
-                ><img
-                  src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
-                  alt=""
-              /></a>
+              <a href="#"><img :src="videoInfo.user.avatar" alt="" /></a>
             </div>
           </div>
           <div class="up-info-right">
@@ -312,7 +263,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 // import { useDanmakuStore } from '@/stores/danmakuStore'
 import { formatDateTime, formatDuration } from '@/utils/utils'
@@ -328,6 +279,7 @@ import { useVideoStore } from '@/stores/videoStore'
 import { useDanmakuStore } from '@/stores/danmakuStore.ts'
 import { useCommentStore } from '@/stores/commentStore.ts'
 import { useUserStore } from '@/stores/userStore.ts'
+import CommentItem from '@/components/comment-item/CommentItem.vue'
 
 const route = useRoute()
 const videoStore = useVideoStore()
@@ -348,6 +300,30 @@ const playerPlaceholder = ref<HTMLElement>()
 const isExpanded = ref(false) // 视频信息收起状态
 const descText = ref<HTMLElement | null>(null)
 const showToggleBtn = ref(false)
+
+function flattenComments(comments: Comment[], level: number = 0): (Comment & { level: number })[] {
+  let result: (Comment & { level: number })[] = []
+
+  for (const comment of comments) {
+    // 添加当前层级信息
+    const commentWithLevel = { ...comment, level }
+
+    // 如果存在子评论，递归处理
+    if (comment.replies && comment.replies.length > 0) {
+      result = [...result, commentWithLevel, ...flattenComments(comment.replies!, level + 1)]
+    } else {
+      result = [...result, commentWithLevel]
+    }
+  }
+
+  return result
+}
+
+// 扁平化评论列表（自动响应 commentList 变化）
+const flatComments = computed(() => {
+  return flattenComments(commentList.value)
+})
+
 const createDateFormatter = (row: Danmu) => {
   return formatDateTime(row.createDate, 'MM-DD HH:mm')
 }
@@ -365,14 +341,15 @@ const sendComment = async () => {
     vid: videoInfo.value.video.vid,
     uid: user.value.uid,
     content: comment.value,
-    isTop: 1,
+    isTop: 0,
     rootId: 0,
     parentId: 0,
-    toUserId: 1,
+    toUserId: videoInfo.value.user.uid,
   })
   if (newComment) {
-    commentList.value.unshift(newComment) // 添加到列表头部
+    await commentStore.getComment(videoInfo.value.video.vid)
     comment.value = ''
+    // currentReplyCommentId.value = null // 隐藏回复框
   }
 }
 // 初始化播放器
@@ -831,66 +808,15 @@ onUnmounted(() => {
         }
       }
 
-      .contents {
-        .feed {
-          .comment {
-            display: flex;
-            padding-left: 80px;
-            padding-top: 22px;
-            position: relative;
-
-            .user-avatar {
-              position: absolute;
-              left: 20px;
-
-              img {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-              }
-            }
-
-            .comment-main {
-              .comment-header {
-                display: flex;
-                align-items: center;
-
-                .user-name {
-                  font-size: 13px;
-                  font-weight: 500;
-
-                  a {
-                    color: #61666d;
-                  }
-                }
-
-                .user-level {
-                  width: 30px;
-                  height: 30px;
-                  margin-left: 5px;
-                }
-              }
-
-              .comment-content {
-                font-size: 15px;
-                margin-top: 10px;
-                line-height: 24px;
-                word-break: break-word;
-              }
-
-              .comment-footer {
-                display: flex;
-                align-items: center;
-                color: #9499a0;
-                font-size: 13px;
-                margin-top: 5px;
-
-                > :not(:first-child) {
-                  margin-left: 20px;
-                }
-              }
-            }
-          }
+      .end {
+        .bottombar {
+          width: 100%;
+          margin-top: 20px;
+          font-size: 13px;
+          color: #9499a0;
+          text-align: center;
+          user-select: none;
+          padding-bottom: 100px;
         }
       }
     }

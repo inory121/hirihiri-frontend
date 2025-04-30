@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { get,post} from '@/utils/request'
-import type { User, UserApiResponse, UserDataApiResponse } from '@/types/api.ts'
+import {USER_API} from '@/api/user'
+import type { User, UserApiResponse, UserDataApiResponse } from '@/types/api'
 
 export const useUserStore = defineStore('user', {
   state: () => {
@@ -14,7 +15,7 @@ export const useUserStore = defineStore('user', {
   getters: {},
   actions: {
     async login() {
-      await post<UserDataApiResponse>('/user/login', {
+      await post<UserDataApiResponse>(USER_API.USER_LOGIN, {
         username: this.user.username,
         password: this.password,
       })
@@ -32,7 +33,7 @@ export const useUserStore = defineStore('user', {
         })
     },
     async register() {
-      await post<UserDataApiResponse>('/user/register', {
+      await post<UserDataApiResponse>(USER_API.USER_REGISTER, {
         username: this.user.username,
         password: this.password,
       }).then((res) => {
@@ -44,14 +45,14 @@ export const useUserStore = defineStore('user', {
       })
     },
     async logout() {
-      await post<UserDataApiResponse>('/user/logout')
+      await post<UserDataApiResponse>(USER_API.USER_LOGOUT)
       localStorage.removeItem('hiri_token')
       this.isLogin = false
     },
 
     async getUserInfo() {
       if (localStorage.getItem('hiri_token')) {
-        await get<UserApiResponse>('/user/info')
+        await get<UserApiResponse>(USER_API.USER_INFO)
           .then((res) => {
             if (res.code === 200) {
               this.user = res.data

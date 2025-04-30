@@ -62,7 +62,7 @@ onMounted(() => {
 
 @media (min-width: 1560px) {
   .recommended-container {
-    padding: 0 140px;
+    padding: 0 140px 20px;
   }
 }
 
@@ -74,19 +74,19 @@ onMounted(() => {
 
 @media (min-width: 1139.9px) {
   .recommended-container {
-    padding: 0 60px;
+    padding: 0 60px 20px;
   }
 }
 
 @media (min-width: 1400px) {
   .recommended-container {
-    padding: 0 60px;
+    padding: 0 60px 20px;
   }
 }
 
 @media (min-width: 1560px) {
   .recommended-container {
-    padding: 0 140px;
+    padding: 0 140px 20px;
   }
 }
 </style>

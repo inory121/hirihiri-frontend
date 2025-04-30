@@ -111,6 +111,9 @@ export interface Comment {
   id?: number
   vid: number
   uid: number
+  user?: User
+  toUser?: User
+  replies?: Comment[]
   rootId: number
   parentId: number
   toUserId: number
