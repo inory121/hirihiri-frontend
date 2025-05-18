@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { post } from '@/utils/request.ts'
 import type { BaseResponse } from '@/types/api.ts'
+import { VIDEO_UPLOAD_API } from '@/api/video/upload.ts'
 
 export const useUploadStore = defineStore('upload', {
   state: () => {
@@ -53,7 +54,32 @@ export const useUploadStore = defineStore('upload', {
       this.coverFile = null
       this.coverUrlBase64 = ''
     },
-    confirmUpload() {
+    // 初始化上传
+    async initUpload() {
+      await post<BaseResponse<string>>(VIDEO_UPLOAD_API.VIDEO_UPLOAD_INIT).then((res) => {
+        this.uploadId = res.data
+      })
+    },
+    // 上传单个分片
+    async uploadChunk(chunk: Blob, chunkNumber: number, totalChunks: number) {
+      try {
+        const formData = new FormData()
+        formData.append('file', chunk)
+        formData.append('uploadId', this.uploadId)
+        formData.append('chunkNumber', chunkNumber.toString())
+        formData.append('totalChunks', totalChunks.toString())
+        formData.append('fileName', this.file!.name)
+
+        const response = await post<BaseResponse>(VIDEO_UPLOAD_API.VIDEO_UPLOAD_CHUNK, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        if (response.code !== 200) return chunkNumber
+      } catch (err) {
+        console.error(`分片 ${chunkNumber} 上传失败:`, err)
+        throw err
+      }
+    },
+    async confirmUpload() {
       if (this.progress < 100) {
         ElMessage.error('等待分片上传完成')
         return
@@ -85,7 +111,7 @@ export const useUploadStore = defineStore('upload', {
         formData.append('videoInfo', JSON.stringify(newVideoInfo))
         formData.append('uploadId', this.uploadId)
         formData.append('fileName', this.file!.name)
-        post<BaseResponse>('/upload/complete', formData, {
+        await post<BaseResponse>(VIDEO_UPLOAD_API.VIDEO_UPLOAD_COMPLETE, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
@@ -103,6 +129,17 @@ export const useUploadStore = defineStore('upload', {
             this.changeIsShow()
           })
       }
+    },
+    async cancelUpload() {
+      const formData = new FormData()
+      formData.append('uploadId', this.uploadId)
+      await post<BaseResponse>(VIDEO_UPLOAD_API.VIDEO_UPLOAD_CANCEL, formData).then((res) => {
+        if (res.code === 200) {
+          ElMessage.success(res.message)
+        } else if (res.code === 500) {
+          ElMessage.error(res.message)
+        }
+      })
     },
   },
 })

@@ -41,8 +41,6 @@
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
-import { post } from '@/utils/request.ts'
-import type { BaseResponse } from '@/types/api.ts'
 import { useUploadStore } from '@/stores/uploadStore.ts'
 import { ElMessage, type UploadFile, type UploadRawFile } from 'element-plus'
 
@@ -109,36 +107,36 @@ const UPLOAD_CONFIG = {
 // }
 
 // 初始化上传
-const initUpload = async () => {
-  await post<BaseResponse<string>>('/upload/init').then((res) => {
-    uploadStore.uploadId = res.data
-  })
-}
+// const initUpload = async () => {
+//   await post<BaseResponse<string>>('/upload/init').then((res) => {
+//     uploadStore.uploadId = res.data
+//   })
+// }
 
 // 上传单个分片
-const uploadChunk = async (chunk: Blob, chunkNumber: number, totalChunks: number) => {
-  try {
-    const formData = new FormData()
-    formData.append('file', chunk)
-    formData.append('uploadId', uploadStore.uploadId)
-    formData.append('chunkNumber', chunkNumber.toString())
-    formData.append('totalChunks', totalChunks.toString())
-    formData.append('fileName', uploadStore.file!.name)
-
-    const response = await post<BaseResponse>('/upload/chunk', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-    if (response.code !== 200) return chunkNumber
-  } catch (err) {
-    console.error(`分片 ${chunkNumber} 上传失败:`, err)
-    throw err
-  }
-}
+// const uploadChunk = async (chunk: Blob, chunkNumber: number, totalChunks: number) => {
+//   try {
+//     const formData = new FormData()
+//     formData.append('file', chunk)
+//     formData.append('uploadId', uploadStore.uploadId)
+//     formData.append('chunkNumber', chunkNumber.toString())
+//     formData.append('totalChunks', totalChunks.toString())
+//     formData.append('fileName', uploadStore.file!.name)
+//
+//     const response = await post<BaseResponse>('/upload/chunk', formData, {
+//       headers: { 'Content-Type': 'multipart/form-data' },
+//     })
+//     if (response.code !== 200) return chunkNumber
+//   } catch (err) {
+//     console.error(`分片 ${chunkNumber} 上传失败:`, err)
+//     throw err
+//   }
+// }
 
 // 分片上传管理
 const startUpload = async () => {
   if (!uploadStore.file) return
-  await initUpload()
+  await uploadStore.initUpload()
   const totalChunks = Math.ceil(uploadStore.file.size / UPLOAD_CONFIG.CHUNK_SIZE)
   const chunks = Array.from({ length: totalChunks }, (_, i) => i)
   let completedChunks = 0 // 新增完成计数器
@@ -152,7 +150,7 @@ const startUpload = async () => {
           const start = chunkIndex * UPLOAD_CONFIG.CHUNK_SIZE
           const end = Math.min(start + UPLOAD_CONFIG.CHUNK_SIZE, uploadStore.file!.size)
           const chunk = uploadStore.file!.slice(start, end)
-          await uploadChunk(chunk, chunkIndex + 1, totalChunks)
+          await uploadStore.uploadChunk(chunk, chunkIndex + 1, totalChunks)
           completedChunks++
           uploadStore.progress = Math.floor((completedChunks / totalChunks) * 100)
         }),

@@ -1,8 +1,8 @@
 <template>
   <!-- 主页主体 -->
   <div class="index">
-    <header>
-      <HeaderBar position="absolute" />
+    <header class="hiri-header__bar">
+      <HeaderBar />
       <!-- 头部banner -->
       <div class="hiri-header__banner"></div>
       <HeaderChannel />
@@ -37,12 +37,16 @@ onMounted(() => {
 })
 </script>
 <style scoped lang="less">
-// banner
-.hiri-header__banner {
-  min-height: 155px;
-  height: 9.375vw;
-  background: url('@/assets/img/banner.png');
-  background-size: cover;
+.hiri-header__bar {
+  --position: absolute;
+
+  // banner
+  .hiri-header__banner {
+    min-height: 155px;
+    height: 9.375vw;
+    background: url('@/assets/img/banner.png');
+    background-size: cover;
+  }
 }
 
 // 推荐

@@ -1,11 +1,6 @@
 <template>
-  <div style="min-height: 64px">
-    <HeaderBar
-      text-color="#18191C"
-      header-shadow="0 2px 4px #00000014"
-      bg-color="#fff"
-      position="fixed"
-    />
+  <div style="min-height: 64px" class="hiri-header__bar">
+    <HeaderBar />
   </div>
   <div class="video-container" v-show="isShow">
     <div class="left-container">
@@ -179,7 +174,7 @@
                 </el-icon>
                 发消息
               </a>
-              <div class="up-description">Debug the World！.商务合作请加V：maguabd01</div>
+              <div class="up-description">{{ videoInfo.user.description }}</div>
             </div>
             <div class="up-info__btn-panel">
               <span class="charge-btn default-btn">
@@ -584,6 +579,12 @@ onUnmounted(() => {
 })
 </script>
 <style scoped lang="less">
+.hiri-header__bar {
+  --text-color: #18191c;
+  --header-shadow: 0 2px 4px #00000014;
+  --bg-color: #fff;
+}
+
 .video-container {
   height: 100%;
   display: flex;
@@ -849,6 +850,7 @@ onUnmounted(() => {
         .up-info-right {
           margin-left: 12px;
           overflow: auto;
+          flex: 1;
 
           .up-info__detail {
             .up-name {

@@ -41,11 +41,11 @@
                 </router-link>
               </h3>
               <div class="video-card__info--bottom">
-                <router-link :to="`/space/${videoInfo.video.uid}`" target="_blank">
-                  up
-                  <span>{{ videoInfo.user.username }}</span
+                <router-link :to="`/space/${videoInfo.video.uid}`" target="_blank" style="display: flex; align-items: center;">
+                  <img src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg"/>
+                  <span style="margin-left: 5px">{{ videoInfo.user.username }}</span
                   >&nbsp;
-                  <span>{{ formatTime(videoInfo.video.createDate) }}</span>
+                  <span style="margin-left: 2px">{{ formatTime(videoInfo.video.createDate) }}</span>
                 </router-link>
               </div>
             </div>

@@ -13,7 +13,7 @@
       <a href="#" class="channel-icons__item"
         ><img
           class="icon-img"
-          src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
+          src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/hot.svg"
           alt=""
         /><span>热门</span></a
       >
@@ -180,6 +180,7 @@ onUnmounted(() => {
         height: 40px;
         border-radius: 50%;
         margin-bottom: 6px;
+        background: #f07775;
       }
     }
   }

@@ -1,11 +1,6 @@
 <template>
-  <div style="min-height: 64px">
-    <HeaderBar
-      text-color="#18191C"
-      header-shadow="0 2px 4px #00000014"
-      bg-color="#fff"
-      position="fixed"
-    />
+  <div style="min-height: 64px" class="hiri-header__bar">
+    <HeaderBar />
   </div>
 
   <el-container style="height: 100%">
@@ -33,6 +28,12 @@ onMounted(() => {
 </script>
 
 <style scoped lang="less">
+.hiri-header__bar {
+  --text-color: #18191c;
+  --header-shadow: 0 2px 4px #00000014;
+  --bg-color: #fff;
+}
+
 .error-container {
   background: #fff;
   margin: 10px auto 10px;

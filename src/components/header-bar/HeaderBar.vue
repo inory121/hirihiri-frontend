@@ -128,10 +128,12 @@
     </ul>
     <!-- 头部中间搜索框 -->
     <div class="center-search-container">
-      <div>
-        <form action="#" class="nav-searchform">
-          <el-input v-model="input" placeholder="请输入内容" :prefix-icon="Search" />
-        </form>
+      <div class="nav-searchform">
+        <el-input v-model="input" placeholder="请输入内容" @keyup.enter="handleSearch">
+          <template #append>
+            <el-button :icon="Search" @click="handleSearch" />
+          </template>
+        </el-input>
       </div>
     </div>
     <!-- 头部右边 -->
@@ -227,7 +229,9 @@
             </div>
             <el-divider style="margin: 10px 0" />
             <div class="logout-item" @click="userStore.logout()">
-              <el-icon :size="20" style="margin-right: 16px"><CloseBold /></el-icon>
+              <el-icon :size="20" style="margin-right: 16px">
+                <CloseBold />
+              </el-icon>
               <span>退出登录</span>
             </div>
           </div>
@@ -237,11 +241,7 @@
             <!--头像-->
             <div>
               <a href="#" class="header-entry-mini">
-                <img
-                  class="hiri-avatar-img"
-                  :src="userStore.user.avatar"
-                  alt=""
-                />
+                <img class="hiri-avatar-img" :src="userStore.user.avatar" alt="" />
               </a>
             </div>
           </li>
@@ -338,27 +338,23 @@ import MyPopover from '@/components/my-popover/MyPopover.vue'
 import { useUserStore } from '@/stores/userStore.ts'
 import { useRouter } from 'vue-router'
 
-const { textColor, headerShadow, bgColor } = defineProps({
-  textColor: {
-    type: String,
-    default: '#fff', // 默认颜色为白色
-  },
-  headerShadow: {
-    type: String,
-    default: '', // 默认没有
-  },
-  bgColor: {
-    type: String,
-    default: 'transparent', // 默认颜色透明
-  },
-  position: {
-    type: String,
-    default: 'fixed',
-  },
-})
 const router = useRouter()
 const userStore = useUserStore()
 const input = ref('')
+const handleSearch = () => {
+  const keyword = input.value.trim()
+  if (!keyword) return // 防止空搜索
+  // 使用 router.resolve 获取完整路径
+  const route = router.resolve({
+    path: '/search',
+    query: {
+      keyword: encodeURIComponent(keyword), // 自动处理特殊字符
+    },
+  })
+
+  // 在新标签页打开
+  window.open(route.href, '_blank')
+}
 const handleUploadClick = () => {
   if (!userStore.isLogin) {
     userStore.showLoginWindow = true
@@ -476,15 +472,16 @@ const handleUploadClick = () => {
 
 // 头部
 .hiri-header__bar {
-  position: v-bind(position);
+  position: var(--position);
   top: 0;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   height: 64px;
   width: 100%;
   padding: 0 24px;
-  box-shadow: v-bind(headerShadow);
-  background: v-bind(bgColor);
+  box-shadow: var(--header-shadow);
+  background: var(--bg-color);
   z-index: 1;
   // 左边
   .left-entry {
@@ -509,7 +506,7 @@ const handleUploadClick = () => {
       font-size: 14px;
 
       .left-entry-text {
-        color: v-bind(textColor);
+        color: var(--text-color);
       }
     }
 
@@ -521,25 +518,35 @@ const handleUploadClick = () => {
   // 搜索框
   .center-search-container {
     flex: 1 auto;
-    height: 40px;
+    display: var(--search-display);
 
     .nav-searchform {
       display: flex;
+      height: 40px;
+      margin: 0 auto;
+      min-width: 181px;
+      max-width: 500px;
 
-      .el-input--prefix {
-        justify-content: center;
+      :deep(.el-input__wrapper) {
+        border-radius: 8px 0 0 8px;
+        height: 40px;
+        min-width: 268px;
+        max-width: 500px;
 
-        :deep(.el-input__wrapper) {
+        .el-input__inner:focus {
+          background-color: #e3e5e7;
           border-radius: 8px;
-          height: 40px;
-          min-width: 268px;
-          max-width: 500px;
+          padding: 8px;
+        }
+      }
 
-          .el-input__inner:focus {
-            background-color: #e3e5e7;
-            border-radius: 8px;
-            padding: 8px;
-          }
+      :deep(.el-input-group__append) {
+        border-radius: 0 8px 8px 0;
+        background-color: #ffffff;
+        transition: background-color 0.5s ease;
+
+        &:hover {
+          background-color: #e3e5e7;
         }
       }
     }
@@ -548,7 +555,7 @@ const handleUploadClick = () => {
   // 右边
   .right-entry {
     display: flex;
-    flex-shrink: 1;
+    //flex-shrink: 1;
     align-items: center;
     margin-left: 30px;
 
@@ -587,6 +594,7 @@ const handleUploadClick = () => {
       }
 
       .hiri-avatar-img {
+        border: 2px solid #fff;
         display: block;
         width: 38px;
         height: 38px;
@@ -754,7 +762,7 @@ const handleUploadClick = () => {
     }
 
     .right-default-entry {
-      color: v-bind(textColor);
+      color: var(--text-color);
       height: 64px;
       margin-right: 15px;
       font-size: 14px;
@@ -836,7 +844,7 @@ const handleUploadClick = () => {
   }
 }
 
-@media (max-width: 1279.9px) {
+@media (max-width: 1330px) {
   .right-entry-text {
     display: none;
   }

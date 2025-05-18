@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
-import { get,post} from '@/utils/request'
-import {USER_API} from '@/api/user'
+import { get, post } from '@/utils/request'
+import { USER_API } from '@/api/user'
 import type { User, UserApiResponse, UserDataApiResponse } from '@/types/api'
+import { hashPassword } from '@/utils/utils.ts'
 
 export const useUserStore = defineStore('user', {
   state: () => {
@@ -17,7 +18,7 @@ export const useUserStore = defineStore('user', {
     async login() {
       await post<UserDataApiResponse>(USER_API.USER_LOGIN, {
         username: this.user.username,
-        password: this.password,
+        password: hashPassword(this.password),
       })
         .then((res) => {
           if (res.code === 200) {
@@ -35,7 +36,7 @@ export const useUserStore = defineStore('user', {
     async register() {
       await post<UserDataApiResponse>(USER_API.USER_REGISTER, {
         username: this.user.username,
-        password: this.password,
+        password: hashPassword(this.password),
       }).then((res) => {
         if (res.code === 500) {
           ElMessage.error(res.message)

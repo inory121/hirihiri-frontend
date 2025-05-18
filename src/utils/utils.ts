@@ -1,3 +1,4 @@
+import {sha256} from 'js-sha256';
 // 补零工具函数
 const pad = (n: number): string => n.toString().padStart(2, '0')
 
@@ -76,4 +77,7 @@ export const formatCommentTime = (isoString: string): string => {
   if (isYesterday()) return '昨天'
 
   return formatDateTime(isoString, 'YYYY-MM-DD HH:mm:ss')
+}
+export function hashPassword(password: string, salt: string = 'hiri_frontend_salt'): string {
+  return sha256(password + salt);
 }

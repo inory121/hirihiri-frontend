@@ -31,4 +31,12 @@ onMounted(async () => {
 })
 </script>
 
-<style></style>
+<style>
+:root {
+  --text-color: #fff;
+  --header-shadow: none;
+  --bg-color: transparent;
+  --position: fixed;
+  --search-display: block;
+}
+</style>

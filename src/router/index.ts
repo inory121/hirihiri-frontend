@@ -95,6 +95,11 @@ const router = createRouter({
       meta: { requestAuth: false },
     },
     {
+      path: '/search',
+      component: () => import('@/views/search/SearchIndex.vue'),
+      meta: { requestAuth: false },
+    },
+    {
       path: '/404',
       name: 'NotFound',
       component: () => import('@/views/NotFound.vue'),

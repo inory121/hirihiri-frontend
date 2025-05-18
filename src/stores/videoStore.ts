@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { get } from '@/utils/request'
 import router from '@/router'
-import {VIDEO_API} from '@/api/video'
+import { VIDEO_API } from '@/api/video'
 import type {
   OneVideoApiResponse,
   SubCategory,
@@ -25,6 +25,7 @@ export const useVideoStore = defineStore('video', {
         user: {} as User,
       },
       videoList: [] as VideoInfo[], // 推荐视频列表
+      searchVideoList: [] as VideoInfo[],
       loading: true, // 骨架屏显示
       isShow: false, // 是否显示视频详情
       pageNum: 0,
@@ -94,6 +95,17 @@ export const useVideoStore = defineStore('video', {
           }, 3000)
         }
       })
+    },
+    async getSearchVideo(keyword: string) {
+      await get<VideoApiResponse>(`${VIDEO_API.GET_SEARCH_VIDEO}?keyword=${keyword}`).then(
+        (res) => {
+          if (res.code === 200) {
+            this.searchVideoList = res.data
+          }else {
+            ElMessage.error('没有搜索到结果')
+          }
+        },
+      )
     },
   },
 })

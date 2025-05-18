@@ -559,7 +559,8 @@ const handleTagRemove = (tag: string) => {
   uploadStore.VideoInfo.tags = rcmTag.value.filter((item) => item !== tag)
 }
 
-const handleCancelUpload = () => {
+const handleCancelUpload = async () => {
+  await uploadStore.cancelUpload()
   uploadStore.changeIsShow()
   rcmTag.value = []
 }
