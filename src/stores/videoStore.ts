@@ -102,6 +102,7 @@ export const useVideoStore = defineStore('video', {
           if (res.code === 200) {
             this.searchVideoList = res.data
           }else {
+            this.searchVideoList = []
             ElMessage.error('没有搜索到结果')
           }
         },

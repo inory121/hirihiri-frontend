@@ -20,15 +20,52 @@
     </div>
     <div class="search-tabs">
       <el-tabs v-model="activeName" class="demo-tabs">
-        <el-tab-pane name="first" style="width: 90px">
+        <el-tab-pane name="first" >
           <template #label>
             <span class="custom-tabs-label">
               <span>视频</span>
               <el-tag type="info" style="padding: 1px 6px; height: 17px; margin-left: 5px">{{
-                searchVideoList.length
+                searchVideoList?.length
               }}</el-tag>
             </span>
           </template>
+          <div class="search-content">
+            <div class="search-page-video">
+              <div class="video-list">
+                <div class="card-box" v-for="list in searchVideoList" :key="list.video.vid">
+                  <div class="pic-box">
+                    <router-link :to="`/video/${list.video.vid}`">
+                      <img alt="" :src="list.video.coverUrl" />
+                    </router-link>
+                    <div class="mask"></div>
+                    <div class="playinfo">
+                      <el-icon class="icon" style="font-size: 16px">
+                        <View />
+                      </el-icon>
+                      <span class="text">{{ list.stat.view }}</span>
+                      <el-icon class="icon" style="margin-left: 10px; font-size: 16px">
+                        <Comment />
+                      </el-icon>
+                      <span class="text">{{ list.stat.danmaku }}</span>
+                    </div>
+                    <span class="duration">{{ formatDuration(list.video.duration) }}</span>
+                  </div>
+                  <div class="info">
+                    <a href="#">
+                      <p class="title" v-html="list.video.title"></p>
+                    </a>
+                    <div class="upname">
+                      <a href="#">
+                        <span class="up">up</span>
+                        <span class="name">{{ list.user.username }}</span>
+                        <span class="create_date"> · {{ formatTime(list.video.createDate) }}</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </el-tab-pane>
         <el-tab-pane name="second">
           <template #label>
@@ -43,43 +80,7 @@
       </el-tabs>
     </div>
   </div>
-  <div class="search-content">
-    <div class="search-page-video">
-      <div class="video-list">
-        <div class="card-box" v-for="list in searchVideoList" :key="list.video.vid">
-          <div class="pic-box">
-            <router-link :to="`/video/${list.video.vid}`">
-              <img alt="" :src="list.video.coverUrl" />
-            </router-link>
-            <div class="mask"></div>
-            <div class="playinfo">
-              <el-icon class="icon" style="font-size: 16px">
-                <View />
-              </el-icon>
-              <span class="text">{{ list.stat.view }}</span>
-              <el-icon class="icon" style="margin-left: 10px; font-size: 16px">
-                <Comment />
-              </el-icon>
-              <span class="text">{{ list.stat.danmaku }}</span>
-            </div>
-            <span class="duration">{{ formatDuration(list.video.duration) }}</span>
-          </div>
-          <div class="info">
-            <a href="#">
-              <p class="title" v-html="list.video.title"></p>
-            </a>
-            <div class="upname">
-              <a href="#">
-                <span class="up">up</span>
-                <span class="name">{{ list.user.username }}</span>
-                <span class="create_date"> · {{ formatTime(list.video.createDate) }}</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+
 </template>
 
 <script setup lang="ts">
@@ -112,9 +113,10 @@ onMounted(() => {
 watch(
   () => route.query.keyword,
   async (newKeyword) => {
+    console.log('newKeyword', newKeyword)
     if (typeof newKeyword === 'string') {
       input.value = newKeyword
-      await videoStore.getSearchVideo(newKeyword)
+      // await videoStore.getSearchVideo(newKeyword)
     }
   },
   { immediate: true },
@@ -155,6 +157,10 @@ watch(
       display: flex;
       align-items: center;
     }
+
+    :deep(.el-tabs__nav-wrap:after) {
+      z-index: 0;
+    }
   }
 }
 
@@ -162,7 +168,7 @@ watch(
   .video-list {
     display: flex;
     flex-wrap: wrap;
-    margin: 0 64px;
+    //margin: 0 64px;
 
     .card-box {
       display: flex;
@@ -197,7 +203,7 @@ watch(
           position: absolute;
           bottom: 0;
           background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
-          z-index: 1;
+          //z-index: 1;
         }
 
         .duration,
