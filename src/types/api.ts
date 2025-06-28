@@ -162,3 +162,6 @@ export interface UserDataApiResponse extends BaseResponse {
 export interface UserApiResponse extends BaseResponse {
   data: User
 }
+export interface searchUserApiResponse extends BaseResponse {
+  data: User[]
+}

@@ -8,19 +8,19 @@
         v-model="input"
         style="max-width: 600px; height: 44px; --el-input-border-radius: 6px"
         placeholder="输入关键词搜索"
-        @keyup.enter="getSearchVideo"
+        @keyup.enter="searchInfo"
       >
         <template #prepend>
           <el-button :icon="Search" />
         </template>
         <template #append>
-          <el-button type="primary" @click="getSearchVideo">搜索</el-button>
+          <el-button type="primary" @click="searchInfo">搜索</el-button>
         </template>
       </el-input>
     </div>
     <div class="search-tabs">
-      <el-tabs v-model="activeName" class="demo-tabs">
-        <el-tab-pane name="first" >
+      <el-tabs v-model="activeName" class="demo-tabs" @tab-change="handleTabChange">
+        <el-tab-pane name="first">
           <template #label>
             <span class="custom-tabs-label">
               <span>视频</span>
@@ -71,52 +71,101 @@
           <template #label>
             <span class="custom-tabs-label">
               <span>用户</span>
-              <el-tag type="info" style="padding: 1px 6px; height: 17px; margin-left: 5px"
-                >99+</el-tag
-              >
+              <el-tag type="info" style="padding: 1px 6px; height: 17px; margin-left: 5px">{{
+                searchUserList?.length
+              }}</el-tag>
             </span>
           </template>
+          <div class="search-content">
+            <div class="search-page-user">
+              <div class="user-list">
+                <div class="card-box" v-for="list in searchUserList" :key="list.uid">
+                  <div class="pic-box">
+<!--                    <router-link :to="`/user/${list.uid}`">-->
+                      <img alt="" :src="list.avatar" />
+<!--                    </router-link>-->
+                  </div>
+                  <div class="info">
+                    <a href="#">
+                      <h2 class="username">{{ list.username }}</h2>
+                    </a>
+                    <div class="description">
+                      <p class="description">{{ list.description }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </el-tab-pane>
       </el-tabs>
     </div>
   </div>
-
 </template>
 
 <script setup lang="ts">
 import { Search } from '@element-plus/icons-vue'
-import { ref, onMounted, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useVideoStore } from '@/stores/videoStore.ts'
+import { useUserStore } from '@/stores/userStore.ts'
 import { storeToRefs } from 'pinia'
-import { formatTime, formatDuration } from '@/utils/utils.ts'
+import { formatDuration, formatTime } from '@/utils/utils.ts'
 import { useRoute, useRouter } from 'vue-router'
+import type { TabPaneName } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
 
 const videoStore = useVideoStore()
+const userStore = useUserStore()
 const { searchVideoList } = storeToRefs(videoStore)
+const { searchUserList } = storeToRefs(userStore)
 const input = ref('')
 const activeName = ref('first')
-const getSearchVideo = async () => {
+
+const searchInfo = async () => {
   const keyword = input.value.trim()
   await router.push({ query: { keyword } })
-  await videoStore.getSearchVideo(input.value)
+  if (activeName.value === 'first') {
+    await videoStore.getSearchVideos(input.value)
+  } else if (activeName.value === 'second') {
+    await userStore.getSearchUsers(input.value)
+  }
 }
-onMounted(() => {
-  const keyword = route.query.keyword as string
-  if (keyword) {
-    input.value = keyword
-    getSearchVideo()
+
+const handleTabChange = (name: TabPaneName) => {
+  console.log('当前 tab:', name)
+  if (name === 'first') {
+    videoStore.getSearchVideos(input.value)
+  } else if (name === 'second') {
+    userStore.getSearchUsers(input.value)
+  }
+}
+
+onMounted(async () => {
+  const encodedKeyword = route.query.keyword as string
+  if (encodedKeyword) {
+    try {
+      input.value = decodeURIComponent(encodedKeyword)
+      await videoStore.getSearchVideos(input.value)
+      await userStore.getSearchUsers(input.value)
+    } catch (e) {
+      console.error('解码失败', e)
+      input.value = encodedKeyword
+    }
   }
 })
+
 watch(
   () => route.query.keyword,
   async (newKeyword) => {
-    console.log('newKeyword', newKeyword)
     if (typeof newKeyword === 'string') {
-      input.value = newKeyword
-      // await videoStore.getSearchVideo(newKeyword)
+      try {
+        input.value = decodeURIComponent(newKeyword)
+      } catch (e) {
+        console.error('解码失败', e)
+        input.value = newKeyword
+      }
     }
   },
   { immediate: true },
@@ -311,6 +360,50 @@ watch(
           .text:first-of-type {
             margin-right: 12px;
           }
+        }
+      }
+    }
+  }
+
+  .user-list {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 40px;
+
+    .card-box {
+      display: flex;
+      flex-direction: row;
+      margin-bottom: 60px;
+      flex: 0 0 50%;
+      max-width: 50%;
+      padding: 0 8px;
+
+      .pic-box {
+        width: 86px;
+        min-width: 86px;
+        height: 86px;
+
+        margin-right: 15px;
+
+        a {
+          display: block;
+          width: 100%;
+          height: 100%;
+        }
+        img {
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+        }
+      }
+      .info{
+        .username{
+          font-size: 18px;
+        }
+        .description{
+          font-size: 13px;
+          color: #61666D;
+          margin:5px 0;
         }
       }
     }

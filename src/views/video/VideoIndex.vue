@@ -63,27 +63,35 @@
         <div class="video-toolbar-left">
           <div class="toolbar-left-item-wrap">
             <div class="toolbar-left-item">
-              <el-icon class="icon">
-                <Star />
-              </el-icon>
+              <!--              <el-icon class="icon">-->
+              <!--                <Star />-->
+              <!--              </el-icon>-->
+              <i class="iconfont icon-dianzan_kuai"></i>
               <span>{{ videoInfo.stat.like }}</span>
             </div>
             <div class="toolbar-left-item">
-              <el-icon class="icon">
-                <Star />
-              </el-icon>
+              <i class="iconfont icon-diancai-mian"></i>
+              <span>不喜欢</span>
+            </div>
+            <div class="toolbar-left-item">
+              <!--              <el-icon class="icon">-->
+              <!--                <Star />-->
+              <!--              </el-icon>-->
+              <i class="iconfont icon-toubix"></i>
               <span>{{ videoInfo.stat.coin }}</span>
             </div>
             <div class="toolbar-left-item">
-              <el-icon class="icon">
-                <Star />
-              </el-icon>
+              <!--              <el-icon class="icon">-->
+              <!--                <Star />-->
+              <!--              </el-icon>-->
+              <i class="iconfont icon-shoucang1"></i>
               <span>{{ videoInfo.stat.favorite }}</span>
             </div>
             <div class="toolbar-left-item">
-              <el-icon class="icon">
-                <Share />
-              </el-icon>
+              <!--              <el-icon class="icon">-->
+              <!--                <Share />-->
+              <!--              </el-icon>-->
+              <i class="iconfont icon-zhuanfa"></i>
               <span>{{ videoInfo.stat.share }}</span>
             </div>
           </div>
@@ -561,6 +569,7 @@ const disposeDanmaku = () => {
 onMounted(async () => {
   const vid = Number(route.params.vid)
   if (!isNaN(vid)) {
+    await videoStore.getRecommendVideo()
     await videoStore.getVideo(vid)
     await commentStore.getComment(vid)
   }
@@ -579,6 +588,11 @@ onUnmounted(() => {
 })
 </script>
 <style scoped lang="less">
+.iconfont {
+  font-size: 28px;
+  margin-right: 8px;
+}
+
 .hiri-header__bar {
   --text-color: #18191c;
   --header-shadow: 0 2px 4px #00000014;
@@ -690,10 +704,20 @@ onUnmounted(() => {
             color: #61666d;
             display: flex;
             align-items: center;
+            transition: all 0.3s;
+            cursor: pointer;
+
+            &:hover {
+              color: #00AEEC;
+            }
 
             .icon {
               font-size: 28px;
               margin-right: 5px;
+            }
+
+            span {
+              font-size: 13px;
             }
           }
         }

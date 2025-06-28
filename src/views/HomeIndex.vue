@@ -27,13 +27,23 @@
 </template>
 
 <script lang="ts" setup>
-import { useVideoStore } from '@/stores/videoStore.ts'
 import type { VideoInfo } from '@/types/api.ts'
 import { onMounted } from 'vue'
+import { useVideoStore } from '@/stores/videoStore.ts'
+import { useCategoryStore } from '@/stores/categoryStore.ts'
 
 const videoStore = useVideoStore()
-onMounted(() => {
+const categoryStore = useCategoryStore()
+
+onMounted(async () => {
   document.body.style.backgroundColor = '#fff'
+  try {
+    await Promise.all([categoryStore.getCategory(), videoStore.getRecommendVideo()])
+    videoStore.loading = false
+  } catch (e) {
+    console.log(e)
+    videoStore.loading = true
+  }
 })
 </script>
 <style scoped lang="less">

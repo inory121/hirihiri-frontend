@@ -96,7 +96,7 @@ export const useVideoStore = defineStore('video', {
         }
       })
     },
-    async getSearchVideo(keyword: string) {
+    async getSearchVideos(keyword: string) {
       await get<VideoApiResponse>(`${VIDEO_API.GET_SEARCH_VIDEO}?keyword=${keyword}`).then(
         (res) => {
           if (res.code === 200) {

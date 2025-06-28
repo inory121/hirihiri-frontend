@@ -33,11 +33,17 @@
           <div v-if="uploadStore.progress != 100" class="file-item-content-status-text">
             <span class="upload-progress">当前进度{{ uploadStore.progress }}%</span>
           </div>
-          <div class="file-item-content-status-text" v-else>
+          <div class="file-item-content-status-text" v-else-if="uploadStore.isFileUploadSuccess">
             <el-icon color="rgb(67, 206, 91)">
               <CircleCheckFilled />
             </el-icon>
             <span class="success">上传完成</span>
+          </div>
+          <div class="file-item-content-status-text" v-else-if="!uploadStore.isFileUploadSuccess">
+            <el-icon color="#F04C49">
+              <WarningFilled />
+            </el-icon>
+            <span class="success">上传失败</span>
           </div>
           <el-progress
             :show-text="false"
@@ -282,7 +288,7 @@
 </template>
 
 <script lang="ts" setup>
-import { nextTick, reactive, ref, watch } from 'vue'
+import { nextTick, reactive, ref, watch,onMounted } from 'vue'
 import { useUploadStore } from '@/stores/uploadStore.ts'
 import { useCategoryStore } from '@/stores/categoryStore.ts'
 import { type CascaderValue, ElMessage, type FormRules, type UploadFile } from 'element-plus'
@@ -653,6 +659,9 @@ watch(
   },
   { deep: true, immediate: true },
 )
+onMounted(async () => {
+  await categoryStore.getCategory()
+})
 </script>
 
 <style lang="less" scoped>

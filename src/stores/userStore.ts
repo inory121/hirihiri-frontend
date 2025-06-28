@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { get, post } from '@/utils/request'
 import { USER_API } from '@/api/user'
-import type { User, UserApiResponse, UserDataApiResponse } from '@/types/api'
+import type { searchUserApiResponse, User, UserApiResponse, UserDataApiResponse } from '@/types/api'
 import { hashPassword } from '@/utils/utils.ts'
 
 export const useUserStore = defineStore('user', {
@@ -11,6 +11,7 @@ export const useUserStore = defineStore('user', {
       isLogin: false,
       password: '',
       showLoginWindow: false,
+      searchUserList: [] as User[],
     }
   },
   getters: {},
@@ -27,6 +28,8 @@ export const useUserStore = defineStore('user', {
             localStorage.setItem('hiri_token', res.data.token)
             this.showLoginWindow = false
             this.isLogin = true
+          }else {
+            ElMessage.error(res.message)
           }
         })
         .catch((err) => {
@@ -66,7 +69,16 @@ export const useUserStore = defineStore('user', {
           })
       }
     },
-
+    async getSearchUsers(keyword: string) {
+      await get<searchUserApiResponse>(`${USER_API.GET_SEARCH_USER}?keyword=${keyword}`).then((res) => {
+        if (res.code === 200) {
+          this.searchUserList = res.data
+        } else {
+          this.searchUserList = []
+          ElMessage.error('没有搜索到结果')
+        }
+      })
+    },
     setLoginState() {
       this.isLogin = !!localStorage.getItem('hiri_token')
     },

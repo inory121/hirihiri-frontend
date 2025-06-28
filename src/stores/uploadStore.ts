@@ -9,6 +9,7 @@ export const useUploadStore = defineStore('upload', {
       isShow: true, //true为展示投稿界面，false为展示稿件详情页
       file: null as File | null, // 上传的文件
       progress: 0, // 上传进度条
+      isFileUploadSuccess: null as boolean | null, //分片是否上传成功
       uploadId: '', // 上传id
       loading: false, // 上传按钮加载状态
       coverFile: null as File | null, // 封面文件
@@ -56,6 +57,7 @@ export const useUploadStore = defineStore('upload', {
     },
     // 初始化上传
     async initUpload() {
+      this.isFileUploadSuccess = null
       await post<BaseResponse<string>>(VIDEO_UPLOAD_API.VIDEO_UPLOAD_INIT).then((res) => {
         this.uploadId = res.data
       })
@@ -73,7 +75,13 @@ export const useUploadStore = defineStore('upload', {
         const response = await post<BaseResponse>(VIDEO_UPLOAD_API.VIDEO_UPLOAD_CHUNK, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
-        if (response.code !== 200) return chunkNumber
+        if (response.code == 200) {
+          this.isFileUploadSuccess = true
+        } else {
+          this.isFileUploadSuccess = false
+          ElMessage.error(response.message)
+          // return chunkNumber
+        }
       } catch (err) {
         console.error(`分片 ${chunkNumber} 上传失败:`, err)
         throw err
@@ -131,6 +139,8 @@ export const useUploadStore = defineStore('upload', {
       }
     },
     async cancelUpload() {
+      if (!this.isFileUploadSuccess) return
+      this.isFileUploadSuccess = null
       const formData = new FormData()
       formData.append('uploadId', this.uploadId)
       await post<BaseResponse>(VIDEO_UPLOAD_API.VIDEO_UPLOAD_CANCEL, formData).then((res) => {
