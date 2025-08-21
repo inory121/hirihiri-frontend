@@ -112,11 +112,11 @@ export const useUploadStore = defineStore('upload', {
       if (this.progress === 100) {
         const formData = new FormData()
         formData.append('coverFile', this.coverFile!)
-        const newVideoInfo = {
-          ...this.VideoInfo, // 浅拷贝对象
-          tags: this.VideoInfo.tags.join('\n'), // 替换 tags
+        const { ...payload } = {
+          ...this.VideoInfo,
+          tags: this.VideoInfo.tags.join('\n'),
         }
-        formData.append('videoInfo', JSON.stringify(newVideoInfo))
+        formData.append('videoInfo', JSON.stringify(payload))
         formData.append('uploadId', this.uploadId)
         formData.append('fileName', this.file!.name)
         await post<BaseResponse>(VIDEO_UPLOAD_API.VIDEO_UPLOAD_COMPLETE, formData, {

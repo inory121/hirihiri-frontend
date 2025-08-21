@@ -75,7 +75,7 @@ export const useUserStore = defineStore('user', {
           this.searchUserList = res.data
         } else {
           this.searchUserList = []
-          ElMessage.error('没有搜索到结果')
+          ElMessage.error('没有搜索到用户')
         }
       })
     },
