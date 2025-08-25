@@ -106,7 +106,7 @@ watch(
     position: absolute;
     bottom: 80px;
     width: 100%;
-    mask-image: linear-gradient(0, #2f3238 37%, transparent 90%);
+    mask-image: linear-gradient(0, #2f3238 40%, transparent 90%);
     background-blend-mode: multiply;
     backdrop-filter: saturate(180%) blur(30px);
     box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.1);
