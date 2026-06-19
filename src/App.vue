@@ -20,7 +20,7 @@ onMounted(async () => {
 </script>
 
 <style>
-@import 'https://at.alicdn.com/t/c/font_4827454_eeiw191dyt.css';
+@import 'https://at.alicdn.com/t/c/font_4827454_3pmca177kzu.css';
 :root {
   --text-color: #fff;
   --header-shadow: none;

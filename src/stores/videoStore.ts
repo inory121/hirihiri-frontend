@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { get } from '@/utils/request'
+import { get, post } from '@/utils/request'
 import router from '@/router'
 import { VIDEO_API } from '@/api/video'
 import type {
@@ -26,10 +26,13 @@ export const useVideoStore = defineStore('video', {
       },
       videoList: [] as VideoInfo[], // 推荐视频列表
       searchVideoList: [] as VideoInfo[],
+      userVideoList: [] as VideoInfo[], // 用户投稿视频列表
       loading: true, // 骨架屏显示
+      userVideoLoading: true, // 用户投稿视频加载状态
       isShow: false, // 是否显示视频详情
       pageNum: 0,
       pageSize: 20,
+      onlineCount: 0, // 当前视频在线人数
     }
   },
   getters: {
@@ -101,12 +104,52 @@ export const useVideoStore = defineStore('video', {
         (res) => {
           if (res.code === 200) {
             this.searchVideoList = res.data
-          }else {
+          } else {
             this.searchVideoList = []
             ElMessage.error('没有搜索到视频')
           }
         },
       )
+    },
+    async getUserVideos(uid: number) {
+      this.userVideoLoading = true
+      try {
+        const res = await get<VideoApiResponse>(`${VIDEO_API.GET_BY_UID}/${uid}`)
+        if (res.code === 200) {
+          this.userVideoList = res.data
+        } else {
+          this.userVideoList = []
+        }
+      } catch (e) {
+        console.log('加载用户投稿视频失败:', e)
+        this.userVideoList = []
+      } finally {
+        this.userVideoLoading = false
+      }
+    },
+    async reportPlay(vid: number) {
+      try {
+        const res = await post<{ code: number; data: boolean }>(VIDEO_API.REPORT_PLAY, null, {
+          params: { vid },
+        })
+        // 只在后端真正计数了时才更新前端显示
+        if (res.data) {
+          this.videoInfo.stat.view += 1
+        }
+        console.log('播放量上报成功')
+      } catch (e) {
+        console.error('播放量上报失败', e)
+      }
+    },
+    async sendHeartbeat(vid: number, viewerId: string) {
+      try {
+        const res = await post<{ code: number; data: number }>(VIDEO_API.HEARTBEAT, null, {
+          params: { vid, viewerId },
+        })
+        this.onlineCount = res.data || 0
+      } catch (e) {
+        console.error('心跳上报失败', e)
+      }
     },
   },
 })

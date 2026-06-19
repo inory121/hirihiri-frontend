@@ -165,3 +165,37 @@ export interface UserApiResponse extends BaseResponse {
 export interface searchUserApiResponse extends BaseResponse {
   data: User[]
 }
+
+// 浏览历史接口
+export interface HistoryVideoDTO {
+  id: number
+  vid: number
+  browseTime: string
+  progress: number
+  title: string
+  coverUrl: string
+  duration: number
+  authorUid: number
+  authorNickname: string
+}
+
+export interface HistoryApiResponse extends BaseResponse {
+  data: HistoryVideoDTO[]
+}
+
+export interface FollowCount {
+  followers: number
+  followings: number
+}
+
+export interface FollowCountApiResponse extends BaseResponse {
+  data: FollowCount
+}
+
+export interface FollowStatusApiResponse extends BaseResponse {
+  data: boolean
+}
+
+export interface FollowListApiResponse extends BaseResponse {
+  data: User[]
+}

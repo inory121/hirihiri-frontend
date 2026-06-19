@@ -22,10 +22,13 @@ const post = async <T>(url: string, data?: unknown, config?: AxiosRequestConfig)
 // 请求拦截器
 instance.interceptors.request.use(
   (config) => {
-    // 添加请求头（示例：添加 token）
     const token = localStorage.getItem('hiri_token')
+    const uid = localStorage.getItem('hiri_uid')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+    if (uid) {
+      config.headers.uid = uid
     }
     return config
   },

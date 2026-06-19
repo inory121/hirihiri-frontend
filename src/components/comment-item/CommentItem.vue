@@ -49,15 +49,11 @@
           {{ formatCommentTime(comment.createDate) }}
         </div>
         <div class="like">
-          <el-icon>
-            <CircleCheck />
-          </el-icon>
+          <i class="iconfont icon-good"></i>
           {{ comment.like }}
         </div>
         <div class="dislike">
-          <el-icon>
-            <CircleClose />
-          </el-icon>
+          <i class="iconfont icon-diancai"></i>
         </div>
         <div class="reply" @click="toggleReply">回复</div>
       </div>
@@ -276,6 +272,8 @@ const sendSubComment = async () => {
         margin-left: 20px;
       }
 
+      .like,
+      .dislike,
       .reply {
         cursor: pointer;
 

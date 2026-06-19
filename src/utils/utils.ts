@@ -1,4 +1,4 @@
-import {sha256} from 'js-sha256';
+import { sha256 } from 'js-sha256'
 // 补零工具函数
 const pad = (n: number): string => n.toString().padStart(2, '0')
 
@@ -45,7 +45,23 @@ export const formatTime = (isoString: string): string => {
     ? `${target.getMonth() + 1}-${target.getDate()}`
     : `${target.getFullYear()}-${target.getMonth() + 1}-${target.getDate()}`
 }
+// 格式化首页视频数据(如 797000 -> 79.7万, 12345678 -> 1234.6万, 123456789 -> 1.2亿)
+export const formatNumber = (num: number): string => {
+  if (!num) return '0'
 
+  // 亿级别
+  if (num >= 100000000) {
+    return (num / 100000000).toFixed(1) + '亿'
+  }
+
+  // 万级别
+  if (num >= 10000) {
+    return (num / 10000).toFixed(1) + '万'
+  }
+
+  // 千以下直接返回
+  return num.toString()
+}
 // 格式化视频播放页时间（支持自定义格式，如 YYYY-MM-DD HH:mm）
 export const formatDateTime = (
   isoString: string | undefined,
@@ -79,5 +95,5 @@ export const formatCommentTime = (isoString: string): string => {
   return formatDateTime(isoString, 'YYYY-MM-DD HH:mm:ss')
 }
 export function hashPassword(password: string, salt: string = 'hiri_frontend_salt'): string {
-  return sha256(password + salt);
+  return sha256(password + salt)
 }

@@ -35,27 +35,70 @@
       <!--播放器-->
       <div class="player-wrap">
         <div ref="playerPlaceholder" class="player-placeholder"></div>
-        <div v-if="true" ref="danmakuContainer" class="danmaku-wrap">
-          <video ref="plyrPlayer" controls>
+        <div :key="videoInfo.video.vid" v-if="true" ref="danmakuContainer" class="danmaku-wrap"
+          :class="{ 'danmaku-off': !danmakuEnabled }">
+          <video ref="plyrPlayer" controls style="width: 100%; height: 100%">
             <source :src="videoInfo.video.videoUrl" type="video/mp4" />
           </video>
         </div>
       </div>
       <div class="sending-bar">
         <div class="video-info">
-          <div class="video-info-online">999人正在看，</div>
-          <div class="video-info-dm">已装填{{ danmakuList.length }}条弹幕</div>
+          <div class="video-info-online">{{ onlineCount }}人正在看，</div>
+          <div class="video-info-dm">已装填{{ danmakuList?.length || 0 }}条弹幕</div>
+        </div>
+        <div class="danmaku-toggle-icon" :style="{
+          '--icon-url': danmakuEnabled
+            ? 'url(https://hirihiri.oss-cn-nanjing.aliyuncs.com/danmuopen.svg)'
+            : 'url(https://hirihiri.oss-cn-nanjing.aliyuncs.com/danmuclose.svg)',
+        }" @click="toggleDanmaku" :title="danmakuEnabled ? '关闭弹幕' : '开启弹幕'"></div>
+        <div class="danmaku-setting-icon" @mouseenter="enterSettingsPanel" @mouseleave="leaveSettingsPanel"
+          title="弹幕设置">
+          <div class="setting-icon-mask"></div>
+          <div v-if="showDanmakuSettings" class="danmaku-settings-panel" @mouseenter="enterSettingsPanel"
+            @mouseleave="leaveSettingsPanel">
+            <div class="settings-row">
+              <span class="settings-label">字号</span>
+              <div class="font-size-buttons">
+                <button :class="['font-btn', { active: danmakuFontSize === 18 }]" @click="danmakuFontSize = 18">
+                  小
+                </button>
+                <button :class="['font-btn', { active: danmakuFontSize === 25 }]" @click="danmakuFontSize = 25">
+                  标准
+                </button>
+                <button :class="['font-btn', { active: danmakuFontSize === 32 }]" @click="danmakuFontSize = 32">
+                  大
+                </button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <span class="settings-label">模式</span>
+              <div class="mode-buttons">
+                <button :class="['mode-btn', { active: danmakuMode === 1 }]" @click="danmakuMode = 1">
+                  滚动
+                </button>
+                <button :class="['mode-btn', { active: danmakuMode === 3 }]" @click="danmakuMode = 3">
+                  顶部
+                </button>
+                <button :class="['mode-btn', { active: danmakuMode === 4 }]" @click="danmakuMode = 4">
+                  底部
+                </button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <span class="settings-label">颜色</span>
+              <div class="color-picker">
+                <div v-for="color in danmakuColors" :key="color"
+                  :class="['color-item', { active: danmakuColor === color }]" :style="{ backgroundColor: color }"
+                  @click="danmakuColor = color"></div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="dm-root">
-          <el-input
-            placeholder="发个友善的弹幕见证当下"
-            maxlength="100"
-            minlength="1"
-            v-model="danmaku"
-            prefix-icon="Operation"
-          ></el-input>
-          <el-button type="primary" style="border-radius: 0 8px 8px 0" @click="sendDanmaku"
-            >发送
+          <el-input style="height: 100%" placeholder="发个友善的弹幕见证当下" maxlength="100" minlength="1" v-model="danmaku"
+            @keyup.enter="sendDanmaku"></el-input>
+          <el-button type="primary" style="border-radius: 0 8px 8px 0; height: 100%" @click="sendDanmaku">发送
           </el-button>
         </div>
       </div>
@@ -118,7 +161,7 @@
           <div class="navbar">
             <div class="title">
               <h2>评论</h2>
-              <span class="count">{{ commentList?.length ? commentList?.length : '0' }}</span>
+              <span class="count">{{ flatComments.length }}</span>
             </div>
             <div class="sort-actions">
               <el-button link class="sort">最热</el-button>
@@ -132,23 +175,15 @@
               <img v-else src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/noface.jpg" alt="" />
             </div>
             <div class="editor edit" v-if="userStore.isLogin">
-              <el-input
-                v-model="comment"
-                style="height: 50px"
-                placeholder="wifi连接中......检测到粉丝评论输出电波......"
-              ></el-input>
+              <el-input v-model="comment" style="height: 50px" placeholder="wifi连接中......检测到粉丝评论输出电波......"></el-input>
               <el-button type="primary" size="large" style="margin-left: 10px" @click="sendComment">
                 发布
               </el-button>
             </div>
             <div class="edit" v-else>
               <span>请先</span>
-              <el-button
-                type="primary"
-                size="small"
-                style="margin: 0 5px"
-                @click="userStore.showLoginWindow = !userStore.showLoginWindow"
-                >登录
+              <el-button type="primary" size="small" style="margin: 0 5px"
+                @click="userStore.showLoginWindow = !userStore.showLoginWindow">登录
               </el-button>
               <span>后发表评论 (・ω・)</span>
             </div>
@@ -170,12 +205,12 @@
         <div class="up-info-container">
           <div class="up-info-left">
             <div class="up-avatar-wrap">
-              <a href="#"><img :src="videoInfo.user.avatar" alt="" /></a>
+              <a :href="`/space/${videoInfo.user.uid}`"><img :src="videoInfo.user.avatar" alt="" /></a>
             </div>
           </div>
           <div class="up-info-right">
             <div class="up-info__detail">
-              <a href="#" class="up-name">{{ videoInfo.user.username }}</a>
+              <a :href="`/space/${videoInfo.user.uid}`" class="up-name">{{ videoInfo.user.username }}</a>
               <a href="#" class="send-msg">
                 <el-icon>
                   <Message />
@@ -186,43 +221,41 @@
             </div>
             <div class="up-info__btn-panel">
               <span class="charge-btn default-btn">
-                <el-icon> <CoffeeCup /> </el-icon>充电
-              </span>
-              <span class="follow-btn default-btn">
                 <el-icon>
-                  <Operation />
-                </el-icon>
-                已关注999万
+                  <CoffeeCup />
+                </el-icon>充电
               </span>
+              <el-button class="up-follow-btn"
+                :type="'default'" :disabled="false" :plain="false"
+                :class="{ 'up-follow-btn--followed': upFollowingStatus }"
+                @click="handleUpFollowClick">
+                <svg v-if="!upFollowingStatus" class="up-follow-btn__icon" width="16" height="16" viewBox="0 0 16 16"
+                  fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path fill-rule="evenodd" clip-rule="evenodd"
+                    d="M7.25098 8.75V13.25C7.25098 13.6642 7.58676 14 8.00098 14C8.41519 14 8.75098 13.6642 8.75098 13.25V8.75H13.251C13.6652 8.75 14.001 8.41421 14.001 8C14.001 7.58579 13.6652 7.25 13.251 7.25H8.75098V2.75C8.75098 2.33579 8.41519 2 8.00098 2C7.58676 2 7.25098 2.33579 7.25098 2.75V7.25H2.75098C2.33676 7.25 2.00098 7.58579 2.00098 8C2.00098 8.41421 2.33676 8.75 2.75098 8.75H7.25098Z"
+                    fill="currentColor" />
+                </svg>
+                <svg v-else class="up-follow-btn__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path fill-rule="evenodd" clip-rule="evenodd"
+                    d="M2 4C2 3.72386 2.22386 3.5 2.5 3.5H13.5C13.7761 3.5 14 3.72386 14 4C14 4.27614 13.7761 4.5 13.5 4.5H2.5C2.22386 4.5 2 4.27614 2 4ZM2 8C2 7.72386 2.22386 7.5 2.5 7.5H13.5C13.7761 7.5 14 7.72386 14 8C14 8.27614 13.7761 8.5 13.5 8.5H2.5C2.22386 8.5 2 8.27614 2 8ZM2.5 11.5C2.22386 11.5 2 11.7239 2 12C2 12.2761 2.22386 12.5 2.5 12.5H13.5C13.7761 12.5 14 12.2761 14 12C14 11.7239 13.7761 11.5 13.5 11.5H2.5Z"
+                    fill="currentColor" />
+                </svg>
+                {{ upFollowingStatus ? '已关注' : '关注' }} {{ formatNumber(upFanCount) }}
+              </el-button>
             </div>
           </div>
         </div>
         <div class="danmaku-box">
           <el-collapse v-model="danmuList">
             <el-collapse-item title="弹幕列表" name="1">
-              <el-table
-                :data="danmakuList"
-                style="width: 100%; font-size: 12px"
-                :default-sort="{ prop: 'time', order: 'ascending' }"
-                max-height="658px"
-              >
-                <el-table-column
-                  prop="time"
-                  label="时间"
-                  width="75"
-                  sortable
-                  show-overflow-tooltip
-                  :formatter="timeFormatter"
-                />
+              <el-table :data="danmakuList" style="width: 100%; font-size: 12px"
+                :default-sort="{ prop: 'time', order: 'ascending' }" max-height="658px">
+                <el-table-column prop="time" label="时间" width="75" sortable show-overflow-tooltip
+                  :formatter="timeFormatter" />
                 <el-table-column prop="content" label="弹幕内容" sortable show-overflow-tooltip />
-                <el-table-column
-                  prop="createDate"
-                  label="发送时间"
-                  width="100"
-                  sortable
-                  show-overflow-tooltip
-                  :formatter="createDateFormatter"
-                />
+                <el-table-column prop="createDate" label="发送时间" width="100" sortable show-overflow-tooltip
+                  :formatter="createDateFormatter" />
               </el-table>
             </el-collapse-item>
           </el-collapse>
@@ -244,7 +277,8 @@
                   <!--                  <el-icon class="icon">-->
                   <!--                    <User />-->
                   <!--                  </el-icon>-->
-                  <span class="up">up</span>
+                  <!--                  <span class="up">up</span>-->
+                  <img src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg" />
                   <span class="name">{{ list.user.username }}</span>
                 </a>
               </div>
@@ -266,22 +300,24 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 // import { useDanmakuStore } from '@/stores/danmakuStore'
-import { formatDateTime, formatDuration } from '@/utils/utils'
+import { formatDateTime, formatDuration, formatNumber } from '@/utils/utils'
 // 引入Plyr播放器
 import Plyr from 'plyr'
 import 'plyr/dist/plyr.css'
 // 引入弹幕组件
 import Danmaku from 'danmaku'
 import type { Comment, Danmu } from '@/types/api.ts'
-import { CoffeeCup, Operation } from '@element-plus/icons-vue'
+import { CoffeeCup } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import { useVideoStore } from '@/stores/videoStore'
 import { useDanmakuStore } from '@/stores/danmakuStore.ts'
 import { useCommentStore } from '@/stores/commentStore.ts'
 import { useUserStore } from '@/stores/userStore.ts'
+import { useHistoryStore } from '@/stores/historyStore.ts'
 import CommentItem from '@/components/comment-item/CommentItem.vue'
 
 const route = useRoute()
@@ -289,7 +325,8 @@ const videoStore = useVideoStore()
 const danmakuStore = useDanmakuStore()
 const commentStore = useCommentStore()
 const userStore = useUserStore()
-const { videoInfo, videoList, isShow } = storeToRefs(videoStore)
+const historyStore = useHistoryStore()
+const { videoInfo, videoList, isShow, onlineCount } = storeToRefs(videoStore)
 const { commentList } = storeToRefs(commentStore)
 const { danmakuList } = storeToRefs(danmakuStore)
 const { user } = storeToRefs(userStore)
@@ -303,6 +340,121 @@ const playerPlaceholder = ref<HTMLElement>()
 const isExpanded = ref(false) // 视频信息收起状态
 const descText = ref<HTMLElement | null>(null)
 const showToggleBtn = ref(false)
+const hasReportedPlay = ref(false) // 是否已上报播放量
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null // 心跳定时器
+let handleBeforeUnload: (() => void) | null = null // 页面关闭事件处理函数
+let hasSavedInitialRecord = false // 是否已保存过初始历史记录（避免 play 事件重复保存）
+let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null // 保存历史记录的防抖计时器
+let lastSaveTime = 0 // 上一次保存历史记录的时间戳
+
+const danmakuEnabled = ref(true) // 弹幕开关
+const showDanmakuSettings = ref(false) // 设置面板显示状态
+let settingsPanelTimer: ReturnType<typeof setTimeout> | null = null
+
+// UP主关注状态和粉丝数
+const upFollowingStatus = ref(false)
+const upFanCount = ref(0)
+
+// 加载当前视频 UP主的关注状态和粉丝数
+const loadUpFollowInfo = async () => {
+  if (!videoInfo.value?.user?.uid) return
+  const upUid = videoInfo.value.user.uid
+  // 加载粉丝数
+  const countRes = await userStore.getFollowCount(upUid)
+  if (countRes !== null && countRes !== undefined) {
+    upFanCount.value = countRes
+  }
+  // 加载关注状态（已登录且不是自己时）
+  if (userStore.isLogin && user.value.uid && user.value.uid !== upUid) {
+    const status = await userStore.getFollowStatus(upUid)
+    if (status !== null && status !== undefined) {
+      upFollowingStatus.value = status
+    }
+  } else {
+    upFollowingStatus.value = false
+  }
+}
+
+// 关注按钮点击处理（未登录/自己/他人三种情况）
+const handleUpFollowClick = () => {
+  // 未登录 → 弹出登录框
+  if (!userStore.isLogin) {
+    userStore.showLoginWindow = true
+    return
+  }
+  // 自己的视频 → 提示不能关注自己
+  if (user.value.uid === videoInfo.value?.user?.uid) {
+    ElMessage.warning('不能关注自己')
+    return
+  }
+  // 关注/取消关注
+  handleUpFollow()
+}
+
+// 点击UP主关注按钮切换关注状态
+const handleUpFollow = async () => {
+  if (!videoInfo.value?.user?.uid) return
+  const upUid = videoInfo.value.user.uid
+  const wasFollowing = upFollowingStatus.value
+  await userStore.toggleFollow(upUid)
+  // 根据之前的状态反转显示和粉丝数
+  upFollowingStatus.value = !wasFollowing
+  if (wasFollowing) {
+    upFanCount.value = Math.max(0, upFanCount.value - 1)
+  } else {
+    upFanCount.value += 1
+  }
+}
+
+const enterSettingsPanel = () => {
+  if (settingsPanelTimer) {
+    clearTimeout(settingsPanelTimer)
+    settingsPanelTimer = null
+  }
+  showDanmakuSettings.value = true
+}
+
+const leaveSettingsPanel = () => {
+  settingsPanelTimer = setTimeout(() => {
+    showDanmakuSettings.value = false
+  }, 200)
+}
+const danmakuFontSize = ref(25) // 弹幕字号：18=小，25=标准，32=大
+const danmakuMode = ref<1 | 2 | 3 | 4>(1) // 弹幕模式：1=rtl(从右到左滚动)，2=ltr(从左到右滚动)，3=top(顶部)，4=bottom(底部)
+const danmakuColor = ref('#FFFFFF') // 弹幕颜色
+const danmakuColors = ref([
+  '#FFFFFF',
+  '#FE0302',
+  '#FF7204',
+  '#FFAA02',
+  '#FFD302',
+  '#FFFF00',
+  '#A0EE00',
+  '#00CD00',
+  '#019899',
+  '#4266BE',
+  '#89D5FF',
+  '#CC0273',
+  '#222222',
+]) // 弹幕可选颜色
+
+const toggleDanmaku = () => {
+  danmakuEnabled.value = !danmakuEnabled.value
+}
+
+// 获取或生成观众ID (优先用uid,未登录则用cookie UUID)
+const getViewerId = (): string => {
+  if (userStore.isLogin && user.value.uid) {
+    return `user:${user.value.uid}`
+  }
+  // 未登录: 使用 localStorage 存储的 UUID
+  let viewerId = localStorage.getItem('viewer_id')
+  if (!viewerId) {
+    viewerId = `guest:${crypto.randomUUID()}`
+    localStorage.setItem('viewer_id', viewerId)
+  }
+  return viewerId
+}
 
 function flattenComments(comments: Comment[], level: number = 0): (Comment & { level: number })[] {
   let result: (Comment & { level: number })[] = []
@@ -337,6 +489,36 @@ const timeFormatter = (row: Danmu) => {
 let danmakuInstance: Danmaku | null = null
 let resizeObserver: ResizeObserver | null = null
 let player: Plyr | null = null
+
+// 上报播放量
+const reportPlayCount = async () => {
+  if (!videoInfo.value.video.vid) return
+  await videoStore.reportPlay(videoInfo.value.video.vid)
+}
+
+// 保存播放进度（防抖：避免快速操作如进度条跳转触发多次保存）
+const savePlayProgress = () => {
+  if (!player || !videoInfo.value.video.vid || !userStore.isLogin) return
+  const currentTime = Math.floor(player.currentTime)
+  if (currentTime <= 0) return
+  if (saveDebounceTimer) clearTimeout(saveDebounceTimer)
+  saveDebounceTimer = setTimeout(() => {
+    historyStore.saveHistory(videoInfo.value.video.vid, currentTime)
+  }, 1000)
+}
+
+// 立即保存（用于页面离开等不能等待防抖的场景）
+const savePlayProgressImmediate = () => {
+  if (saveDebounceTimer) {
+    clearTimeout(saveDebounceTimer)
+    saveDebounceTimer = null
+  }
+  if (!player || !videoInfo.value.video.vid || !userStore.isLogin) return
+  const currentTime = Math.floor(player.currentTime)
+  if (currentTime > 0) {
+    historyStore.saveHistory(videoInfo.value.video.vid, currentTime)
+  }
+}
 
 const sendComment = async () => {
   if (!videoInfo.value.video.vid || !comment.value.trim()) return
@@ -438,10 +620,49 @@ const initPlayer = async () => {
         playerPlaceholder.value.innerHTML = '视频加载失败，请刷新重试'
       }
     })
-    player.on('loadedmetadata', () => {
+    player.on('loadedmetadata', async () => {
+      // 恢复播放进度（仅已登录用户）
+      if (userStore.isLogin) {
+        const progress = await historyStore.getVideoProgress(videoInfo.value.video.vid)
+        if (progress > 0 && progress < videoInfo.value.video.duration) {
+          player?.forward(progress)
+        }
+      }
       player?.play()
-      // danmakuInstance?.seek(player?.currentTime || 0) // 同步弹幕时间轴
     })
+
+    // 监听播放进度,当播放达到3秒时上报播放量
+    player.on('timeupdate', () => {
+      if (player && player.currentTime >= 3 && !hasReportedPlay.value) {
+        reportPlayCount()
+        hasReportedPlay.value = true
+      }
+    })
+
+    // 首次播放时立即保存历史记录（绕过 currentTime 检查，避免刚播放时 currentTime=0 导致保存失败）
+    player.on('play', () => {
+      if (!hasSavedInitialRecord && videoInfo.value.video.vid && userStore.isLogin) {
+        hasSavedInitialRecord = true
+        historyStore.saveHistory(videoInfo.value.video.vid, 0)
+      }
+    })
+
+    // 暂停时保存进度（防抖）
+    player.on('pause', () => {
+      savePlayProgress()
+    })
+
+    // 监听播放进度变化，定时保存浏览历史（每30秒）
+    player.on('timeupdate', () => {
+      if (player && userStore.isLogin) {
+        const currentTime = Math.floor(player.currentTime)
+        if (currentTime > 0 && currentTime - lastSaveTime >= 30) {
+          historyStore.saveHistory(videoInfo.value.video.vid, currentTime)
+          lastSaveTime = currentTime
+        }
+      }
+    })
+
     console.log('创建播放器成功')
   } catch (error) {
     console.error('播放器初始化失败：', error)
@@ -465,91 +686,120 @@ const sendDanmaku = async () => {
     uid: videoInfo.value.user.uid,
     content: danmaku.value,
     time: player?.currentTime || 0,
-    color: '#FFFFFF',
+    color: danmakuColor.value,
     state: 1,
-    mode: 1,
-    fontsize: 25,
+    mode: danmakuMode.value,
+    fontsize: danmakuFontSize.value,
   })
   if (newDanmaku) {
     danmakuList.value.push(newDanmaku)
+    // 立即显示到视频上
+    if (danmakuInstance && danmakuEnabled.value) {
+      const modeMap: Record<number, 'rtl' | 'ltr' | 'top' | 'bottom'> = {
+        1: 'rtl',
+        2: 'ltr',
+        3: 'top',
+        4: 'bottom',
+      }
+      danmakuInstance.emit({
+        mode: modeMap[newDanmaku.mode] ?? 'rtl',
+        text: newDanmaku.content,
+        style: {
+          font: `${newDanmaku.fontsize}px sans-serif`,
+          fillStyle: newDanmaku.color,
+          textBaseline: newDanmaku.mode === 3 ? 'top' : 'bottom',
+        },
+      })
+    }
     danmaku.value = ''
   }
 }
-watch(
-  // 同时监听 vid 和 videoUrl
-  [
-    () => route.params.vid,
-    () => videoInfo.value.video?.videoUrl,
-    () => videoInfo.value.video.descr,
-  ],
-  ([newVid, newUrl], [oldVid, oldUrl]) => {
-    if (newVid && newVid !== oldVid) {
-      location.reload()
-      resizeObserver?.disconnect()
-      disposeDanmaku()
-      // disposePlayer()
-      videoStore.getVideo(Number(newVid))
-      // initPlayer()
-      initDanmaku(Number(newVid))
-      rcmTags.value = videoInfo.value.video?.tags?.split('\n')
+watch([() => route.params.vid], async ([newVid], [oldVid]) => {
+  if (newVid && newVid !== oldVid) {
+    hasReportedPlay.value = false
+    hasSavedInitialRecord = false // 重置历史记录保存标志，新视频可以再次立即保存
+    lastSaveTime = 0 // 重置定时保存时间戳
+    if (saveDebounceTimer) {
+      clearTimeout(saveDebounceTimer) // 清理防抖计时器
+      saveDebounceTimer = null
     }
-    if (newUrl && newUrl !== oldUrl) {
-      if (!player || !videoInfo.value.video?.videoUrl) return
-      // 先暂停并重置播放器
-      player.pause()
-      player.source = {
-        type: 'video',
-        sources: [
-          {
-            src: videoInfo.value.video.videoUrl,
-            type: 'video/mp4',
-          },
-        ],
-      }
-      // 强制重新加载
-      // player.on('loadedmetadata', () => player?.play())
+
+    // 1. 显示占位遮罩，避免看到 DOM 重建时裸 video 的尺寸闪烁
+    if (playerPlaceholder.value) {
+      playerPlaceholder.value.style.display = 'block'
+      playerPlaceholder.value.innerHTML = ''
     }
+
+    // 2. 在旧 DOM 上先清理所有实例（disposeDanmaku 会同时清理 resizeObserver）
+    disposeDanmaku()
+    disposePlayer()
+
+    // 3. 加载新视频信息和评论
+    await videoStore.getVideo(Number(newVid))
+    await commentStore.getComment(Number(newVid))
+    loadUpFollowInfo()
+
+    // 3. 等待 Vue 根据 key 完成 DOM 重建（danmaku-wrap 和 video 都是全新的 DOM 元素）
+    await nextTick()
+
+    // 4. 在全新的 video 元素上重新初始化 Plyr（不会有样式冲突问题）
+    await initPlayer()
+
+    // 5. 初始化弹幕（initDanmaku 内部会等待视频元数据加载完成）
+    await initDanmaku(Number(newVid))
+
+    // 6. 更新其他状态
+    rcmTags.value = videoInfo.value.video?.tags?.split('\n')
     if (descText.value) {
       const height = descText.value.scrollHeight
+      console.log('评论高度：', height)
       showToggleBtn.value = height > 84
       isExpanded.value = false
     }
-  },
-  {}, // 初始加载触发
-)
+  }
+})
 const initDanmaku = async (vid: number) => {
   console.log('开始创建弹幕实例')
-  // 初始化弹幕
   if (danmakuContainer.value && plyrPlayer.value) {
-    // isDestroyed.value = false
+    // 等待视频元数据加载完成（danmaku.js 创建时需要正确的 duration）
+    if (plyrPlayer.value.readyState < 1) {
+      await new Promise<void>((resolve) => {
+        const handler = () => {
+          plyrPlayer.value?.removeEventListener('loadedmetadata', handler)
+          resolve()
+        }
+        plyrPlayer.value?.addEventListener('loadedmetadata', handler)
+        setTimeout(resolve, 2000)
+      })
+    }
+
     resizeObserver = new ResizeObserver(() => {
       danmakuInstance?.resize()
     })
     resizeObserver.observe(danmakuContainer.value)
     await danmakuStore.getDanmaku(vid)
+    const comments = danmakuList.value || []
     danmakuInstance = new Danmaku({
       container: danmakuContainer.value,
       media: plyrPlayer.value,
       engine: 'canvas',
       speed: 60,
-      comments: danmakuList.value.map((dm) => {
-        // 创建模式映射表
+      comments: comments.map((dm) => {
         const modeMap = {
-          1: 'rtl', // 从右到左
-          2: 'ltr', // 从左到右
-          3: 'top', // 顶部
-          4: 'bottom', // 底部
+          1: 'rtl',
+          2: 'ltr',
+          3: 'top',
+          4: 'bottom',
         } as const
 
         return {
-          mode: modeMap[dm.mode] || 'rtl', // 默认rtl
+          mode: (modeMap[dm.mode as 1 | 2 | 3 | 4] ?? 'rtl') as 'rtl' | 'ltr' | 'top' | 'bottom',
           text: dm.content,
           time: dm.time,
           style: {
             font: `${dm.fontsize}px sans-serif`,
             fillStyle: dm.color,
-            // 根据模式调整基线对齐
-            textBaseline: dm.mode > 2 ? 'top' : 'bottom',
+            textBaseline: dm.mode === 3 ? 'top' : 'bottom',
           },
         }
       }),
@@ -560,10 +810,12 @@ const initDanmaku = async (vid: number) => {
 const disposeDanmaku = () => {
   console.log('开始销毁弹幕实例')
   if (danmakuInstance) {
-    // isDestroyed.value = true
     danmakuInstance.destroy()
     danmakuInstance = null
   }
+  // 清理 ResizeObserver（之前未清理，会导致观察者泄漏）
+  resizeObserver?.disconnect()
+  resizeObserver = null
   console.log('销毁弹幕实例成功')
 }
 onMounted(async () => {
@@ -572,6 +824,7 @@ onMounted(async () => {
     await videoStore.getRecommendVideo()
     await videoStore.getVideo(vid)
     await commentStore.getComment(vid)
+    loadUpFollowInfo()
   }
   rcmTags.value = videoInfo.value.video.tags?.split('\n')
   await initPlayer()
@@ -580,11 +833,41 @@ onMounted(async () => {
     const height = descText.value.scrollHeight
     showToggleBtn.value = height > 84
   }
+
+  // 启动在线人数心跳 (每30秒一次)
+  const viewerId = getViewerId()
+  const currentVid = Number(route.params.vid)
+  if (!isNaN(currentVid)) {
+    // 立即发一次
+    await videoStore.sendHeartbeat(currentVid, viewerId)
+    // 每30秒发一次
+    heartbeatTimer = setInterval(() => {
+      videoStore.sendHeartbeat(currentVid, viewerId)
+    }, 30_000)
+  }
+
+  // 页面关闭/刷新时保存进度（浏览器即将关闭，必须立即保存）
+  handleBeforeUnload = () => {
+    savePlayProgressImmediate()
+  }
+  window.addEventListener('beforeunload', handleBeforeUnload)
 })
 onUnmounted(() => {
+  // 离开页面时保存进度（组件即将卸载，必须立即保存）
+  savePlayProgressImmediate()
   resizeObserver?.disconnect() // 清理监听
   danmakuInstance?.destroy()
   disposePlayer()
+  // 清理心跳定时器
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer)
+    heartbeatTimer = null
+  }
+  // 清理页面关闭事件监听
+  if (handleBeforeUnload) {
+    window.removeEventListener('beforeunload', handleBeforeUnload)
+    handleBeforeUnload = null
+  }
 })
 </script>
 <style scoped lang="less">
@@ -661,6 +944,10 @@ onUnmounted(() => {
         position: absolute;
         width: 100%;
         height: 100%;
+
+        &.danmaku-off :deep(canvas) {
+          display: none !important;
+        }
       }
 
       :deep(.plyr) {
@@ -676,7 +963,139 @@ onUnmounted(() => {
       padding: 0 12px;
       height: 46px;
       font-size: 13px;
-      justify-content: space-between;
+      justify-content: flex-start;
+
+      .danmaku-toggle-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 12px;
+        cursor: pointer;
+        background-color: #61666d;
+        -webkit-mask-image: var(--icon-url);
+        mask-image: var(--icon-url);
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        transition: background-color 0.2s;
+
+        &:hover {
+          background-color: #fb7299;
+        }
+      }
+
+      .danmaku-setting-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 12px;
+        cursor: pointer;
+        position: relative;
+
+        .setting-icon-mask {
+          width: 100%;
+          height: 100%;
+          background-color: #61666d;
+          -webkit-mask-image: url('https://hirihiri.oss-cn-nanjing.aliyuncs.com/danmusetting.svg');
+          mask-image: url('https://hirihiri.oss-cn-nanjing.aliyuncs.com/danmusetting.svg');
+          -webkit-mask-size: contain;
+          mask-size: contain;
+          -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+          -webkit-mask-position: center;
+          mask-position: center;
+          transition: background-color 0.2s;
+        }
+
+        &:hover .setting-icon-mask {
+          background-color: #fb7299;
+        }
+
+        .danmaku-settings-panel {
+          position: absolute;
+          bottom: 46px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #fff;
+          border-radius: 8px;
+          box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+          padding: 12px 16px;
+          z-index: 100;
+          min-width: 260px;
+
+          .settings-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+
+            &:last-child {
+              margin-bottom: 0;
+            }
+
+            .settings-label {
+              font-size: 13px;
+              color: #61666d;
+              margin-right: 12px;
+              min-width: 40px;
+            }
+
+            .font-size-buttons,
+            .mode-buttons {
+              display: flex;
+              gap: 4px;
+            }
+
+            .font-btn,
+            .mode-btn {
+              padding: 4px 12px;
+              font-size: 12px;
+              border: 1px solid #e5e9ef;
+              background: #fff;
+              color: #61666d;
+              border-radius: 4px;
+              cursor: pointer;
+              transition: all 0.2s;
+
+              &:hover {
+                border-color: #fb7299;
+                color: #fb7299;
+              }
+
+              &.active {
+                background: #fb7299;
+                color: #fff;
+                border-color: #fb7299;
+              }
+            }
+
+            .color-picker {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 6px;
+              max-width: 200px;
+
+              .color-item {
+                width: 20px;
+                height: 20px;
+                border-radius: 4px;
+                cursor: pointer;
+                border: 1px solid #e5e9ef;
+                transition: all 0.2s;
+
+                &:hover {
+                  transform: scale(1.15);
+                }
+
+                &.active {
+                  border-color: #fb7299;
+                  box-shadow: 0 0 0 2px rgba(251, 114, 153, 0.3);
+                }
+              }
+            }
+          }
+        }
+      }
 
       .video-info {
         display: flex;
@@ -685,9 +1104,14 @@ onUnmounted(() => {
       }
 
       .dm-root {
+        height: 32px;
         display: flex;
         align-items: center;
         flex: auto;
+
+        :deep(.el-input__wrapper) {
+          border-radius: 8px 0 0 8px;
+        }
       }
     }
 
@@ -708,7 +1132,7 @@ onUnmounted(() => {
             cursor: pointer;
 
             &:hover {
-              color: #00AEEC;
+              color: #00aeec;
             }
 
             .icon {
@@ -925,14 +1349,47 @@ onUnmounted(() => {
               }
             }
 
-            .follow-btn {
+            .up-follow-btn {
               flex: 1 1 auto;
               max-width: 200px;
-              color: #9499a0;
-              background-color: #e3e5e7;
+              height: 30px !important;
+              background-color: #00a1d6 !important;
+              border-color: #00a1d6 !important;
+              color: #fff !important;
+              border-radius: 6px !important;
+              font-size: 14px !important;
+              display: inline-flex !important;
+              align-items: center;
+              justify-content: center;
+              padding: 0 15px !important;
+              cursor: pointer;
+              transition: background-color 0.2s, border-color 0.2s;
+              gap: 4px;
+              line-height: 1;
+
+              &__icon {
+                display: inline-block;
+                vertical-align: middle;
+                flex-shrink: 0;
+                margin-right: 4px;
+              }
 
               &:hover {
-                background-color: #f1f2f3;
+                background-color: #00b5e5 !important;
+                border-color: #00b5e5 !important;
+                color: #fff !important;
+              }
+
+              &--followed {
+                background-color: #e3e5e7 !important;
+                border-color: #e3e5e7 !important;
+                color: #9499a0 !important;
+
+                &:hover {
+                  background-color: #f1f2f3 !important;
+                  border-color: #f1f2f3 !important;
+                  color: #9499a0 !important;
+                }
               }
             }
 
@@ -1084,13 +1541,26 @@ onUnmounted(() => {
 }
 
 @media (min-width: 1681px) {
-  .right-container {
-    width: 411px !important;
-  }
+  .video-container {
+    .left-container {
+      .sending-bar {
+        font-size: 14px;
+        height: 56px;
 
-  .pic-box {
-    width: 190px !important;
-    height: 106.8px !important;
+        .dm-root {
+          height: 40px;
+        }
+      }
+    }
+
+    .right-container {
+      width: 411px !important;
+    }
+
+    .pic-box {
+      width: 190px !important;
+      height: 106.8px !important;
+    }
   }
 }
 </style>

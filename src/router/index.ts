@@ -100,6 +100,16 @@ const router = createRouter({
       meta: { requestAuth: false },
     },
     {
+      path: '/space/:uid',
+      component: () => import('@/views/user/UserHome.vue'),
+      meta: { requestAuth: false },
+    },
+    {
+      path: '/history',
+      component: () => import('@/views/history/HistoryIndex.vue'),
+      meta: { requestAuth: true },
+    },
+    {
       path: '/404',
       name: 'NotFound',
       component: () => import('@/views/NotFound.vue'),

@@ -11,7 +11,7 @@ export const useDanmakuStore = defineStore('danmaku', {
     async getDanmaku(vid: number) {
       await get<DanmakuApiResponse>(`${DANMAKU_API.VIDEO_DANMAKU}/${vid}`)
         .then((res) => {
-          this.danmakuList = res.data
+          this.danmakuList = res.data || []
         })
         .catch((err) => {
           console.log(err)
