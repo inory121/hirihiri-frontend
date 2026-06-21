@@ -97,3 +97,18 @@ export const formatCommentTime = (isoString: string): string => {
 export function hashPassword(password: string, salt: string = 'hiri_frontend_salt'): string {
   return sha256(password + salt)
 }
+
+// 根据经验值计算用户等级（Lv0~Lv6，Lv1 暂不启用）
+export const getLevelByExp = (exp: number): number => {
+  if (exp >= 28800) return 6
+  if (exp >= 10800) return 5
+  if (exp >= 4500) return 4
+  if (exp >= 1500) return 3
+  if (exp >= 200) return 2
+  // Lv1（通过答题测试）暂不启用，直接回落到 Lv0
+  return 0
+}
+
+// 根据等级数字拼接等级图标 URL
+export const getLevelIconUrl = (level: number): string =>
+  `https://hirihiri.oss-cn-nanjing.aliyuncs.com/level_${level}.svg`

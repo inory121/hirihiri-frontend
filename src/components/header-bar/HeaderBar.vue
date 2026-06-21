@@ -133,12 +133,11 @@
               </a>
 
               <a class="level-max">
-                <svg class="icon" viewBox="0 0 2633 1024" xmlns="http://www.w3.org/2000/svg" width="200" height="200">
-                  <path d="M169.545143 163.181714h2248.923428v707.364572H169.545143z" fill="#FFFFFF"></path>
-                  <path class="level-bg"
-                    d="M2510.994286 73.142857c22.747429 0 45.494857 20.772571 44.397714 43.300572l-0.950857 6.144v747.446857c0 22.381714-15.36 44.909714-41.472 48.786285l-8.118857 0.585143H144.676571a48.859429 48.859429 0 0 1-49.005714-41.252571l-0.512-8.118857V209.042286c0-22.454857 15.36-44.982857 41.398857-48.859429l8.118857-0.585143h1021.805715v-37.010285c0-22.454857 15.36-44.982857 41.472-48.859429l8.045714-0.585143h1295.067429zM2170.88 174.518857l-272.310857 370.614857a27.867429 27.867429 0 0 0 22.528 44.397715h176.713143l-30.427429 210.944c-4.169143 28.745143 32.914286 43.958857 50.176 20.48l272.237714-370.541715a27.940571 27.940571 0 0 0-22.528-44.470857h-176.713142l30.427428-210.870857c4.169143-28.818286-32.914286-43.958857-50.102857-20.553143z m-484.059429 3.584h-384c-18.505143 0-37.010286 18.578286-37.010285 37.083429v574.464c0 18.578286 18.505143 37.083429 37.083428 37.083428h384c18.505143 0 37.083429-18.505143 37.083429-37.083428V474.624c0-18.505143-18.578286-37.010286-37.156572-37.010286h-297.179428V301.714286h297.179428c18.578286 0 37.156571-18.578286 37.156572-37.083429v-49.444571c0-18.505143-18.578286-37.083429-37.156572-37.083429zM733.037714 264.630857h-49.517714c-18.578286 0-37.156571 18.505143-37.156571 37.083429v302.665143c0 16.822857 0 31.817143 6.217142 37.083428l173.348572 172.909714c12.434286 12.361143 43.373714 12.361143 43.373714 12.361143s30.939429 0 43.373714-12.361143l185.782858-172.909714c6.144-6.217143 6.144-18.578286 6.144-30.866286V307.858286c0-18.505143-18.578286-37.010286-37.156572-37.010286h-49.444571c-18.651429 0-37.229714 18.505143-37.229715 37.010286V585.874286l-105.325714 104.96L770.194286 585.874286V301.714286c0-18.578286-18.578286-37.083429-37.156572-37.083429z m-445.878857 0h-49.590857c-16.530286 0-32.987429 14.628571-36.498286 30.939429l-0.658285 6.144v488.009143c0 16.457143 14.628571 32.914286 31.012571 36.352l6.144 0.658285h297.252571c16.530286 0 33.060571-14.628571 36.571429-30.866285l0.585143-6.144v-49.444572c0-16.530286-14.628571-32.914286-30.939429-36.425143l-6.217143-0.658285H324.315429V301.714286c0-18.578286-18.578286-37.083429-37.156572-37.083429z m1312.914286 296.521143v142.043429h-210.505143V561.152h210.432z"
-                    fill="#FF0000"></path>
-                </svg>
+                <img
+                  class="level-icon-img"
+                  :src="getLevelIconUrl(getLevelByExp(userStore.user.exp))"
+                  :alt="`Lv${getLevelByExp(userStore.user.exp)}`"
+                />
               </a>
             </div>
             <div class="coins-item">
@@ -220,7 +219,7 @@
         </div>
       </li>
 
-      <li>
+      <li @click="handleRightEntryClick">
         <a href="#" class="right-default-entry v-popover-wrap">
           <svg class="icon right-icon" aria-hidden="true">
             <use xlink:href="#icon-dahuiyuanlogo"></use>
@@ -228,55 +227,40 @@
           <span class="right-entry-text">大会员</span>
         </a>
       </li>
-      <li>
+      <li @click="handleRightEntryClick">
         <a href="#" class="right-default-entry v-popover-wrap">
-          <!--          <svg class="icon right-icon" aria-hidden="true">-->
-          <!--            <use xlink:href="#icon-xiaoxi"></use>-->
-          <!--          </svg>-->
           <el-icon class="right-icon">
             <Message />
           </el-icon>
           <span class="right-entry-text">消息</span>
         </a>
       </li>
-      <li>
+      <li @click="handleRightEntryClick">
         <a href="#" class="right-default-entry v-popover-wrap">
-          <!--          <svg class="icon right-icon" aria-hidden="true">-->
-          <!--            <use xlink:href="#icon-dongtai"></use>-->
-          <!--          </svg>-->
           <el-icon class="right-icon">
             <ChromeFilled />
           </el-icon>
           <span class="right-entry-text">动态</span>
         </a>
       </li>
-      <li>
+      <li @click="handleRightEntryClick">
         <a href="#" class="right-default-entry v-popover-wrap">
-          <!--          <svg class="icon right-icon" aria-hidden="true">-->
-          <!--            <use xlink:href="#icon-shoucang"></use>-->
-          <!--          </svg>-->
           <el-icon class="right-icon">
             <Star />
           </el-icon>
           <span class="right-entry-text">收藏</span>
         </a>
       </li>
-      <li>
+      <li @click="handleRightEntryClick">
         <a href="/history" class="right-default-entry v-popover-wrap" target="_blank">
-          <!--          <svg class="icon right-icon" aria-hidden="true">-->
-          <!--            <use xlink:href="#icon-history"></use>-->
-          <!--          </svg>-->
           <el-icon class="right-icon">
             <Clock />
           </el-icon>
           <span class="right-entry-text">历史</span>
         </a>
       </li>
-      <li>
+      <li @click="handleRightEntryClick">
         <a href="#" class="right-default-entry v-popover-wrap">
-          <!--          <svg class="icon right-icon" aria-hidden="true">-->
-          <!--            <use xlink:href="#icon-Idea"></use>-->
-          <!--          </svg>-->
           <el-icon class="right-icon">
             <EditPen />
           </el-icon>
@@ -303,7 +287,7 @@ import { ref } from 'vue'
 import MyPopover from '@/components/my-popover/MyPopover.vue'
 import { useUserStore } from '@/stores/userStore.ts'
 import { useRouter } from 'vue-router'
-import { formatNumber } from '@/utils/utils'
+import { formatNumber, getLevelByExp, getLevelIconUrl } from '@/utils/utils'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -327,15 +311,24 @@ const handleSearch = () => {
   // 在新标签页打开
   window.open(route.href, '_blank')
 }
-const handleUploadClick = () => {
+const ensureLogin = () => {
   if (!userStore.isLogin) {
+    userStore.showLoginWindow = true
+    return false
+  }
+  return true
+}
+const handleUploadClick = () => {
+  if (!ensureLogin()) return
+  const route = router.resolve({ path: '/platform/upload' })
+  window.open(route.href, '_blank')
+}
+const handleRightEntryClick = (event: Event) => {
+  if (!userStore.isLogin) {
+    event.preventDefault()
     userStore.showLoginWindow = true
     return
   }
-  // 获取路由的完整路径
-  const route = router.resolve({ path: '/platform/upload' })
-  // 新标签页打开
-  window.open(route.href, '_blank')
 }
 </script>
 
@@ -609,13 +602,11 @@ const handleUploadClick = () => {
         .level-max {
           display: flex;
           align-items: center;
-          width: 40px;
-          height: 14px;
           padding-left: 5px;
 
-          svg {
-            width: 100%;
-            height: 100%;
+          .level-icon-img {
+            width: 40px;
+            height: 14px;
           }
         }
       }

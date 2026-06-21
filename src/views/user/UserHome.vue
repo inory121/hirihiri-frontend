@@ -6,7 +6,7 @@
     <div class="user-home__banner-bg" :style="{
       backgroundImage: userStore.targetUser?.background
         ? `url(${userStore.targetUser.background})`
-        : `url('https://hirihiri.oss-cn-nanjing.aliyuncs.com/banner.png')`,
+        : `url('https://hirihiri.oss-cn-nanjing.aliyuncs.com/background.png')`,
     }"></div>
     <div class="user-home__banner-mask"></div>
   </div>
@@ -20,17 +20,19 @@
       <div class="user-home__details">
         <h1 class="user-home__name">
           {{ userStore.targetUser.username }}
-          <span v-if="userStore.targetUser.vip === 1" class="user-home__badge user-home__badge--vip1">月度会员</span>
-          <span v-else-if="userStore.targetUser.vip === 2" class="user-home__badge user-home__badge--vip2">年度会员</span>
+          <span v-if="userStore.targetUser.vip === 1" class="user-home__badge user-home__badge--vip1">月度大会员</span>
+          <span v-else-if="userStore.targetUser.vip === 2" class="user-home__badge user-home__badge--vip2">年度大会员</span>
           <span v-if="userStore.targetUser.auth === 1" class="user-home__badge user-home__badge--auth">个人认证</span>
           <span v-else-if="userStore.targetUser.auth === 2" class="user-home__badge user-home__badge--auth">机构认证</span>
         </h1>
         <p class="user-home__description">{{ userStore.targetUser.description || '这个人很懒，什么都没有写~' }}</p>
         <div class="user-home__meta">
           <span class="user-home__meta-item">
-            <el-icon>
-              <Medal />
-            </el-icon>
+            <img
+              class="user-home__level-icon"
+              :src="getLevelIconUrl(getLevelByExp(userStore.targetUser.exp))"
+              :alt="`Lv${getLevelByExp(userStore.targetUser.exp)}`"
+            />
             经验值：{{ userStore.targetUser.exp }}
           </span>
           <span class="user-home__meta-item">
@@ -162,12 +164,12 @@
 <script lang="ts" setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { formatDateTime, formatNumber } from '@/utils/utils.ts'
+import { formatDateTime, formatNumber, getLevelByExp, getLevelIconUrl } from '@/utils/utils.ts'
 import { useUserStore } from '@/stores/userStore'
 import { useVideoStore } from '@/stores/videoStore'
 import HeaderBar from '@/components/header-bar/HeaderBar.vue'
 import VideoCard from '@/components/video-card/VideoCard.vue'
-import { Medal, Coin, Male, Female, Calendar } from '@element-plus/icons-vue'
+import { Coin, Male, Female, Calendar } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -388,6 +390,12 @@ watch(
   .el-icon {
     font-size: 14px;
   }
+}
+
+.user-home__level-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 .user-home__actions {

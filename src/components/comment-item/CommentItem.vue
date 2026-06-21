@@ -36,7 +36,10 @@
           <p>
             <template v-if="isSecondSubComment">
               回复
-              <a href="#" class="at-user">@{{ comment.toUser?.username }}</a>
+              <a :href="`/space/${comment.toUser?.uid}`" class="at-user" target="_blank"
+                >@{{ comment.toUser?.username }}</a
+              >
+              :
             </template>
             {{ comment.content }}
           </p>
@@ -68,7 +71,7 @@
           <el-input
             v-model="subComment"
             style="height: 50px"
-            :placeholder="`@${comment.user?.username}`"
+            :placeholder="`回复 @${comment.user?.username} :`"
             border="6"
           ></el-input>
           <el-button type="primary" @click="sendSubComment" style="margin-left: 10px" size="large">
@@ -257,6 +260,9 @@ const sendSubComment = async () => {
         .at-user {
           color: #409eff;
           font-weight: bold;
+          &:hover {
+            color: #00BAF0;
+          }
         }
       }
     }
