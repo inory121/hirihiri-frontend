@@ -13,7 +13,7 @@
       <MyPopover class="avatar-popover-login" v-if="userStore.isLogin">
         <template #content>
           <div class="avatar-popover-container">
-            <a href="#" class="popover-link-item">
+            <a v-if="userStore.user.uid" :href="`/space/${userStore.user.uid}`" target="_blank" class="popover-link-item">
               <div class="link-title">
                 <span>个人中心</span>
               </div>

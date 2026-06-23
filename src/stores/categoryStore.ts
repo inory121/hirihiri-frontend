@@ -34,9 +34,11 @@ export const useCategoryStore = defineStore('category', {
         const groupedScNames = item.scList
           .map((subItem) => subItem.scName)
           .reduce(
-            (groups, name, i) => (
-              i % 4 === 0 ? groups.push([]) : 0, groups[groups.length - 1].push(name), groups
-            ),
+            (groups, name, i) => {
+              if (i % 4 === 0) groups.push([])
+              groups[groups.length - 1].push(name)
+              return groups
+            },
             [] as string[][],
           )
 

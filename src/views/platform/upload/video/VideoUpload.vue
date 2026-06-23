@@ -1,4 +1,16 @@
 <template>
+  <!-- 草稿提示横幅 -->
+  <div v-if="uploadStore.draft" class="draft-banner">
+    <el-icon class="draft-icon"><InfoFilled /></el-icon>
+    <span class="draft-text">
+      本地浏览器存在1个未提交的视频（{{ uploadStore.draft.fileName }}）
+    </span>
+    <div class="draft-actions">
+      <el-button type="primary" link @click="onResumeClick">继续上传</el-button>
+      <el-button type="info" link @click="onDiscardDraft">不用了</el-button>
+    </div>
+  </div>
+
   <el-upload
     class="file-upload"
     ref="uploadRef"
@@ -23,8 +35,6 @@
     </template>
   </el-upload>
 
-  <!--    </div>-->
-  <!--  </div>-->
   <div class="footer-item">
     <span class="item-list">禁止发布的视频内容</span>
     <span class="item-list">视频大小</span>
@@ -43,6 +53,7 @@
 import { ref, nextTick } from 'vue'
 import { useUploadStore } from '@/stores/uploadStore.ts'
 import { ElMessage, type UploadFile, type UploadRawFile } from 'element-plus'
+import { InfoFilled } from '@element-plus/icons-vue'
 
 const uploadStore = useUploadStore()
 const uploadRef = ref()
@@ -52,95 +63,110 @@ const beforeUpload = (rawFile: UploadRawFile) => {
     ElMessage.error('无效的文件')
     return false
   }
-
-  // 校验MIME类型
   const ALLOWED_MIME_TYPES = ['video/mp4', 'video/webm']
   if (!ALLOWED_MIME_TYPES.includes(rawFile.type)) {
     ElMessage.error('仅支持 MP4/WebM 格式视频')
     return false
   }
-
-  // 校验扩展名
   const fileExtension = rawFile.name.split('.').pop()?.toLowerCase() ?? ''
   if (!['mp4', 'webm'].includes(fileExtension)) {
     ElMessage.error('文件扩展名不合法')
     return false
   }
-
-  // 校验文件大小
   if (rawFile.size > UPLOAD_CONFIG.MAX_FILE_SIZE) {
     ElMessage.error(`文件大小不能超过${UPLOAD_CONFIG.MAX_FILE_SIZE / 1024 / 1024}MB`)
     return false
   }
-
-  // 通过所有校验
   return true
 }
 
-const handleFileChange = (file: UploadFile) => {
+// 点击「继续上传」— 先检查是否已完成上传，再决定是否打开文件选择框
+const onResumeClick = async () => {
+  // 先检查是否可以直接跳转（所有分片已上传）
+  const canDirectResume = await uploadStore.checkAndResumeDirectly()
+
+  if (canDirectResume) {
+    // 所有分片已上传，checkAndResumeDirectly 内部已调用 changeIsShow(false)
+    return
+  }
+
+  // 还有分片未上传，继续原有逻辑：标记续传 + 弹出文件选择框
+  uploadStore.markShouldResume()
+  const fileInput = uploadRef.value?.$el?.querySelector?.('input[type="file"]')
+  if (fileInput) {
+    fileInput.click()
+  } else {
+    uploadRef.value?.inputRef?.click?.()
+  }
+}
+
+// 点击「不用了」— 清草稿 + 通知后端删 tmp
+const onDiscardDraft = async () => {
+  await uploadStore.cancelUpload()
+}
+
+const handleFileChange = async (file: UploadFile) => {
   if (!file || !file.raw) {
     ElMessage.error('文件读取失败')
     return
   }
+  if (file.status !== 'ready') return
 
-  // 手动触发上传逻辑
-  if (file.status === 'ready') {
-    uploadStore.file = file.raw as File
+  uploadStore.file = file.raw as File
+  uploadStore.fileSize = file.raw.size
+
+  const draft = uploadStore.draft
+  const isSameFile = draft && draft.fileName === file.name && draft.fileSize === file.raw.size
+
+  if (isSameFile && uploadStore.shouldResume) {
+    // 明确点了"继续编辑"且文件匹配 — 进入续传
     uploadStore.changeIsShow()
-    startUpload()
-
-    // 清空已选文件（允许重复选择同一文件）
-    nextTick(() => {
-      uploadRef.value?.clearFiles()
-    })
+    const total = await uploadStore.resumeUpload(file.raw as File)
+    if (total) {
+      await startUpload(total)
+    } else {
+      // 续传失败（后端分片已清理），退化为重新上传
+      await uploadStore.initUpload()
+      const newTotal = Math.ceil(file.raw.size / UPLOAD_CONFIG.CHUNK_SIZE)
+      await startUpload(newTotal)
+    }
+  } else if (isSameFile && !uploadStore.shouldResume) {
+    // 没点过"继续编辑"但文件匹配 — 默认直接重新上传
+    uploadStore.clearDraft()
+    uploadStore.changeIsShow()
+    await uploadStore.initUpload()
+    const total = Math.ceil(file.raw.size / UPLOAD_CONFIG.CHUNK_SIZE)
+    await startUpload(total)
+  } else {
+    // 没有草稿或文件不匹配 — 全新上传
+    // 如果有草稿且选择了不同文件，需要先清理后端缓存
+    if (draft) {
+      await uploadStore.cancelUpload()
+      // cancelUpload 会把 file 设为 null，需要重新设置
+      uploadStore.file = file.raw as File
+      uploadStore.fileSize = file.raw.size
+    }
+    uploadStore.changeIsShow()
+    await uploadStore.initUpload()
+    const total = Math.ceil(file.raw.size / UPLOAD_CONFIG.CHUNK_SIZE)
+    await startUpload(total)
   }
+
+  await nextTick(() => {
+    uploadRef.value?.clearFiles()
+  })
 }
 
 const UPLOAD_CONFIG = {
   CHUNK_SIZE: 10 * 1024 * 1024, // 10MB
-  CONCURRENT_LIMIT: 3, // 并发数
+  CONCURRENT_LIMIT: 3,
   MAX_FILE_SIZE: 2 * 1024 * 1024 * 1024, // 2GB
 }
 
-// const triggerFileInput = () => {
-//   fileInput.value?.click() // 通过ref触发文件选择
-// }
-
-// 初始化上传
-// const initUpload = async () => {
-//   await post<BaseResponse<string>>('/upload/init').then((res) => {
-//     uploadStore.uploadId = res.data
-//   })
-// }
-
-// 上传单个分片
-// const uploadChunk = async (chunk: Blob, chunkNumber: number, totalChunks: number) => {
-//   try {
-//     const formData = new FormData()
-//     formData.append('file', chunk)
-//     formData.append('uploadId', uploadStore.uploadId)
-//     formData.append('chunkNumber', chunkNumber.toString())
-//     formData.append('totalChunks', totalChunks.toString())
-//     formData.append('fileName', uploadStore.file!.name)
-//
-//     const response = await post<BaseResponse>('/upload/chunk', formData, {
-//       headers: { 'Content-Type': 'multipart/form-data' },
-//     })
-//     if (response.code !== 200) return chunkNumber
-//   } catch (err) {
-//     console.error(`分片 ${chunkNumber} 上传失败:`, err)
-//     throw err
-//   }
-// }
-
-// 分片上传管理
-const startUpload = async () => {
+const startUpload = async (totalChunks: number) => {
   if (!uploadStore.file) return
-  await uploadStore.initUpload()
-  const totalChunks = Math.ceil(uploadStore.file.size / UPLOAD_CONFIG.CHUNK_SIZE)
+
   const chunks = Array.from({ length: totalChunks }, (_, i) => i)
-  let completedChunks = 0 // 新增完成计数器
-  // 并发控制上传
   const queue = []
   for (let i = 0; i < chunks.length; i += UPLOAD_CONFIG.CONCURRENT_LIMIT) {
     const chunkGroup = chunks.slice(i, i + UPLOAD_CONFIG.CONCURRENT_LIMIT)
@@ -151,48 +177,50 @@ const startUpload = async () => {
           const end = Math.min(start + UPLOAD_CONFIG.CHUNK_SIZE, uploadStore.file!.size)
           const chunk = uploadStore.file!.slice(start, end)
           await uploadStore.uploadChunk(chunk, chunkIndex + 1, totalChunks)
-          completedChunks++
-          uploadStore.progress = Math.floor((completedChunks / totalChunks) * 100)
         }),
       ),
     )
   }
   await Promise.all(queue)
+  // 全部处理完成后兜底校验：如果进度已达 100%，确保上传状态标记为成功
+  // （续传模式下所有分片已上传时，uploadChunk 会被全部跳过，不会自行标记成功）
+  if (uploadStore.progress >= 100) {
+    uploadStore.isFileUploadSuccess = true
+  }
+}
+</script>
+
+<style lang="less" scoped>
+.draft-banner {
+  max-width: 830px;
+  margin: 10px auto 0;
+  padding: 12px 16px;
+  background: #e6f4ff;
+  border: 1px solid #91caff;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #1d4ed8;
+
+  .draft-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .draft-text {
+    flex: 1;
+    color: #1e3a8a;
+  }
+
+  .draft-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
 }
 
-// 文件选择处理
-// const handleFileSelect = (e: Event) => {
-//   const input = e.target as HTMLInputElement
-//   const selectedFile = input.files?.[0]
-//   if (!selectedFile) {
-//     ElMessage.warning('请选择文件')
-//     return
-//   }
-//   // 严格校验文件类型（基于MIME类型而非扩展名）
-//   const ALLOWED_MIME_TYPES = ['video/mp4', 'video/webm']
-//   if (!ALLOWED_MIME_TYPES.includes(selectedFile.type)) {
-//     ElMessage.error('仅支持 MP4/WebM 格式视频')
-//     input.value = '' // 清空选择
-//     return
-//   }
-//
-//   // 双重校验扩展名（防止伪造MIME类型）
-//   const fileExtension = selectedFile.name.split('.').pop()?.toLowerCase()
-//   if (!['mp4', 'webm'].includes(fileExtension || '')) {
-//     ElMessage.error('文件扩展名不合法')
-//     input.value = ''
-//     return
-//   }
-//   if (selectedFile.size > UPLOAD_CONFIG.MAX_FILE_SIZE) {
-//     ElMessage.error(`文件大小不能超过${UPLOAD_CONFIG.MAX_FILE_SIZE / 1024 / 1024}MB`)
-//     return
-//   }
-//   uploadStore.file = selectedFile
-//   uploadStore.changeIsShow()
-//   startUpload()
-// }
-</script>
-<style lang="less" scoped>
 .file-upload {
   max-width: 830px;
   margin: 20px auto 0;

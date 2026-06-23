@@ -1,14 +1,17 @@
 <template>
   <header style="min-height: 64px" class="hiri-header__bar">
-    <HeaderBar />
+    <HeaderBar/>
   </header>
   <main class="history-record">
     <div class="main-head">
       <div class="main-title">
-        <el-icon><Clock /></el-icon><span class="title">历史记录</span>
+        <el-icon>
+          <Clock/>
+        </el-icon>
+        <span class="title">历史记录</span>
       </div>
       <div class="main-actions">
-        <el-switch v-model="historyRecordSwitch" />
+        <el-switch v-model="historyRecordSwitch"/>
         <span>记录浏览历史</span>
       </div>
     </div>
@@ -26,7 +29,7 @@
         <span class="loading-text">加载中...</span>
       </div>
       <div v-else-if="historyStore.historyList.length === 0" class="empty">
-        <el-empty description="暂无浏览历史" />
+        <el-empty description="暂无浏览历史"/>
       </div>
       <el-timeline v-else style="max-width: 1000px">
         <el-timeline-item
@@ -43,22 +46,41 @@
               class="history-item"
               @click="router.push(`/video/${item.vid}`)"
             >
-              <div class="item-cover">
-                <img :src="item.coverUrl" :alt="item.title" />
-                <div class="cover-bottom">
-                  <span class="progress-text">{{ formatDuration(item.progress) }}/{{ formatDuration(item.duration) }}</span>
-                  <div class="progress-bar" :style="{ width: (item.progress / item.duration * 100) + '%' }"></div>
+              <a :href="`/video/${item.vid}`">
+                <div class="item-cover">
+                  <img :src="item.coverUrl" :alt="item.title"/>
+                  <div class="cover-bottom">
+                  <span class="progress-text"
+                  >{{ formatDuration(item.progress) }}/{{ formatDuration(item.duration) }}</span
+                  >
+                    <div
+                      class="progress-bar"
+                      :style="{ width: (item.progress / item.duration) * 100 + '%' }"
+                    ></div>
+                  </div>
                 </div>
-              </div>
+              </a>
+
               <div class="item-info">
-                <h3 class="item-title">{{ item.title }}</h3>
+                <a :href="`/video/${item.vid}`"><h3 class="item-title">{{ item.title }}</h3></a>
                 <div class="item-meta">
-                  <span class="item-author">UP {{ item.authorNickname }}</span>
+                  <a :href="`/space/${item.authorUid}`">
+                     <span class="item-author">
+                    <img
+                      src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg"
+                      class="video-card__avatar"
+                    />
+                    {{ item.authorUsername }}</span
+                     >
+                  </a>
+
                   <span class="item-time">{{ formatBrowseTime(item.browseTime) }}</span>
                 </div>
               </div>
               <div class="item-delete" @click.stop="deleteHistory(item.id)">
-                <el-icon><Delete /></el-icon>
+                <el-icon>
+                  <Delete/>
+                </el-icon>
               </div>
             </div>
           </div>
@@ -70,12 +92,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { Delete } from '@element-plus/icons-vue'
-import type { HistoryVideoDTO } from '@/types/api.ts'
-import { useHistoryStore } from '@/stores/historyStore.ts'
-import { formatDuration } from '@/utils/utils.ts'
+import {onMounted, ref, computed} from 'vue'
+import {useRouter} from 'vue-router'
+import {Delete} from '@element-plus/icons-vue'
+import type {HistoryVideoDTO} from '@/types/api.ts'
+import {useHistoryStore} from '@/stores/historyStore.ts'
+import {formatDuration} from '@/utils/utils.ts'
 
 const router = useRouter()
 const historyRecordSwitch = ref(true)
@@ -83,12 +105,12 @@ const historyStore = useHistoryStore()
 
 const groupedHistory = computed(() => {
   const groups: { label: string; items: HistoryVideoDTO[] }[] = [
-    { label: '今天', items: [] },
-    { label: '昨天', items: [] },
-    { label: '近一周', items: [] },
-    { label: '近一个月', items: [] },
-    { label: '近一年', items: [] },
-    { label: '更早', items: [] },
+    {label: '今天', items: []},
+    {label: '昨天', items: []},
+    {label: '近一周', items: []},
+    {label: '近一个月', items: []},
+    {label: '近一年', items: []},
+    {label: '更早', items: []},
   ]
 
   const now = new Date()
@@ -98,7 +120,7 @@ const groupedHistory = computed(() => {
   const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()).getTime()
   const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).getTime()
 
-  historyStore.historyList.forEach(item => {
+  historyStore.historyList.forEach((item) => {
     const browseTime = new Date(item.browseTime).getTime()
     if (browseTime >= today) {
       groups[0].items.push(item)
@@ -115,7 +137,7 @@ const groupedHistory = computed(() => {
     }
   })
 
-  return groups.filter(g => g.items.length > 0)
+  return groups.filter((g) => g.items.length > 0)
 })
 
 const formatBrowseTime = (time: string): string => {
@@ -133,7 +155,7 @@ const formatBrowseTime = (time: string): string => {
 }
 
 const deleteHistory = async (id: number) => {
-  historyStore.historyList = historyStore.historyList.filter(item => item.id !== id)
+  historyStore.historyList = historyStore.historyList.filter((item) => item.id !== id)
 }
 
 onMounted(async () => {
@@ -147,10 +169,12 @@ onMounted(async () => {
   --header-shadow: 0 2px 4px #00000014;
   --bg-color: #fff;
 }
+
 .history-record {
   padding-top: 30px;
   margin: 0 300px;
   min-width: 800px;
+
   .main-head {
     display: flex;
     justify-content: space-between;
@@ -161,18 +185,22 @@ onMounted(async () => {
       align-items: center;
       font-size: 28px;
       font-weight: 600;
+
       .title {
         margin-left: 16px;
       }
     }
+
     .main-actions {
       display: flex;
       align-items: center;
+
       .el-switch {
         margin-right: 6px;
       }
     }
   }
+
   .main-content {
     margin-top: 20px;
 
@@ -200,8 +228,13 @@ onMounted(async () => {
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     .empty {
@@ -214,12 +247,6 @@ onMounted(async () => {
         align-items: center;
         padding: 12px 0;
         border-bottom: 1px solid #f0f0f0;
-        cursor: pointer;
-        transition: background-color 0.2s;
-
-        &:hover {
-          background-color: #f9f9f9;
-        }
 
         .item-cover {
           position: relative;
@@ -274,16 +301,29 @@ onMounted(async () => {
             -webkit-line-clamp: 2;
             overflow: hidden;
             margin: 0 0 8px 0;
+            transition: color .2s linear;
+
+            &:hover {
+              color: #ff6699;
+            }
           }
 
           .item-meta {
             display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 16px;
 
             .item-author {
               font-size: 13px;
               color: #9499a0;
+              display: flex;
+              flex-wrap: wrap;
+              align-items: center;
+              transition: color .2s linear;
+
+              &:hover {
+                color: #ff6699;
+              }
             }
 
             .item-time {

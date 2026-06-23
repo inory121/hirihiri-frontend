@@ -35,8 +35,13 @@
       <!--播放器-->
       <div class="player-wrap">
         <div ref="playerPlaceholder" class="player-placeholder"></div>
-        <div :key="videoInfo.video.vid" v-if="true" ref="danmakuContainer" class="danmaku-wrap"
-          :class="{ 'danmaku-off': !danmakuEnabled }">
+        <div
+          :key="videoInfo.video.vid"
+          v-if="true"
+          ref="danmakuContainer"
+          class="danmaku-wrap"
+          :class="{ 'danmaku-off': !danmakuEnabled }"
+        >
           <video ref="plyrPlayer" controls style="width: 100%; height: 100%">
             <source :src="videoInfo.video.videoUrl" type="video/mp4" />
           </video>
@@ -47,26 +52,48 @@
           <div class="video-info-online">{{ onlineCount }}人正在看，</div>
           <div class="video-info-dm">已装填{{ danmakuList?.length || 0 }}条弹幕</div>
         </div>
-        <div class="danmaku-toggle-icon" :style="{
-          '--icon-url': danmakuEnabled
-            ? 'url(https://hirihiri.oss-cn-nanjing.aliyuncs.com/danmuopen.svg)'
-            : 'url(https://hirihiri.oss-cn-nanjing.aliyuncs.com/danmuclose.svg)',
-        }" @click="toggleDanmaku" :title="danmakuEnabled ? '关闭弹幕' : '开启弹幕'"></div>
-        <div class="danmaku-setting-icon" @mouseenter="enterSettingsPanel" @mouseleave="leaveSettingsPanel"
-          title="弹幕设置">
+        <div
+          class="danmaku-toggle-icon"
+          :style="{
+            '--icon-url': danmakuEnabled
+              ? 'url(https://hirihiri.oss-cn-nanjing.aliyuncs.com/danmuopen.svg)'
+              : 'url(https://hirihiri.oss-cn-nanjing.aliyuncs.com/danmuclose.svg)',
+          }"
+          @click="toggleDanmaku"
+          :title="danmakuEnabled ? '关闭弹幕' : '开启弹幕'"
+        ></div>
+        <div
+          class="danmaku-setting-icon"
+          @mouseenter="enterSettingsPanel"
+          @mouseleave="leaveSettingsPanel"
+          title="弹幕设置"
+        >
           <div class="setting-icon-mask"></div>
-          <div v-if="showDanmakuSettings" class="danmaku-settings-panel" @mouseenter="enterSettingsPanel"
-            @mouseleave="leaveSettingsPanel">
+          <div
+            v-if="showDanmakuSettings"
+            class="danmaku-settings-panel"
+            @mouseenter="enterSettingsPanel"
+            @mouseleave="leaveSettingsPanel"
+          >
             <div class="settings-row">
               <span class="settings-label">字号</span>
               <div class="font-size-buttons">
-                <button :class="['font-btn', { active: danmakuFontSize === 18 }]" @click="danmakuFontSize = 18">
+                <button
+                  :class="['font-btn', { active: danmakuFontSize === 18 }]"
+                  @click="danmakuFontSize = 18"
+                >
                   小
                 </button>
-                <button :class="['font-btn', { active: danmakuFontSize === 25 }]" @click="danmakuFontSize = 25">
+                <button
+                  :class="['font-btn', { active: danmakuFontSize === 25 }]"
+                  @click="danmakuFontSize = 25"
+                >
                   标准
                 </button>
-                <button :class="['font-btn', { active: danmakuFontSize === 32 }]" @click="danmakuFontSize = 32">
+                <button
+                  :class="['font-btn', { active: danmakuFontSize === 32 }]"
+                  @click="danmakuFontSize = 32"
+                >
                   大
                 </button>
               </div>
@@ -74,13 +101,22 @@
             <div class="settings-row">
               <span class="settings-label">模式</span>
               <div class="mode-buttons">
-                <button :class="['mode-btn', { active: danmakuMode === 1 }]" @click="danmakuMode = 1">
+                <button
+                  :class="['mode-btn', { active: danmakuMode === 1 }]"
+                  @click="danmakuMode = 1"
+                >
                   滚动
                 </button>
-                <button :class="['mode-btn', { active: danmakuMode === 3 }]" @click="danmakuMode = 3">
+                <button
+                  :class="['mode-btn', { active: danmakuMode === 3 }]"
+                  @click="danmakuMode = 3"
+                >
                   顶部
                 </button>
-                <button :class="['mode-btn', { active: danmakuMode === 4 }]" @click="danmakuMode = 4">
+                <button
+                  :class="['mode-btn', { active: danmakuMode === 4 }]"
+                  @click="danmakuMode = 4"
+                >
                   底部
                 </button>
               </div>
@@ -88,17 +124,31 @@
             <div class="settings-row">
               <span class="settings-label">颜色</span>
               <div class="color-picker">
-                <div v-for="color in danmakuColors" :key="color"
-                  :class="['color-item', { active: danmakuColor === color }]" :style="{ backgroundColor: color }"
-                  @click="danmakuColor = color"></div>
+                <div
+                  v-for="color in danmakuColors"
+                  :key="color"
+                  :class="['color-item', { active: danmakuColor === color }]"
+                  :style="{ backgroundColor: color }"
+                  @click="danmakuColor = color"
+                ></div>
               </div>
             </div>
           </div>
         </div>
         <div class="dm-root">
-          <el-input style="height: 100%" placeholder="发个友善的弹幕见证当下" maxlength="100" minlength="1" v-model="danmaku"
-            @keyup.enter="sendDanmaku"></el-input>
-          <el-button type="primary" style="border-radius: 0 8px 8px 0; height: 100%" @click="sendDanmaku">发送
+          <el-input
+            style="height: 100%"
+            placeholder="发个友善的弹幕见证当下"
+            maxlength="100"
+            minlength="1"
+            v-model="danmaku"
+            @keyup.enter="sendDanmaku"
+          ></el-input>
+          <el-button
+            type="primary"
+            style="border-radius: 0 8px 8px 0; height: 100%"
+            @click="sendDanmaku"
+            >发送
           </el-button>
         </div>
       </div>
@@ -175,15 +225,23 @@
               <img v-else src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/noface.jpg" alt="" />
             </div>
             <div class="editor edit" v-if="userStore.isLogin">
-              <el-input v-model="comment" style="height: 50px" placeholder="wifi连接中......检测到粉丝评论输出电波......"></el-input>
+              <el-input
+                v-model="comment"
+                style="height: 50px"
+                placeholder="wifi连接中......检测到粉丝评论输出电波......"
+              ></el-input>
               <el-button type="primary" size="large" style="margin-left: 10px" @click="sendComment">
                 发布
               </el-button>
             </div>
             <div class="edit" v-else>
               <span>请先</span>
-              <el-button type="primary" size="small" style="margin: 0 5px"
-                @click="userStore.showLoginWindow = !userStore.showLoginWindow">登录
+              <el-button
+                type="primary"
+                size="small"
+                style="margin: 0 5px"
+                @click="userStore.showLoginWindow = !userStore.showLoginWindow"
+                >登录
               </el-button>
               <span>后发表评论 (・ω・)</span>
             </div>
@@ -191,7 +249,67 @@
         </div>
         <div class="contents">
           <div class="feed">
-            <CommentItem v-for="comment in flatComments" :key="comment.id" :comment="comment" />
+            <template v-for="thread in commentThreads" :key="thread.rootId">
+              <CommentItem :comment="thread.rootComment" />
+              <CommentItem
+                v-for="reply in thread.visibleReplies"
+                :key="reply.id"
+                :comment="reply"
+              />
+              <div v-if="thread.totalReplies > COLLAPSED_REPLY_COUNT" class="reply-control">
+                <span v-if="!thread.expanded">共{{ thread.totalReplies }}条回复，</span>
+                <button
+                  v-if="!thread.expanded"
+                  type="button"
+                  class="reply-text-btn expand"
+                  @click="expandReplyList(thread.rootId)"
+                >
+                  点击查看
+                </button>
+                <div v-else class="reply-pagination">
+                  <template v-if="thread.totalPages > 1">
+                    <span class="reply-page-total">共{{ thread.totalPages }}页</span>
+                    <button
+                      v-if="thread.currentPage > 1"
+                      type="button"
+                      class="reply-text-btn"
+                      @click="goPrevReplyPage(thread.rootId, thread.currentPage, thread.totalPages)"
+                    >
+                      上一页
+                    </button>
+                    <button
+                      v-for="pageItem in thread.pageItems"
+                      :key="getReplyPageItemKey(pageItem)"
+                      type="button"
+                      class="reply-page-btn"
+                      :class="{
+                        active: pageItem.type === 'page' && pageItem.page === thread.currentPage,
+                        ellipsis: pageItem.type === 'ellipsis',
+                      }"
+                      :disabled="pageItem.type === 'ellipsis'"
+                      @click="handleReplyPageItemClick(thread.rootId, pageItem, thread.totalPages)"
+                    >
+                      {{ getReplyPageItemLabel(pageItem) }}
+                    </button>
+                    <button
+                      v-if="thread.currentPage < thread.totalPages"
+                      type="button"
+                      class="reply-text-btn"
+                      @click="goNextReplyPage(thread.rootId, thread.currentPage, thread.totalPages)"
+                    >
+                      下一页
+                    </button>
+                  </template>
+                  <button
+                    type="button"
+                    class="reply-text-btn"
+                    @click="collapseReplyList(thread.rootId)"
+                  >
+                    收起
+                  </button>
+                </div>
+              </div>
+            </template>
             <!--            <el-divider style="margin: 20px 0" />-->
           </div>
         </div>
@@ -205,12 +323,16 @@
         <div class="up-info-container">
           <div class="up-info-left">
             <div class="up-avatar-wrap">
-              <a :href="`/space/${videoInfo.user.uid}`"><img :src="videoInfo.user.avatar" alt="" /></a>
+              <a :href="`/space/${videoInfo.user.uid}`"
+                ><img :src="videoInfo.user.avatar" alt=""
+              /></a>
             </div>
           </div>
           <div class="up-info-right">
             <div class="up-info__detail">
-              <a :href="`/space/${videoInfo.user.uid}`" class="up-name">{{ videoInfo.user.username }}</a>
+              <a :href="`/space/${videoInfo.user.uid}`" class="up-name">{{
+                videoInfo.user.username
+              }}</a>
               <a href="#" class="send-msg">
                 <el-icon>
                   <Message />
@@ -222,24 +344,48 @@
             <div class="up-info__btn-panel">
               <span class="charge-btn default-btn">
                 <el-icon>
-                  <CoffeeCup />
-                </el-icon>充电
+                  <CoffeeCup /> </el-icon
+                >充电
               </span>
-              <el-button class="up-follow-btn"
-                :type="'default'" :disabled="false" :plain="false"
+              <el-button
+                class="up-follow-btn"
+                :type="'default'"
+                :disabled="false"
+                :plain="false"
                 :class="{ 'up-follow-btn--followed': upFollowingStatus }"
-                @click="handleUpFollowClick">
-                <svg v-if="!upFollowingStatus" class="up-follow-btn__icon" width="16" height="16" viewBox="0 0 16 16"
-                  fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path fill-rule="evenodd" clip-rule="evenodd"
+                @click="handleUpFollowClick"
+              >
+                <svg
+                  v-if="!upFollowingStatus"
+                  class="up-follow-btn__icon"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
                     d="M7.25098 8.75V13.25C7.25098 13.6642 7.58676 14 8.00098 14C8.41519 14 8.75098 13.6642 8.75098 13.25V8.75H13.251C13.6652 8.75 14.001 8.41421 14.001 8C14.001 7.58579 13.6652 7.25 13.251 7.25H8.75098V2.75C8.75098 2.33579 8.41519 2 8.00098 2C7.58676 2 7.25098 2.33579 7.25098 2.75V7.25H2.75098C2.33676 7.25 2.00098 7.58579 2.00098 8C2.00098 8.41421 2.33676 8.75 2.75098 8.75H7.25098Z"
-                    fill="currentColor" />
+                    fill="currentColor"
+                  />
                 </svg>
-                <svg v-else class="up-follow-btn__icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path fill-rule="evenodd" clip-rule="evenodd"
+                <svg
+                  v-else
+                  class="up-follow-btn__icon"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
                     d="M2 4C2 3.72386 2.22386 3.5 2.5 3.5H13.5C13.7761 3.5 14 3.72386 14 4C14 4.27614 13.7761 4.5 13.5 4.5H2.5C2.22386 4.5 2 4.27614 2 4ZM2 8C2 7.72386 2.22386 7.5 2.5 7.5H13.5C13.7761 7.5 14 7.72386 14 8C14 8.27614 13.7761 8.5 13.5 8.5H2.5C2.22386 8.5 2 8.27614 2 8ZM2.5 11.5C2.22386 11.5 2 11.7239 2 12C2 12.2761 2.22386 12.5 2.5 12.5H13.5C13.7761 12.5 14 12.2761 14 12C14 11.7239 13.7761 11.5 13.5 11.5H2.5Z"
-                    fill="currentColor" />
+                    fill="currentColor"
+                  />
                 </svg>
                 {{ upFollowingStatus ? '已关注' : '关注' }} {{ formatNumber(upFanCount) }}
               </el-button>
@@ -249,13 +395,29 @@
         <div class="danmaku-box">
           <el-collapse v-model="danmuList">
             <el-collapse-item title="弹幕列表" name="1">
-              <el-table :data="danmakuList" style="width: 100%; font-size: 12px"
-                :default-sort="{ prop: 'time', order: 'ascending' }" max-height="658px">
-                <el-table-column prop="time" label="时间" width="75" sortable show-overflow-tooltip
-                  :formatter="timeFormatter" />
+              <el-table
+                :data="danmakuList"
+                style="width: 100%; font-size: 12px"
+                :default-sort="{ prop: 'time', order: 'ascending' }"
+                max-height="658px"
+              >
+                <el-table-column
+                  prop="time"
+                  label="时间"
+                  width="75"
+                  sortable
+                  show-overflow-tooltip
+                  :formatter="timeFormatter"
+                />
                 <el-table-column prop="content" label="弹幕内容" sortable show-overflow-tooltip />
-                <el-table-column prop="createDate" label="发送时间" width="100" sortable show-overflow-tooltip
-                  :formatter="createDateFormatter" />
+                <el-table-column
+                  prop="createDate"
+                  label="发送时间"
+                  width="100"
+                  sortable
+                  show-overflow-tooltip
+                  :formatter="createDateFormatter"
+                />
               </el-table>
             </el-collapse-item>
           </el-collapse>
@@ -354,6 +516,28 @@ let settingsPanelTimer: ReturnType<typeof setTimeout> | null = null
 // UP主关注状态和粉丝数
 const upFollowingStatus = ref(false)
 const upFanCount = ref(0)
+
+const COLLAPSED_REPLY_COUNT = 2
+const REPLY_PAGE_SIZE = 10
+
+type CommentWithLevel = Comment & { level: number }
+type ReplyDisplayState = {
+  expanded: boolean
+  page: number
+}
+type ReplyPageItem = { type: 'page'; page: number } | { type: 'ellipsis'; key: string }
+type CommentThreadView = {
+  rootComment: Comment
+  rootId: number
+  visibleReplies: CommentWithLevel[]
+  totalReplies: number
+  expanded: boolean
+  currentPage: number
+  totalPages: number
+  pageItems: ReplyPageItem[]
+}
+
+const replyDisplayState = ref<Record<number, ReplyDisplayState>>({})
 
 // 加载当前视频 UP主的关注状态和粉丝数
 const loadUpFollowInfo = async () => {
@@ -456,8 +640,8 @@ const getViewerId = (): string => {
   return viewerId
 }
 
-function flattenComments(comments: Comment[], level: number = 0): (Comment & { level: number })[] {
-  let result: (Comment & { level: number })[] = []
+function flattenComments(comments: Comment[], level: number = 0): CommentWithLevel[] {
+  let result: CommentWithLevel[] = []
 
   for (const comment of comments) {
     // 添加当前层级信息
@@ -465,7 +649,7 @@ function flattenComments(comments: Comment[], level: number = 0): (Comment & { l
 
     // 如果存在子评论，递归处理
     if (comment.replies && comment.replies.length > 0) {
-      result = [...result, commentWithLevel, ...flattenComments(comment.replies!, level + 1)]
+      result = [...result, commentWithLevel, ...flattenComments(comment.replies, level + 1)]
     } else {
       result = [...result, commentWithLevel]
     }
@@ -477,6 +661,108 @@ function flattenComments(comments: Comment[], level: number = 0): (Comment & { l
 // 扁平化评论列表（自动响应 commentList 变化）
 const flatComments = computed(() => {
   return flattenComments(commentList.value)
+})
+
+const clampReplyPage = (page: number, totalPages: number) => {
+  return Math.min(Math.max(page, 1), Math.max(totalPages, 1))
+}
+
+const getReplyPageItems = (currentPage: number, totalPages: number): ReplyPageItem[] => {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => ({ type: 'page', page: index + 1 }))
+  }
+
+  if (currentPage <= 4) {
+    return [
+      ...Array.from({ length: 5 }, (_, index) => ({ type: 'page' as const, page: index + 1 })),
+      { type: 'ellipsis', key: 'ellipsis-end' },
+      { type: 'page', page: totalPages },
+    ]
+  }
+
+  if (currentPage >= totalPages - 3) {
+    return [
+      { type: 'page', page: 1 },
+      { type: 'ellipsis', key: 'ellipsis-start' },
+      ...Array.from({ length: 5 }, (_, index) => ({
+        type: 'page' as const,
+        page: totalPages - 4 + index,
+      })),
+    ]
+  }
+
+  return [
+    { type: 'page', page: 1 },
+    { type: 'ellipsis', key: 'ellipsis-start' },
+    { type: 'page', page: currentPage - 1 },
+    { type: 'page', page: currentPage },
+    { type: 'page', page: currentPage + 1 },
+    { type: 'ellipsis', key: 'ellipsis-end' },
+    { type: 'page', page: totalPages },
+  ]
+}
+
+const getReplyPageItemKey = (pageItem: ReplyPageItem) => {
+  return pageItem.type === 'page' ? `page-${pageItem.page}` : pageItem.key
+}
+
+const getReplyPageItemLabel = (pageItem: ReplyPageItem) => {
+  return pageItem.type === 'page' ? String(pageItem.page) : '...'
+}
+
+const setReplyListState = (rootId: number, expanded: boolean, page: number = 1) => {
+  replyDisplayState.value[rootId] = { expanded, page }
+}
+
+const expandReplyList = (rootId: number) => {
+  setReplyListState(rootId, true)
+}
+
+const collapseReplyList = (rootId: number) => {
+  setReplyListState(rootId, false)
+}
+
+const setReplyPage = (rootId: number, page: number, totalPages: number) => {
+  setReplyListState(rootId, true, clampReplyPage(page, totalPages))
+}
+
+const goNextReplyPage = (rootId: number, currentPage: number, totalPages: number) => {
+  setReplyPage(rootId, currentPage + 1, totalPages)
+}
+
+const goPrevReplyPage = (rootId: number, currentPage: number, totalPages: number) => {
+  setReplyPage(rootId, currentPage - 1, totalPages)
+}
+
+const handleReplyPageItemClick = (rootId: number, pageItem: ReplyPageItem, totalPages: number) => {
+  if (pageItem.type === 'page') {
+    setReplyPage(rootId, pageItem.page, totalPages)
+  }
+}
+
+const commentThreads = computed<CommentThreadView[]>(() => {
+  return commentList.value.map((rootComment) => {
+    const rootId = rootComment.id ?? 0
+    const replies = flattenComments(rootComment.replies ?? [], 1)
+    const totalReplies = replies.length
+    const totalPages = Math.max(1, Math.ceil(totalReplies / REPLY_PAGE_SIZE))
+    const state = replyDisplayState.value[rootId] ?? { expanded: false, page: 1 }
+    const currentPage = clampReplyPage(state.page, totalPages)
+    const visibleReplies = state.expanded
+      ? replies.slice((currentPage - 1) * REPLY_PAGE_SIZE, currentPage * REPLY_PAGE_SIZE)
+      : replies.slice(0, COLLAPSED_REPLY_COUNT)
+
+    return {
+      rootComment,
+      rootId,
+      visibleReplies,
+      totalReplies,
+      expanded: state.expanded,
+      currentPage,
+      totalPages,
+      pageItems: getReplyPageItems(currentPage, totalPages),
+    }
+  })
 })
 
 const createDateFormatter = (row: Danmu) => {
@@ -737,7 +1023,7 @@ watch([() => route.params.vid], async ([newVid], [oldVid]) => {
     // 3. 加载新视频信息和评论
     await videoStore.getVideo(Number(newVid))
     await commentStore.getComment(Number(newVid))
-    loadUpFollowInfo()
+    await loadUpFollowInfo()
 
     // 3. 等待 Vue 根据 key 完成 DOM 重建（danmaku-wrap 和 video 都是全新的 DOM 元素）
     await nextTick()
@@ -824,7 +1110,7 @@ onMounted(async () => {
     await videoStore.getRecommendVideo()
     await videoStore.getVideo(vid)
     await commentStore.getComment(vid)
-    loadUpFollowInfo()
+    await loadUpFollowInfo()
   }
   rcmTags.value = videoInfo.value.video.tags?.split('\n')
   await initPlayer()
@@ -1257,6 +1543,64 @@ onUnmounted(() => {
         }
       }
 
+      .contents {
+        .feed {
+          .reply-control {
+            margin: 8px 0 2px 67px;
+            min-height: 22px;
+            font-size: 13px;
+            line-height: 22px;
+            color: #9499a0;
+          }
+
+          .reply-pagination {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+            color: #18191c;
+          }
+
+          .reply-page-total {
+            margin-right: 4px;
+          }
+
+          .reply-text-btn,
+          .reply-page-btn {
+            border: 0;
+            padding: 0 4px;
+            height: 22px;
+            line-height: 22px;
+            color: #18191C;
+            background: transparent;
+            font: inherit;
+            cursor: pointer;
+          }
+
+          .reply-text-btn.expand {
+            color: #9499a0;
+          }
+
+          .reply-text-btn:hover,
+          .reply-page-btn:hover,
+          .reply-page-btn.active {
+            color: #409eff;
+          }
+
+          .reply-page-btn {
+            min-width: 18px;
+          }
+
+          .reply-page-btn.ellipsis {
+            cursor: default;
+          }
+
+          .reply-page-btn.ellipsis:hover {
+            color: #9499a0;
+          }
+        }
+      }
+
       .end {
         .bottombar {
           width: 100%;
@@ -1363,7 +1707,9 @@ onUnmounted(() => {
               justify-content: center;
               padding: 0 15px !important;
               cursor: pointer;
-              transition: background-color 0.2s, border-color 0.2s;
+              transition:
+                background-color 0.2s,
+                border-color 0.2s;
               gap: 4px;
               line-height: 1;
 

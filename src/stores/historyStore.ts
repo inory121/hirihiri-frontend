@@ -13,14 +13,14 @@ export const useHistoryStore = defineStore('history', {
       this.loading = true
       try {
         const userStore = useUserStore()
-        const uid = userStore.user?.uid
-        if (!uid) {
+        if (!userStore.user?.uid) {
           this.historyList = []
           this.loading = false
           return
         }
+        // uid 由后端从请求头获取，前端无需传递，防止越权
         const res = await get<HistoryApiResponse>('/history', {
-          params: { uid, pageNum, pageSize }
+          params: { pageNum, pageSize }
         })
         if (res.code === 200) {
           this.historyList = res.data
@@ -37,12 +37,12 @@ export const useHistoryStore = defineStore('history', {
 
     async saveHistory(vid: number, progress: number) {
       const userStore = useUserStore()
-      const uid = userStore.user?.uid
-      if (!uid) return
-      
+      if (!userStore.user?.uid) return
+
       try {
+        // uid 由后端从请求头获取，前端无需传递，防止越权
         await post('/history', null, {
-          params: { uid, vid, progress }
+          params: { vid, progress }
         })
       } catch (error) {
         console.error('保存浏览历史失败:', error)
@@ -51,12 +51,12 @@ export const useHistoryStore = defineStore('history', {
 
     async getVideoProgress(vid: number): Promise<number> {
       const userStore = useUserStore()
-      const uid = userStore.user?.uid
-      if (!uid) return 0
-      
+      if (!userStore.user?.uid) return 0
+
       try {
+        // uid 由后端从请求头获取，前端无需传递，防止越权
         const res = await get<{ code: number; data: { progress: number } }>('/history/progress', {
-          params: { uid, vid }
+          params: { vid }
         })
         if (res.code === 200 && res.data) {
           return res.data.progress || 0

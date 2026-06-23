@@ -168,8 +168,7 @@ const sendSubComment = async () => {
 <style scoped lang="less">
 .comment {
   display: flex;
-  padding-left: 68px;
-  padding-top: 22px;
+  padding: 8px 0 8px 68px;
   position: relative;
 
   &:not(.sub) {
@@ -249,7 +248,7 @@ const sendSubComment = async () => {
 
       .comment-content {
         font-size: 15px;
-        margin-top: 10px;
+        margin-top: 4px;
         line-height: 28px;
         word-break: break-word;
 

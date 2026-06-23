@@ -125,7 +125,7 @@
       <MyPopover class="avatar-popover-login" v-if="userStore.isLogin">
         <template #content>
           <div class="header-entry-large">
-            <a :href="`/space/${userStore.user.uid}`" class="nickname-item">{{ userStore.user.username }}</a>
+            <a v-if="userStore.user.uid" :href="`/space/${userStore.user.uid}`" class="nickname-item">{{ userStore.user.username }}</a>
             <div class="vip-item">
               <a class="vip-item__label">
                 <img src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/8d4f8bfc713826a5412a0a27eaaac4d6b9ede1d9.png"
@@ -167,7 +167,7 @@
               <div class="vip-entry-btn">会员中心</div>
             </div>
             <div class="links-item">
-              <a :href="`/space/${userStore.user.uid}`" class="single-link-item">
+              <a v-if="userStore.user.uid" :href="`/space/${userStore.user.uid}`" class="single-link-item">
                 <div class="link-title">
                   <el-icon :size="20" style="margin-right: 16px">
                     <User />
@@ -205,7 +205,7 @@
           <li>
             <!--头像-->
             <div>
-              <a :href="`/space/${userStore.user.uid}`" class="header-entry-mini">
+              <a v-if="userStore.user.uid" :href="`/space/${userStore.user.uid}`" class="header-entry-mini">
                 <img class="hiri-avatar-img" :src="userStore.user.avatar" alt="" />
               </a>
             </div>

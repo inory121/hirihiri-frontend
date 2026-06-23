@@ -176,7 +176,7 @@ export interface HistoryVideoDTO {
   coverUrl: string
   duration: number
   authorUid: number
-  authorNickname: string
+  authorUsername: string
 }
 
 export interface HistoryApiResponse extends BaseResponse {

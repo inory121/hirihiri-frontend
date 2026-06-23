@@ -84,6 +84,8 @@ export const useUserStore = defineStore('user', {
       localStorage.removeItem('hiri_token')
       localStorage.removeItem('hiri_uid')
       this.isLogin = false
+      localStorage.setItem('showLoginAfterLogout', 'true')
+      window.location.href = '/'
     },
 
     async getUserInfo() {

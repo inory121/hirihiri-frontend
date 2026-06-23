@@ -14,6 +14,13 @@
     <router-view />
   </div>
   <div class="video-basic content" v-else>
+    <input
+      type="file"
+      id="replace-video-input"
+      accept="video/*"
+      class="hidden-file-input"
+      @change="handleReplaceVideoFileChange"
+    />
     <div class="video-upload">
       <div class="upload-header">
         <span class="upload-header-top-text">发布视频</span>
@@ -29,7 +36,15 @@
           </el-icon>
         </div>
         <div class="file-item-content">
-          <div class="title">{{ uploadStore.file?.name }}</div>
+          <div class="title-row">
+            <span class="title">{{ uploadStore.file?.name }}</span>
+            <el-button type="text" @click="handleReplaceVideo" class="replace-video-btn">
+              <el-icon color="#00a1d6">
+                <Refresh />
+              </el-icon>
+              <span style="color: #00a1d6">更换视频</span>
+            </el-button>
+          </div>
           <div v-if="uploadStore.progress != 100" class="file-item-content-status-text">
             <span class="upload-progress">当前进度{{ uploadStore.progress }}%</span>
           </div>
@@ -54,18 +69,30 @@
         </div>
       </div>
     </div>
-    <el-dialog v-model="coverDialogShow" width="800" style="padding: 20px">
+    <el-dialog
+      v-model="coverDialogShow"
+      width="800"
+      style="padding: 20px"
+      @opened="handleCoverDialogOpened"
+    >
       <template #header>
-        <el-menu mode="horizontal" default-active="1" @select="handleCoverDialogSelect">
+        <div v-if="uploadStore.videoOnServer" style="display: flex; align-items: center">
+          <span style="color: #909399; font-size: 14px"
+            >提示：从草稿恢复的视频文件仅存储在服务器上，本地浏览器内存中已无原始文件，因此无法从视频中截取封面，请使用上传封面功能。</span
+          >
+        </div>
+        <el-menu v-else mode="horizontal" default-active="1" @select="handleCoverDialogSelect">
           <el-menu-item index="1">截取封面</el-menu-item>
           <el-menu-item index="2">上传封面</el-menu-item>
         </el-menu>
       </template>
-      <div class="cover-dialog" v-show="coverCropperShow">
+      <div class="cover-dialog" v-show="coverCropperShow && !uploadStore.videoOnServer">
         <div class="cover-dialog-body">
           <div class="cover-cropper">
             <div class="cover-cropper-left">
               <cropper
+                v-if="uploadStore.originalCover"
+                :key="coverCropperKey"
                 class="cropper"
                 @change="onCoverChange"
                 :stencil-props="{
@@ -75,6 +102,9 @@
                 :src="uploadStore.originalCover"
                 ref="cropperRef"
               />
+              <div v-else class="cover-empty-state">
+                当前还没有生成可裁剪的封面帧，请稍后重试；如果持续为空，请重新打开更换封面弹窗。
+              </div>
               <span class="size"
                 >已截取分辨率：{{ cropperResult.coordinates.width }}x{{
                   cropperResult.coordinates.height
@@ -112,10 +142,13 @@
               >
                 <img :src="frame.image" alt="视频帧" />
               </div>
+              <div v-if="!videoFrames.length" class="cover-slider-empty">
+                当前还没有生成视频缩略图，请稍后重试。
+              </div>
               <div class="time-slider">
                 <input
                   type="range"
-                  v-model="currentTime"
+                  v-model.number="currentTime"
                   :max="Math.ceil(videoDuration)"
                   @input="updateVideoFrame"
                   @change="updateVideoFrame.flush()"
@@ -135,7 +168,7 @@
         </div>
       </div>
 
-      <div class="upload-cover-dialog" v-show="!coverCropperShow">
+      <div class="upload-cover-dialog" v-show="!coverCropperShow || uploadStore.videoOnServer">
         <div class="cover-dialog-body" v-show="selectCoverCropperShow">
           <div class="cover-cropper">
             <div class="cover-cropper-left">
@@ -273,7 +306,9 @@
         <el-input type="textarea" v-model="uploadStore.VideoInfo.descr" :rows="8"></el-input>
       </el-form-item>
       <div class="submit">
-        <el-button style="width: 120px; height: 40px">存草稿</el-button>
+        <el-button style="width: 120px; height: 40px" @click="uploadStore.saveDraftManually()"
+          >存草稿</el-button
+        >
         <el-button
           style="width: 120px; height: 40px"
           @click="uploadStore.confirmUpload()"
@@ -288,13 +323,14 @@
 </template>
 
 <script lang="ts" setup>
-import { nextTick, reactive, ref, watch,onMounted } from 'vue'
+import { nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useUploadStore } from '@/stores/uploadStore.ts'
 import { useCategoryStore } from '@/stores/categoryStore.ts'
 import { type CascaderValue, ElMessage, type FormRules, type UploadFile } from 'element-plus'
 import { Cropper, Preview } from 'vue-advanced-cropper'
 import 'vue-advanced-cropper/dist/style.css'
 import { debounce } from 'lodash-es'
+import { Refresh } from '@element-plus/icons-vue'
 
 interface ruleForm {
   cover: string
@@ -322,6 +358,7 @@ const videoDuration = ref(0) // 视频时长
 const coverDialogShow = ref(false) // 上传封面弹窗显示
 const coverCropperShow = ref(true) // 自动封面裁剪显示
 const selectCoverCropperShow = ref(false) // 手动选择封面裁剪显示
+const coverCropperKey = ref(0) // 强制重新挂载 cropper，避免更换视频后保留旧状态
 const cropperRef = ref<typeof Cropper>() // 封面裁剪组件实例
 const selectCropperRef = ref<typeof Cropper>() // 封面裁剪组件实例
 // 表单验证规则
@@ -342,19 +379,101 @@ const rcmTags = ref<string[] | undefined>([
   '爱抖露',
   '爱莉希雅',
 ])
+const createEmptyCropperResult = () => ({
+  coordinates: { width: 0, height: 0 },
+  image: { src: '' },
+})
 // 封面裁剪结果
-const cropperResult = ref({
-  coordinates: { width: 0, height: 0 },
-  image: { src: '' },
-})
+const cropperResult = ref(createEmptyCropperResult())
 // 手动选择封面裁剪结果
-const selectCropperResult = ref({
-  coordinates: { width: 0, height: 0 },
-  image: { src: '' },
-})
+const selectCropperResult = ref(createEmptyCropperResult())
 const COVER_CONFIG = {
   MAX_SIZE: 5 * 1024 * 1024, // 5MB
   ALLOW_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'],
+}
+const getSafeSeekTime = (duration: number, targetTime: number) => {
+  if (!Number.isFinite(duration) || duration <= 0) return 0
+  const maxSeekTime = Math.max(duration - 0.1, 0)
+  return Math.min(Math.max(targetTime, 0), maxSeekTime)
+}
+const resetCoverEditorState = () => {
+  videoFrames.value = []
+  videoDuration.value = 0
+  currentTime.value = 0
+  coverCropperShow.value = true
+  selectCoverCropperShow.value = false
+  cropperResult.value = createEmptyCropperResult()
+  selectCropperResult.value = createEmptyCropperResult()
+  uploadStore.originalCover = ''
+  uploadStore.selectOriginalCover = ''
+  uploadStore.selectCoverUrlBase64 = ''
+  uploadStore.coverUrlBase64 = ''
+  uploadStore.coverFile = null
+  coverCropperKey.value += 1
+}
+const refreshAutoCoverCropper = () => {
+  cropperResult.value = createEmptyCropperResult()
+  coverCropperKey.value += 1
+}
+const cleanupVideoObjectUrl = (
+  video: HTMLVideoElement,
+  objectUrl: string,
+  source: 'captureCover' | 'generateVideoFrames' | 'updateVideoFrame',
+) => {
+  video.onloadedmetadata = null
+  video.oncanplay = null
+  video.onseeked = null
+  video.onerror = null
+  video.pause()
+  video.removeAttribute('src')
+  video.load()
+  URL.revokeObjectURL(objectUrl)
+}
+const createTempVideo = (file: File, useCrossOrigin: boolean = false) => {
+  const video = document.createElement('video')
+  const objectUrl = URL.createObjectURL(file)
+  video.src = objectUrl
+  video.muted = true
+  if (useCrossOrigin) {
+    video.setAttribute('crossOrigin', 'anonymous')
+  }
+  return { video, objectUrl }
+}
+const waitForVideoMetadata = (video: HTMLVideoElement) => {
+  return new Promise<void>((resolve, reject) => {
+    video.onloadedmetadata = () => resolve()
+    video.onerror = () => reject(new Error('视频加载失败'))
+  })
+}
+const drawVideoFrameToCanvas = (video: HTMLVideoElement) => {
+  const canvas = document.createElement('canvas')
+  canvas.width = video.videoWidth
+  canvas.height = video.videoHeight
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    throw new Error('无法获取画布上下文')
+  }
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+  return canvas
+}
+const captureFrameAtTime = async (video: HTMLVideoElement, time: number) => {
+  await waitForSeekAndFrame(video, time)
+  const canvas = drawVideoFrameToCanvas(video)
+  return {
+    canvas,
+    base64: canvas.toDataURL('image/jpeg'),
+  }
+}
+const handleCoverDialogOpened = async () => {
+  if (!coverCropperShow.value || uploadStore.videoOnServer || !uploadStore.originalCover) {
+    return
+  }
+
+  refreshAutoCoverCropper()
+  await nextTick()
+  requestAnimationFrame(() => {
+    cropperRef.value?.refresh()
+  })
 }
 const beforeCoverUpload = (file: File) => {
   // 类型校验
@@ -412,80 +531,126 @@ const handleFileChange = (file: UploadFile) => {
   })
 }
 
+// 等待视频seek完成且帧数据可用
+const waitForSeekAndFrame = async (video: HTMLVideoElement, time: number) => {
+  return new Promise<void>((resolve, reject) => {
+    const checkReady = () => {
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        return reject(new Error('无效的视频尺寸'))
+      }
+      if (video.readyState >= 2) {
+        resolve()
+      } else {
+        video.oncanplay = () => {
+          video.oncanplay = null
+          if (video.readyState >= 2) {
+            resolve()
+          } else {
+            // 最后再等待一小段时间
+            setTimeout(() => {
+              if (video.readyState >= 2) resolve()
+              else reject(new Error('视频帧数据不可用'))
+            }, 200)
+          }
+        }
+      }
+    }
+
+    video.onseeked = () => {
+      video.onseeked = null
+      checkReady()
+    }
+    video.onerror = () => reject(new Error('视频加载失败'))
+
+    // 如果已经在目标时间且帧可用，直接resolve
+    if (!video.seeking && Math.abs(video.currentTime - time) < 0.001 && video.readyState >= 2) {
+      resolve()
+      return
+    }
+
+    video.currentTime = time
+
+    // 某些情况下onseeked可能不会触发（如视频已加载到目标位置），加个超时检查
+    setTimeout(() => {
+      if (!video.seeking && video.readyState >= 2 && video.onseeked) {
+        video.onseeked = null
+        checkReady()
+      }
+    }, 500)
+  })
+}
+
 // 生成视频缩略图
 const generateVideoFrames = async () => {
+  let video: HTMLVideoElement | undefined
+  let objectUrl = ''
   try {
     if (!uploadStore.file) return
+    if (uploadStore.videoOnServer || uploadStore.file.size === 0) return
 
-    const video = document.createElement('video')
-    video.src = URL.createObjectURL(uploadStore.file)
-    video.muted = true
-    video.setAttribute('crossOrigin', 'anonymous')
-    await new Promise((resolve, reject) => {
-      video.onloadedmetadata = resolve
-      video.onerror = reject
-      video.load()
-    })
+    ;({ video, objectUrl } = createTempVideo(uploadStore.file, true))
+    await waitForVideoMetadata(video)
     videoDuration.value = video.duration
+    if (videoDuration.value <= 0) {
+      videoFrames.value = []
+      return
+    }
 
-    // 设置时间偏移量（避开首尾2秒）
-    const START_OFFSET = 2
-    const END_OFFSET = 2
-    const effectiveDuration = Math.max(0, videoDuration.value - START_OFFSET - END_OFFSET)
-    // 生成7个等距时间点
-    const timePoints = Array.from(
-      { length: 7 },
-      (_, i) => START_OFFSET + (effectiveDuration / 6) * i,
-    )
+    const startTime = getSafeSeekTime(videoDuration.value, 2)
+    const endTime = getSafeSeekTime(videoDuration.value, videoDuration.value - 2)
+    const frameCount = 7
+    const timePoints =
+      Math.abs(endTime - startTime) < 0.001
+        ? Array.from({ length: frameCount }, () => startTime)
+        : Array.from(
+            { length: frameCount },
+            (_, i) => startTime + ((endTime - startTime) / (frameCount - 1)) * i,
+          )
 
-    // 顺序生成帧（避免并行操作冲突）
     const frames = []
     for (const time of timePoints) {
       const image = await captureFrame(video, time)
       if (image) frames.push({ time, image })
     }
     videoFrames.value = frames
-    URL.revokeObjectURL(video.src)
   } catch (error) {
     console.error('生成视频帧失败:', error)
+  } finally {
+    if (video && objectUrl) {
+      cleanupVideoObjectUrl(video, objectUrl, 'generateVideoFrames')
+    }
   }
 }
 
 // 捕获单帧图像
 const captureFrame = async (video: HTMLVideoElement, time: number) => {
-  return new Promise<string>((resolve) => {
-    video.onseeked = null
-    video.currentTime = time
-    video.onseeked = () => {
-      // 添加视频尺寸验证
-      if (video.videoWidth === 0 || video.videoHeight === 0) {
-        console.error('无效的视频尺寸')
-        return resolve('')
-      }
-      const canvas = document.createElement('canvas')
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-      resolve(canvas.toDataURL('image/jpeg'))
-    }
-  })
+  try {
+    const { base64 } = await captureFrameAtTime(video, time)
+    return base64
+  } catch (error) {
+    console.error('捕获视频帧失败:', error)
+    return ''
+  }
 }
 
 // 更新时间显示和预览
-const updateVideoFrame = debounce(() => {
-  const video = document.createElement('video')
-  video.src = URL.createObjectURL(uploadStore.file!)
-  video.currentTime = currentTime.value
+const updateVideoFrame = debounce(async () => {
+  if (!uploadStore.file || uploadStore.videoOnServer || uploadStore.file.size === 0) return
 
-  video.onseeked = () => {
-    const canvas = document.createElement('canvas')
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    const ctx = canvas.getContext('2d')!
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-    uploadStore.originalCover = canvas.toDataURL('image/jpeg')
-    URL.revokeObjectURL(video.src)
+  const { video, objectUrl } = createTempVideo(uploadStore.file)
+
+  try {
+    await waitForVideoMetadata(video)
+
+    const targetTime = getSafeSeekTime(video.duration, Number(currentTime.value))
+    currentTime.value = targetTime
+    const { base64 } = await captureFrameAtTime(video, targetTime)
+    uploadStore.originalCover = base64
+    refreshAutoCoverCropper()
+  } catch (error) {
+    console.error('更新视频帧失败:', error)
+  } finally {
+    cleanupVideoObjectUrl(video, objectUrl, 'updateVideoFrame')
   }
 }, 300)
 
@@ -571,6 +736,53 @@ const handleCancelUpload = async () => {
   rcmTag.value = []
 }
 
+const handleReplaceVideo = async () => {
+  await uploadStore.cancelUpload()
+  const fileInput = document.getElementById('replace-video-input') as HTMLInputElement
+  if (fileInput) {
+    fileInput.value = ''
+    fileInput.click()
+  }
+}
+
+const handleReplaceVideoFileChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (file) {
+    resetCoverEditorState()
+    uploadStore.file = file
+    uploadStore.fileSize = file.size
+    await uploadStore.initUpload()
+    const totalChunks = Math.ceil(file.size / (10 * 1024 * 1024)) // 10MB 分片
+    rcmTag.value = []
+    await startReplaceUpload(totalChunks)
+  }
+}
+
+const startReplaceUpload = async (totalChunks: number) => {
+  if (!uploadStore.file) return
+
+  const chunks = Array.from({ length: totalChunks }, (_, i) => i)
+  const queue = []
+  for (let i = 0; i < chunks.length; i += 3) {
+    const chunkGroup = chunks.slice(i, i + 3)
+    queue.push(
+      Promise.all(
+        chunkGroup.map(async (chunkIndex) => {
+          const start = chunkIndex * (10 * 1024 * 1024)
+          const end = Math.min(start + 10 * 1024 * 1024, uploadStore.file!.size)
+          const chunk = uploadStore.file!.slice(start, end)
+          await uploadStore.uploadChunk(chunk, chunkIndex + 1, totalChunks)
+        }),
+      ),
+    )
+  }
+  await Promise.all(queue)
+  if (uploadStore.progress >= 100) {
+    uploadStore.isFileUploadSuccess = true
+  }
+}
+
 const onCoverChange = ({
   coordinates,
   image,
@@ -595,34 +807,27 @@ const onSelectCoverChange = ({
 const captureCover = async () => {
   if (!uploadStore.file) return
 
-  // 创建视频元素
-  const video = document.createElement('video')
-  video.src = URL.createObjectURL(uploadStore.file)
-
-  // 等待元数据加载
-  video.onloadedmetadata = () => {
-    // 跳转到第1秒处截取画面
-    video.currentTime = 1
-    uploadStore.VideoInfo.duration = video.duration
+  if (uploadStore.videoOnServer || uploadStore.file.size === 0) {
+    return
   }
 
-  // 监听时间跳转完成
-  video.onseeked = () => {
-    // 创建canvas绘制视频帧
-    const canvas = document.createElement('canvas')
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-    // 转换为base64并存储
-    uploadStore.originalCover = canvas.toDataURL('image/jpeg')
+  const { video, objectUrl } = createTempVideo(uploadStore.file)
+
+  try {
+    await waitForVideoMetadata(video)
+
+    uploadStore.VideoInfo.duration = video.duration
+
+    const defaultCoverTime = getSafeSeekTime(video.duration, 1)
+    currentTime.value = defaultCoverTime
+    const { canvas, base64 } = await captureFrameAtTime(video, defaultCoverTime)
+    uploadStore.originalCover = base64
     uploadStore.coverUrlBase64 = uploadStore.originalCover
-    // 同时保存File对象和base64预览
+    refreshAutoCoverCropper()
+
     canvas.toBlob(
       (blob) => {
         if (!blob) return
-        // 创建File对象（文件名用视频文件名前缀）,存储到store
         uploadStore.coverFile = new File([blob], `${uploadStore.file?.name}.jpg`, {
           type: 'image/jpeg',
         })
@@ -630,8 +835,10 @@ const captureCover = async () => {
       'image/jpeg',
       0.8,
     )
-    // 清理内存
-    URL.revokeObjectURL(video.src)
+  } catch (error) {
+    console.error('截取封面失败:', error)
+  } finally {
+    cleanupVideoObjectUrl(video, objectUrl, 'captureCover')
   }
 }
 // 移除文件扩展名
@@ -659,6 +866,26 @@ watch(
   },
   { deep: true, immediate: true },
 )
+
+// 自动保存草稿（监听投稿信息变化）
+watch(
+  () => [
+    uploadStore.VideoInfo.title,
+    uploadStore.VideoInfo.descr,
+    uploadStore.VideoInfo.mcId,
+    uploadStore.VideoInfo.scId,
+    uploadStore.VideoInfo.type,
+    uploadStore.VideoInfo.tags,
+    uploadStore.coverUrlBase64,
+  ],
+  () => {
+    if (uploadStore.uploadId) {
+      uploadStore.saveDraftManually()
+    }
+  },
+  { deep: true },
+)
+
 onMounted(async () => {
   await categoryStore.getCategory()
 })
@@ -702,8 +929,15 @@ onMounted(async () => {
       padding: 20px 12px;
       border-radius: 10px;
 
-      .title {
-        font-size: 14px;
+      .title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+
+        .title {
+          font-size: 14px;
+        }
       }
 
       &-icon {
@@ -726,7 +960,16 @@ onMounted(async () => {
           }
         }
       }
+
+      .replace-video-btn {
+        font-size: 14px;
+        padding: 0;
+      }
     }
+  }
+
+  .hidden-file-input {
+    display: none;
   }
 
   .cover-dialog {

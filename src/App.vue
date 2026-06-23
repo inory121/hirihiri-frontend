@@ -16,6 +16,12 @@ onMounted(async () => {
   if (userStore.isLogin) {
     await userStore.getUserInfo()
   }
+  // 检查是否是退出登录后跳转，需要显示登录框
+  const showLogin = localStorage.getItem('showLoginAfterLogout')
+  if (showLogin === 'true') {
+    localStorage.removeItem('showLoginAfterLogout')
+    userStore.showLoginWindow = true
+  }
 })
 </script>
 

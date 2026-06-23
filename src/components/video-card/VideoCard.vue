@@ -183,7 +183,6 @@ const props = withDefaults(
 
   &__time {
     font-size: 13px;
-    color: #9499a0;
   }
 }
 </style>
