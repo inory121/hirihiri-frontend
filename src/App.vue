@@ -1,10 +1,12 @@
 <template>
   <router-view></router-view>
+  <BackToTop />
 </template>
 
 <script setup lang="ts">
 import { onMounted, onBeforeMount } from 'vue'
 import { useUserStore } from '@/stores/userStore.ts'
+import BackToTop from '@/components/back-to-top/BackToTop.vue'
 
 const userStore = useUserStore()
 

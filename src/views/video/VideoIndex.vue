@@ -155,35 +155,23 @@
       <div class="video-toolbar-container">
         <div class="video-toolbar-left">
           <div class="toolbar-left-item-wrap">
-            <div class="toolbar-left-item">
-              <!--              <el-icon class="icon">-->
-              <!--                <Star />-->
-              <!--              </el-icon>-->
-              <i class="iconfont icon-dianzan_kuai"></i>
+            <div class="toolbar-left-item" :class="{ active: videoStore.liked }" @click="handleLike">
+              <i class="iconfont icon-dianzan_kuai" :class="{ 'active-icon': videoStore.liked }"></i>
               <span>{{ videoInfo.stat.like }}</span>
             </div>
             <div class="toolbar-left-item">
               <i class="iconfont icon-diancai-mian"></i>
               <span>不喜欢</span>
             </div>
-            <div class="toolbar-left-item">
-              <!--              <el-icon class="icon">-->
-              <!--                <Star />-->
-              <!--              </el-icon>-->
-              <i class="iconfont icon-toubix"></i>
+            <div class="toolbar-left-item" :class="{ active: videoStore.coined }" @click="handleCoin">
+              <i class="iconfont icon-toubix" :class="{ 'active-icon': videoStore.coined }"></i>
               <span>{{ videoInfo.stat.coin }}</span>
             </div>
-            <div class="toolbar-left-item">
-              <!--              <el-icon class="icon">-->
-              <!--                <Star />-->
-              <!--              </el-icon>-->
-              <i class="iconfont icon-shoucang1"></i>
+            <div class="toolbar-left-item" :class="{ active: videoStore.favorited }" @click="handleCollect">
+              <i class="iconfont icon-shoucang1" :class="{ 'active-icon': videoStore.favorited }"></i>
               <span>{{ videoInfo.stat.favorite }}</span>
             </div>
             <div class="toolbar-left-item">
-              <!--              <el-icon class="icon">-->
-              <!--                <Share />-->
-              <!--              </el-icon>-->
               <i class="iconfont icon-zhuanfa"></i>
               <span>{{ videoInfo.stat.share }}</span>
             </div>
@@ -211,12 +199,24 @@
           <div class="navbar">
             <div class="title">
               <h2>评论</h2>
-              <span class="count">{{ flatComments.length }}</span>
+              <span class="count">{{ commentStore.total }}</span>
             </div>
             <div class="sort-actions">
-              <el-button link class="sort">最热</el-button>
+              <el-button
+                link
+                class="sort"
+                :class="{ active: commentStore.sort === 'hot' }"
+                @click="changeSort('hot')"
+                >最热</el-button
+              >
               <el-divider direction="vertical" />
-              <el-button link class="sort">最新</el-button>
+              <el-button
+                link
+                class="sort"
+                :class="{ active: commentStore.sort === 'new' }"
+                @click="changeSort('new')"
+                >最新</el-button
+              >
             </div>
           </div>
           <div class="commentbox">
@@ -312,9 +312,17 @@
             </template>
             <!--            <el-divider style="margin: 20px 0" />-->
           </div>
+          <!-- 懒加载哨兵元素 -->
+          <div ref="commentSentinelRef" class="comment-sentinel"></div>
+          <!-- 加载中提示 -->
+          <div v-if="commentStore.loading" class="comment-loading">
+            <el-icon class="is-loading"><Loading /></el-icon>
+            <span>加载中...</span>
+          </div>
         </div>
         <div class="end">
-          <div class="bottombar">没有更多评论</div>
+          <div v-if="!commentStore.hasMore && commentList.length > 0" class="bottombar">没有更多评论</div>
+          <div v-else-if="!commentStore.loading && commentList.length === 0" class="bottombar">暂无评论，快来抢沙发吧~</div>
         </div>
       </div>
     </div>
@@ -472,7 +480,7 @@ import 'plyr/dist/plyr.css'
 // 引入弹幕组件
 import Danmaku from 'danmaku'
 import type { Comment, Danmu } from '@/types/api.ts'
-import { CoffeeCup } from '@element-plus/icons-vue'
+import { CoffeeCup, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import { useVideoStore } from '@/stores/videoStore'
@@ -499,6 +507,8 @@ const comment = ref('')
 const danmakuContainer = ref<HTMLElement>()
 const plyrPlayer = ref<HTMLVideoElement>()
 const playerPlaceholder = ref<HTMLElement>()
+const commentSentinelRef = ref<HTMLElement>()
+let commentObserver: IntersectionObserver | null = null
 const isExpanded = ref(false) // 视频信息收起状态
 const descText = ref<HTMLElement | null>(null)
 const showToggleBtn = ref(false)
@@ -823,6 +833,53 @@ const sendComment = async () => {
     // currentReplyCommentId.value = null // 隐藏回复框
   }
 }
+// 切换评论排序
+const changeSort = async (sort: 'hot' | 'new') => {
+  if (commentStore.sort === sort) return
+  commentStore.setSort(sort)
+  if (videoInfo.value.video.vid) {
+    await commentStore.getComment(videoInfo.value.video.vid)
+  }
+}
+
+// 初始化评论懒加载观察器
+const initCommentObserver = () => {
+  if (commentObserver) {
+    commentObserver.disconnect()
+    commentObserver = null
+  }
+  if (!commentSentinelRef.value) return
+  commentObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting && commentStore.hasMore && !commentStore.loading) {
+        const vid = videoInfo.value?.video?.vid
+        if (vid) {
+          commentStore.loadMoreComments(vid)
+        }
+      }
+    },
+    { rootMargin: '200px' }
+  )
+  commentObserver.observe(commentSentinelRef.value)
+}
+// 点赞
+const handleLike = () => {
+  if (videoInfo.value.video.vid) {
+    videoStore.toggleLike(videoInfo.value.video.vid)
+  }
+}
+// 投币
+const handleCoin = () => {
+  if (videoInfo.value.video.vid) {
+    videoStore.toggleCoin(videoInfo.value.video.vid)
+  }
+}
+// 收藏
+const handleCollect = () => {
+  if (videoInfo.value.video.vid) {
+    videoStore.toggleCollect(videoInfo.value.video.vid)
+  }
+}
 // 初始化播放器
 const initPlayer = async () => {
   try {
@@ -1022,6 +1079,7 @@ watch([() => route.params.vid], async ([newVid], [oldVid]) => {
 
     // 3. 加载新视频信息和评论
     await videoStore.getVideo(Number(newVid))
+    await videoStore.getInteractionStatus(Number(newVid))
     await commentStore.getComment(Number(newVid))
     await loadUpFollowInfo()
 
@@ -1034,7 +1092,10 @@ watch([() => route.params.vid], async ([newVid], [oldVid]) => {
     // 5. 初始化弹幕（initDanmaku 内部会等待视频元数据加载完成）
     await initDanmaku(Number(newVid))
 
-    // 6. 更新其他状态
+    // 6. 重新初始化评论懒加载
+    initCommentObserver()
+
+    // 7. 更新其他状态
     rcmTags.value = videoInfo.value.video?.tags?.split('\n')
     if (descText.value) {
       const height = descText.value.scrollHeight
@@ -1109,6 +1170,7 @@ onMounted(async () => {
   if (!isNaN(vid)) {
     await videoStore.getRecommendVideo()
     await videoStore.getVideo(vid)
+    await videoStore.getInteractionStatus(vid)
     await commentStore.getComment(vid)
     await loadUpFollowInfo()
   }
@@ -1119,6 +1181,10 @@ onMounted(async () => {
     const height = descText.value.scrollHeight
     showToggleBtn.value = height > 84
   }
+
+  // 初始化评论懒加载
+  await nextTick()
+  initCommentObserver()
 
   // 启动在线人数心跳 (每30秒一次)
   const viewerId = getViewerId()
@@ -1144,6 +1210,9 @@ onUnmounted(() => {
   resizeObserver?.disconnect() // 清理监听
   danmakuInstance?.destroy()
   disposePlayer()
+  // 清理评论懒加载观察器
+  commentObserver?.disconnect()
+  commentObserver = null
   // 清理心跳定时器
   if (heartbeatTimer) {
     clearInterval(heartbeatTimer)
@@ -1421,9 +1490,17 @@ onUnmounted(() => {
               color: #00aeec;
             }
 
+            &.active {
+              color: #00aeec;
+            }
+
             .icon {
               font-size: 28px;
               margin-right: 5px;
+            }
+
+            .active-icon {
+              color: #00aeec;
             }
 
             span {
@@ -1503,6 +1580,14 @@ onUnmounted(() => {
           .sort-actions {
             display: flex;
             align-items: center;
+
+            .sort {
+              color: #9499a0;
+
+              &.active {
+                color: #18191c;
+              }
+            }
 
             .sort:hover {
               color: #409eff;
@@ -1611,6 +1696,21 @@ onUnmounted(() => {
           user-select: none;
           padding-bottom: 100px;
         }
+      }
+
+      .comment-sentinel {
+        height: 1px;
+        width: 100%;
+      }
+
+      .comment-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 20px 0;
+        color: #9499a0;
+        font-size: 13px;
       }
     }
   }

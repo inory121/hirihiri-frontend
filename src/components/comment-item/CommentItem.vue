@@ -5,7 +5,7 @@
       <!-- 用户头像 -->
       <div class="user-avatar" :class="isSubComment ? 'sub' : ''">
         <a href="#">
-          <img :src="comment.user?.avatar" alt="" />
+          <img :src="comment.user?.avatar" alt=""/>
         </a>
       </div>
       <div class="header-and-content" :class="isSubComment ? 'second' : ''">
@@ -37,7 +37,7 @@
             <template v-if="isSecondSubComment">
               回复
               <a :href="`/space/${comment.toUser?.uid}`" class="at-user" target="_blank"
-                >@{{ comment.toUser?.username }}</a
+              >@{{ comment.toUser?.username }}</a
               >
               :
             </template>
@@ -64,8 +64,8 @@
       <!-- 回复输入框 -->
       <div class="commentbox" v-if="showReplyBox">
         <div class="sub-user-avatar">
-          <img v-if="userStore.isLogin" :src="user.avatar" alt="" />
-          <img v-else src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/noface.jpg" alt="" />
+          <img v-if="userStore.isLogin" :src="user.avatar" alt=""/>
+          <img v-else src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/noface.jpg" alt=""/>
         </div>
         <div class="editor edit" v-if="userStore.isLogin">
           <el-input
@@ -81,7 +81,7 @@
         <div class="edit" v-else>
           <span>请先</span>
           <el-button type="primary" size="small" @click="userStore.showLoginWindow = true"
-            >登录
+          >登录
           </el-button>
           <span>后发表评论 (・ω・)</span>
         </div>
@@ -92,15 +92,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
-import { useUserStore } from '@/stores/userStore'
-import { useCommentStore } from '@/stores/commentStore'
-import { storeToRefs } from 'pinia'
-import { formatCommentTime } from '@/utils/utils'
-import { useVideoStore } from '@/stores/videoStore'
+import {ref, watch, computed} from 'vue'
+import {useUserStore} from '@/stores/userStore'
+import {useCommentStore} from '@/stores/commentStore'
+import {storeToRefs} from 'pinia'
+import {formatCommentTime} from '@/utils/utils'
+import {useVideoStore} from '@/stores/videoStore'
 
 const videoStore = useVideoStore()
-const { videoInfo } = storeToRefs(videoStore)
+const {videoInfo} = storeToRefs(videoStore)
 const props = defineProps({
   comment: {
     type: Object,
@@ -110,9 +110,9 @@ const props = defineProps({
 
 const userStore = useUserStore()
 const commentStore = useCommentStore()
-const { activeReplyCommentId } = storeToRefs(commentStore)
-const { setActiveReplyCommentId } = commentStore
-const { user } = storeToRefs(userStore)
+const {activeReplyCommentId} = storeToRefs(commentStore)
+const {setActiveReplyCommentId} = commentStore
+const {user} = storeToRefs(userStore)
 
 // 判断当前评论是否需要显示回复框
 const showReplyBox = computed(() => {
@@ -194,13 +194,13 @@ const sendSubComment = async () => {
 
     .user-avatar {
       position: absolute;
-      left: 5px;
-      top: 22px;
+      left: 15px;
+      top: 15px;
       width: 40px;
       height: 40px;
 
       &.sub {
-        top: 25px;
+        top: 12px;
         left: 68px;
         width: 24px;
         height: 24px;
@@ -253,12 +253,13 @@ const sendSubComment = async () => {
         word-break: break-word;
 
         &.second {
-          margin: 0 0 0 10px;
+          margin: 0 0 0 5px;
         }
 
         .at-user {
           color: #409eff;
           font-weight: bold;
+
           &:hover {
             color: #00BAF0;
           }
@@ -319,6 +320,14 @@ const sendSubComment = async () => {
         background-color: #fff;
       }
     }
+  }
+}
+
+@media (min-width: 1400px) {
+  .comment .comment-main .user-avatar {
+    width: 48px;
+    height: 48px;
+    left: 7px;
   }
 }
 </style>

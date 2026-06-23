@@ -126,7 +126,15 @@ export interface Comment {
 }
 
 export interface CommentApiResponse extends BaseResponse {
-  data: Comment[]
+  data: CommentPageData
+}
+
+export interface CommentPageData {
+  comments: Comment[]
+  total: number
+  page: number
+  pageSize: number
+  hasMore: boolean
 }
 
 export interface oneCommentApiResponse extends BaseResponse {

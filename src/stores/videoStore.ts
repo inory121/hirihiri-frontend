@@ -12,6 +12,7 @@ import type {
   VideoStat,
 } from '@/types/api.ts'
 import ColorThief from 'colorthief'
+import { useUserStore } from '@/stores/userStore'
 
 const colorThief = new ColorThief()
 
@@ -33,6 +34,10 @@ export const useVideoStore = defineStore('video', {
       pageNum: 0,
       pageSize: 20,
       onlineCount: 0, // 当前视频在线人数
+      // 视频互动状态
+      liked: false,
+      coined: false,
+      favorited: false,
     }
   },
   getters: {
@@ -149,6 +154,103 @@ export const useVideoStore = defineStore('video', {
         this.onlineCount = res.data || 0
       } catch (e) {
         console.error('心跳上报失败', e)
+      }
+    },
+    // 获取互动状态
+    async getInteractionStatus(vid: number) {
+      const userStore = useUserStore()
+      if (!userStore.isLogin) {
+        this.liked = false
+        this.coined = false
+        this.favorited = false
+        return
+      }
+      try {
+        const res = await get<{ code: number; data: [boolean, boolean, boolean] }>(
+          `${VIDEO_API.GET_INTERACTION_STATUS}/${vid}`
+        )
+        if (res.code === 200) {
+          this.liked = res.data[0]
+          this.coined = res.data[1]
+          this.favorited = res.data[2]
+        }
+      } catch (e) {
+        console.error('获取互动状态失败', e)
+      }
+    },
+    // 点赞/取消点赞
+    async toggleLike(vid: number) {
+      const userStore = useUserStore()
+      if (!userStore.isLogin) {
+        ElMessage.warning('请先登录')
+        return
+      }
+      try {
+        const res = await post<{ code: number; data: string }>(
+          `${VIDEO_API.TOGGLE_LIKE}/${vid}`
+        )
+        if (res.code === 200) {
+          this.liked = !this.liked
+          if (this.liked) {
+            this.videoInfo.stat.like += 1
+            ElMessage.success('点赞成功')
+          } else {
+            this.videoInfo.stat.like -= 1
+            ElMessage.success('取消点赞')
+          }
+        }
+      } catch (e) {
+        console.error('点赞操作失败', e)
+      }
+    },
+    // 投币/取消投币
+    async toggleCoin(vid: number) {
+      const userStore = useUserStore()
+      if (!userStore.isLogin) {
+        ElMessage.warning('请先登录')
+        return
+      }
+      try {
+        const res = await post<{ code: number; data: string }>(
+          `${VIDEO_API.TOGGLE_COIN}/${vid}`
+        )
+        if (res.code === 200) {
+          this.coined = !this.coined
+          if (this.coined) {
+            this.videoInfo.stat.coin += 1
+            ElMessage.success('投币成功')
+          } else {
+            this.videoInfo.stat.coin -= 1
+            ElMessage.success('取消投币')
+          }
+        }
+      } catch (e) {
+        console.error('投币操作失败', e)
+      }
+    },
+    // 收藏/取消收藏
+    async toggleCollect(vid: number) {
+      const userStore = useUserStore()
+      if (!userStore.isLogin) {
+        ElMessage.warning('请先登录')
+        return
+      }
+      try {
+        const res = await post<{ code: number; data: string }>(
+          `${VIDEO_API.TOGGLE_COLLECT}/${vid}`
+        )
+        if (res.code === 200) {
+          this.favorited = !this.favorited
+          if (this.favorited) {
+            this.videoInfo.stat.favorite += 1
+            ElMessage.success('收藏成功')
+          } else {
+            this.videoInfo.stat.favorite -= 1
+            ElMessage.success('取消收藏')
+          }
+        }
+      } catch (e) {
+        console.error('收藏操作失败', e)
       }
     },
   },
