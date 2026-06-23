@@ -11,7 +11,25 @@
         <span class="title">历史记录</span>
       </div>
       <div class="main-actions">
-        <el-switch v-model="historyRecordSwitch"/>
+        <el-popconfirm
+          title="确定要清空所有历史记录吗？"
+          confirm-button-text="清空"
+          cancel-button-text="取消"
+          @confirm="handleClearAll"
+        >
+          <template #reference>
+            <el-button
+              type="danger"
+              plain
+              :disabled="historyStore.historyList.length === 0"
+            >
+              <el-icon class="btn-icon"><Delete/></el-icon>
+              <span>清空历史</span>
+            </el-button>
+          </template>
+        </el-popconfirm>
+        <span class="actions-divider"></span>
+        <el-switch :model-value="historyStore.recordEnabled" @change="handleRecordChange"/>
         <span>记录浏览历史</span>
       </div>
     </div>
@@ -77,7 +95,7 @@
                   <span class="item-time">{{ formatBrowseTime(item.browseTime) }}</span>
                 </div>
               </div>
-              <div class="item-delete" @click.stop="deleteHistory(item.id)">
+              <div class="item-delete" @click.stop="handleDelete(item.vid)">
                 <el-icon>
                   <Delete/>
                 </el-icon>
@@ -92,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref, computed} from 'vue'
+import {onMounted, computed} from 'vue'
 import {useRouter} from 'vue-router'
 import {Delete} from '@element-plus/icons-vue'
 import type {HistoryVideoDTO} from '@/types/api.ts'
@@ -100,7 +118,6 @@ import {useHistoryStore} from '@/stores/historyStore.ts'
 import {formatDuration} from '@/utils/utils.ts'
 
 const router = useRouter()
-const historyRecordSwitch = ref(true)
 const historyStore = useHistoryStore()
 
 const groupedHistory = computed(() => {
@@ -154,8 +171,16 @@ const formatBrowseTime = (time: string): string => {
   return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
 }
 
-const deleteHistory = async (id: number) => {
-  historyStore.historyList = historyStore.historyList.filter((item) => item.id !== id)
+const handleDelete = async (vid: number) => {
+  await historyStore.deleteHistory(vid)
+}
+
+const handleClearAll = async () => {
+  await historyStore.clearAllHistory()
+}
+
+const handleRecordChange = (enabled: boolean) => {
+  historyStore.setRecordEnabled(enabled)
 }
 
 onMounted(async () => {
@@ -194,6 +219,13 @@ onMounted(async () => {
     .main-actions {
       display: flex;
       align-items: center;
+
+      .actions-divider {
+        width: 1px;
+        height: 16px;
+        background-color: #e5e5e5;
+        margin: 0 16px;
+      }
 
       .el-switch {
         margin-right: 6px;

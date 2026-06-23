@@ -1,12 +1,15 @@
 import { defineStore } from 'pinia'
-import { get, post } from '@/utils/request'
+import { get, post, del } from '@/utils/request'
 import type { HistoryApiResponse, HistoryVideoDTO } from '@/types/api.ts'
 import { useUserStore } from '@/stores/userStore.ts'
+
+const HISTORY_RECORD_KEY = 'hiri_history_record_enabled'
 
 export const useHistoryStore = defineStore('history', {
   state: () => ({
     historyList: [] as HistoryVideoDTO[],
-    loading: false
+    loading: false,
+    recordEnabled: localStorage.getItem(HISTORY_RECORD_KEY) !== 'false'
   }),
   actions: {
     async getHistoryList(pageNum: number = 1, pageSize: number = 20) {
@@ -36,6 +39,7 @@ export const useHistoryStore = defineStore('history', {
     },
 
     async saveHistory(vid: number, progress: number) {
+      if (localStorage.getItem(HISTORY_RECORD_KEY) === 'false') return
       const userStore = useUserStore()
       if (!userStore.user?.uid) return
 
@@ -47,6 +51,11 @@ export const useHistoryStore = defineStore('history', {
       } catch (error) {
         console.error('保存浏览历史失败:', error)
       }
+    },
+
+    setRecordEnabled(enabled: boolean) {
+      this.recordEnabled = enabled
+      localStorage.setItem(HISTORY_RECORD_KEY, String(enabled))
     },
 
     async getVideoProgress(vid: number): Promise<number> {
@@ -65,6 +74,24 @@ export const useHistoryStore = defineStore('history', {
         console.error('获取播放进度失败:', error)
       }
       return 0
+    },
+
+    async deleteHistory(vid: number) {
+      try {
+        await del<{ code: number }>('/history/' + vid)
+        this.historyList = this.historyList.filter((item) => item.vid !== vid)
+      } catch (error) {
+        console.error('删除历史记录失败:', error)
+      }
+    },
+
+    async clearAllHistory() {
+      try {
+        await del<{ code: number }>('/history')
+        this.historyList = []
+      } catch (error) {
+        console.error('清空历史记录失败:', error)
+      }
     }
   }
 })

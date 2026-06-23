@@ -18,6 +18,9 @@ const get = async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
 const post = async <T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> => {
   return await instance.post(url, data, config)
 }
+const del = async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+  return await instance.delete(url, config)
+}
 
 // 请求拦截器
 instance.interceptors.request.use(
@@ -77,4 +80,4 @@ instance.interceptors.response.use(
     return Promise.reject(error)
   },
 )
-export { get, post }
+export { get, post, del }
