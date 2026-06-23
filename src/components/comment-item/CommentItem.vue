@@ -4,7 +4,7 @@
     <div class="comment-main">
       <!-- 用户头像 -->
       <div class="user-avatar" :class="isSubComment ? 'sub' : ''">
-        <a href="#">
+        <a :href="`/space/${comment.user?.uid}`">
           <img :src="comment.user?.avatar" alt=""/>
         </a>
       </div>
@@ -12,7 +12,7 @@
         <!-- 用户名 + 等级等 -->
         <div class="comment-header">
           <div class="user-name">
-            <a href="#">{{ comment.user?.username }}</a>
+            <a :href="`/space/${comment.user?.uid}`">{{ comment.user?.username }}</a>
           </div>
           <div class="user-level">
             <img

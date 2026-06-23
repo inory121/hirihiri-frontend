@@ -39,6 +39,7 @@
           :key="videoInfo.video.vid"
           v-if="true"
           ref="danmakuContainer"
+          id="danmaku-container"
           class="danmaku-wrap"
           :class="{ 'danmaku-off': !danmakuEnabled }"
         >
@@ -887,6 +888,9 @@ const initPlayer = async () => {
     if (!plyrPlayer.value) return
 
     player = new Plyr(plyrPlayer.value, {
+      fullscreen: {
+        container: '#danmaku-container', // 使用弹幕容器作为全屏元素，使弹幕一起全屏
+      },
       controls: [
         'play-large', // 播放按钮，通常位于视频中心
         'restart', // 重新开始播放的按钮
@@ -1299,6 +1303,14 @@ onUnmounted(() => {
         position: absolute;
         width: 100%;
         height: 100%;
+
+        // 全屏时弹幕容器铺满整个视口
+        &:fullscreen {
+          width: 100%;
+          height: 100%;
+          position: relative;
+          background-color: #000;
+        }
 
         &.danmaku-off :deep(canvas) {
           display: none !important;
