@@ -4,7 +4,19 @@
     <div class="comment-main">
       <!-- 用户头像 -->
       <div class="user-avatar" :class="isSubComment ? 'sub' : ''">
-        <router-link :to="`/space/${comment.user?.uid}`">
+        <UserHoverCard
+          v-if="comment.user"
+          :user="comment.user"
+          placement="right-top"
+          :auto-adjust="true"
+          :is-following="userStore.followStatusMap[comment.user.uid] === true"
+          @follow="handleFollowUser"
+        >
+          <router-link :to="`/space/${comment.user?.uid}`">
+            <img :src="comment.user?.avatar" alt=""/>
+          </router-link>
+        </UserHoverCard>
+        <router-link v-else :to="`/space/${comment.user?.uid}`">
           <img :src="comment.user?.avatar" alt=""/>
         </router-link>
       </div>
@@ -103,6 +115,7 @@ import {useCommentStore} from '@/stores/commentStore'
 import {storeToRefs} from 'pinia'
 import {formatCommentTime} from '@/utils/utils'
 import {useVideoStore} from '@/stores/videoStore'
+import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
 
 const videoStore = useVideoStore()
 const {videoInfo} = storeToRefs(videoStore)
@@ -164,6 +177,14 @@ const handleDislike = () => {
     return
   }
   commentStore.toggleDislike(props.comment.id!)
+}
+
+const handleFollowUser = async (uid: number) => {
+  if (!userStore.isLogin) {
+    userStore.showLoginWindow = true
+    return
+  }
+  await userStore.toggleFollow(uid)
 }
 
 // 发送子评论

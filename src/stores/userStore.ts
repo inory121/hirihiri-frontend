@@ -116,6 +116,11 @@ export const useUserStore = defineStore('user', {
         (res) => {
           if (res.code === 200) {
             this.searchUserList = res.data
+            if (this.isLogin) {
+              for (const item of res.data) {
+                this.followStatusMap[item.uid] = !!item.isFollowing
+              }
+            }
           } else {
             this.searchUserList = []
             ElMessage.error('没有搜索到用户')

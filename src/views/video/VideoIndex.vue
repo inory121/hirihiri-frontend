@@ -357,9 +357,17 @@
         <div class="up-info-container">
           <div class="up-info-left">
             <div class="up-avatar-wrap">
-              <router-link :to="`/space/${videoInfo.user.uid}`"
-              ><img :src="videoInfo.user.avatar" alt=""
-              /></router-link>
+              <UserHoverCard
+                :user="videoInfo.user"
+                placement="bottom"
+                :is-following="upFollowingStatus"
+                :like-count="videoInfo.stat?.like ?? 0"
+                @follow="handleUpFollow"
+              >
+                <router-link :to="`/space/${videoInfo.user.uid}`"
+                ><img :src="videoInfo.user.avatar" alt=""
+                /></router-link>
+              </UserHoverCard>
             </div>
           </div>
           <div class="up-info-right">
@@ -569,6 +577,7 @@ import {useCommentStore} from '@/stores/commentStore.ts'
 import {useUserStore} from '@/stores/userStore.ts'
 import {useHistoryStore} from '@/stores/historyStore.ts'
 import CommentItem from '@/components/comment-item/CommentItem.vue'
+import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
 
 const route = useRoute()
 const videoStore = useVideoStore()

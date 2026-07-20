@@ -53,6 +53,7 @@ declare module 'vue' {
     MyPopover: typeof import('./src/components/my-popover/MyPopover.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    UserHoverCard: typeof import('./src/components/user-hover-card/UserHoverCard.vue')['default']
     VideoCard: typeof import('./src/components/video-card/VideoCard.vue')['default']
     VideoCarousel: typeof import('./src/components/video-carousel/VideoCarousel.vue')['default']
   }

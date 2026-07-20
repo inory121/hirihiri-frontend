@@ -99,6 +99,14 @@
             </div>
             <div class="user-home__stat-label">粉丝</div>
           </div>
+          <div class="user-home__stat-item">
+            <div class="user-home__stat-value">{{ formatNumber(totalLikes) }}</div>
+            <div class="user-home__stat-label">获赞</div>
+          </div>
+          <div class="user-home__stat-item">
+            <div class="user-home__stat-value">{{ formatNumber(totalViews) }}</div>
+            <div class="user-home__stat-label">播放</div>
+          </div>
         </div>
         <div v-if="userStore.isLogin && userStore.user.uid !== userStore.targetUser.uid"
              class="user-home__follow-btn">
@@ -210,11 +218,16 @@
             <el-button text type="primary" @click="switchTab('video')">查看更多</el-button>
           </div>
           <div class="user-home__video-grid">
-            <VideoCard
-              :data="sortedHomeVideos.slice(0, 4)"
-              :loading="videoStore.userVideoLoading"
-              :hide-author="true"
-            />
+            <template v-if="!videoStore.userVideoLoading && sortedHomeVideos.length === 0">
+              <el-empty description="暂无投稿视频" :image-size="80"/>
+            </template>
+            <template v-else>
+              <VideoCard
+                :data="sortedHomeVideos.slice(0, 10)"
+                :loading="videoStore.userVideoLoading"
+                :hide-author="true"
+              />
+            </template>
           </div>
         </section>
 
@@ -255,7 +268,7 @@
           <div class="user-home__coin-video-grid">
             <template v-if="recentCoinVideos.length > 0">
               <VideoCard
-                :data="recentCoinVideos.slice(0, 4)"
+                :data="recentCoinVideos.slice(0, 10)"
                 :loading="false"
                 :hide-time="true"
               />
@@ -274,7 +287,7 @@
           <div class="user-home__like-video-grid">
             <template v-if="recentLikeVideos.length > 0">
               <VideoCard
-                :data="recentLikeVideos.slice(0, 4)"
+                :data="recentLikeVideos.slice(0, 10)"
                 :loading="false"
                 :hide-time="true"
               />
@@ -468,10 +481,20 @@
             <div v-for="user in userStore.followList" :key="user.uid"
                  class="user-home__follow-item">
               <router-link :to="`/space/${user.uid}`" target="_blank" class="user-home__follow-item-link">
-                <img
-                  class="user-home__follow-item-avatar"
-                  :src="user.avatar || 'https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg'"
-                />
+                <UserHoverCard
+                  :user="user"
+                  :is-following="isFollowingInList(user.uid)"
+                  placement="right-top"
+                  auto-adjust
+                  :offset-x="12"
+                  :offset-y="0"
+                  @follow="handleToggleFollow"
+                >
+                  <img
+                    class="user-home__follow-item-avatar"
+                    :src="user.avatar || 'https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg'"
+                  />
+                </UserHoverCard>
                 <div class="user-home__follow-item-info">
                   <div class="user-home__follow-item-name">{{ user.username }}</div>
                   <div class="user-home__follow-item-desc">{{
@@ -657,6 +680,7 @@ import {useVideoStore} from '@/stores/videoStore'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import HeaderBar from '@/components/header-bar/HeaderBar.vue'
 import VideoCard from '@/components/video-card/VideoCard.vue'
+import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
 import {
   Coin,
   Male,
@@ -701,6 +725,16 @@ const sortedHomeVideos = computed<VideoInfo[]>(() => {
         new Date(b.video.createDate).getTime() - new Date(a.video.createDate).getTime()
       )
   }
+})
+
+// 用户视频总播放数
+const totalViews = computed(() => {
+  return videoStore.userVideoList.reduce((sum, item) => sum + item.stat.view, 0)
+})
+
+// 用户视频总获赞数
+const totalLikes = computed(() => {
+  return videoStore.userVideoList.reduce((sum, item) => sum + item.stat.like, 0)
 })
 
 // 是否是访问自己的主页
@@ -1506,8 +1540,20 @@ watch(
 .user-home__coin-video-grid,
 .user-home__like-video-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
+
+  & .el-empty {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1100px) {
+  .user-home__video-grid,
+  .user-home__coin-video-grid,
+  .user-home__like-video-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
 
 /* 收藏夹网格样式 */
