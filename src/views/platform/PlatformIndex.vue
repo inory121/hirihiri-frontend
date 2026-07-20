@@ -13,16 +13,16 @@
       <MyPopover class="avatar-popover-login" v-if="userStore.isLogin">
         <template #content>
           <div class="avatar-popover-container">
-            <a v-if="userStore.user.uid" :href="`/space/${userStore.user.uid}`" target="_blank" class="popover-link-item">
+            <router-link v-if="userStore.user.uid" :to="`/space/${userStore.user.uid}`" target="_blank" class="popover-link-item">
               <div class="link-title">
                 <span>个人中心</span>
               </div>
-            </a>
-            <a href="#" class="popover-link-item">
+            </router-link>
+            <router-link to="/platform/upload-manager/article" class="popover-link-item">
               <div class="link-title">
                 <span>投稿管理</span>
               </div>
-            </a>
+            </router-link>
             <a href="#" class="popover-link-item">
               <div class="link-title">
                 <span>H币钱包</span>

@@ -86,6 +86,43 @@ export interface OneVideoApiResponse extends BaseResponse {
   data: VideoInfo
 }
 
+export interface FavoriteFolder {
+  id: number
+  uid: number
+  name: string
+  coverUrl?: string
+  description?: string
+  videoCount: number
+  isDefault: boolean
+  createTime: string
+  updateTime: string
+  collected?: boolean
+}
+
+export interface FavoriteFolderApiResponse extends BaseResponse {
+  data: FavoriteFolder[]
+}
+
+export interface FavoriteFolderItemApiResponse extends BaseResponse {
+  data: FavoriteFolder
+}
+
+export interface FavoriteVideoPage {
+  records: VideoInfo[]
+  total: number
+  size: number
+  current: number
+  pages: number
+}
+
+export interface FavoriteVideoPageApiResponse extends BaseResponse {
+  data: FavoriteVideoPage
+}
+
+export interface FavoriteVideoListApiResponse extends BaseResponse {
+  data: VideoInfo[]
+}
+
 export interface Danmu {
   id?: number
   vid: number
@@ -120,6 +157,9 @@ export interface Comment {
   content: string
   like?: number
   dislike?: number
+  liked?: boolean
+  disliked?: boolean
+  upLiked?: boolean
   createDate?: string
   isTop?: number
   isDeleted?: number
@@ -156,6 +196,10 @@ export interface User {
   uid: number
   username: string
   vip: number
+  level?: number
+  fanCount?: number
+  videoCount?: number
+  isFollowing?: boolean
 }
 
 export interface UserData {
@@ -171,7 +215,14 @@ export interface UserApiResponse extends BaseResponse {
   data: User
 }
 export interface searchUserApiResponse extends BaseResponse {
-  data: User[]
+  data: SearchUserItem[]
+}
+
+export interface SearchUserItem extends User {
+  level: number
+  fanCount: number
+  videoCount: number
+  isFollowing: boolean
 }
 
 // 浏览历史接口

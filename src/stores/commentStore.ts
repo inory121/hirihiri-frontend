@@ -2,6 +2,18 @@ import { defineStore } from 'pinia'
 import type { Comment, CommentApiResponse, oneCommentApiResponse } from '@/types/api.ts'
 import { get, post } from '@/utils/request.ts'
 import { COMMENT_API } from '@/api/comment'
+import { useUserStore } from '@/stores/userStore'
+
+function updateCommentInTree(comments: Comment[], commentId: number, updater: (comment: Comment) => void): boolean {
+  for (const comment of comments) {
+    if (comment.id === commentId) {
+      updater(comment)
+      return true
+    }
+    if (comment.replies?.length && updateCommentInTree(comment.replies, commentId, updater)) return true
+  }
+  return false
+}
 
 export const useCommentStore = defineStore('comment', {
   state: () => ({
@@ -81,6 +93,36 @@ export const useCommentStore = defineStore('comment', {
         console.error('发送评论失败:', error)
         return null
       }
+    },
+    async toggleLike(commentId: number) {
+      if (!useUserStore().isLogin) return false
+      const res = await post<{ code: number }>(`${COMMENT_API.TOGGLE_LIKE}/${commentId}`)
+      if (res.code !== 200) return false
+      updateCommentInTree(this.commentList, commentId, (comment) => {
+        const liked = !comment.liked
+        comment.liked = liked
+        comment.like = Math.max(0, (comment.like || 0) + (liked ? 1 : -1))
+        if (liked && comment.disliked) {
+          comment.disliked = false
+          comment.dislike = Math.max(0, (comment.dislike || 0) - 1)
+        }
+      })
+      return true
+    },
+    async toggleDislike(commentId: number) {
+      if (!useUserStore().isLogin) return false
+      const res = await post<{ code: number }>(`${COMMENT_API.TOGGLE_DISLIKE}/${commentId}`)
+      if (res.code !== 200) return false
+      updateCommentInTree(this.commentList, commentId, (comment) => {
+        const disliked = !comment.disliked
+        comment.disliked = disliked
+        comment.dislike = Math.max(0, (comment.dislike || 0) + (disliked ? 1 : -1))
+        if (disliked && comment.liked) {
+          comment.liked = false
+          comment.like = Math.max(0, (comment.like || 0) - 1)
+        }
+      })
+      return true
     },
   },
 })

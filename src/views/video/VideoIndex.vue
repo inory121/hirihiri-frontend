@@ -1,23 +1,23 @@
 <template>
   <div style="min-height: 64px" class="hiri-header__bar">
-    <HeaderBar />
+    <HeaderBar/>
   </div>
   <div class="video-container" v-show="isShow">
     <div class="left-container">
       <div class="video-info-container">
-        <div class="video-info-title">
+        <div class="video-info-title" :title="videoInfo.video.title">
           <h1 class="video-title">{{ videoInfo.video.title }}</h1>
         </div>
         <div class="video-info-meta">
           <div class="view-item item">
             <el-icon>
-              <View />
+              <View/>
             </el-icon>
             <span class="text">{{ videoInfo.stat.view }}</span>
           </div>
           <div class="dm-item item">
             <el-icon>
-              <Comment />
+              <Comment/>
             </el-icon>
             <span class="text">{{ videoInfo.stat.danmaku }}</span>
           </div>
@@ -26,7 +26,7 @@
           </div>
           <div class="copyright-item item">
             <el-icon>
-              <CircleClose />
+              <CircleClose/>
             </el-icon>
             <span class="text">未经作者授权，禁止转载</span>
           </div>
@@ -44,7 +44,7 @@
           :class="{ 'danmaku-off': !danmakuEnabled }"
         >
           <video ref="plyrPlayer" controls style="width: 100%; height: 100%">
-            <source :src="videoInfo.video.videoUrl" type="video/mp4" />
+            <source :src="videoInfo.video.videoUrl" type="video/mp4"/>
           </video>
         </div>
       </div>
@@ -149,27 +149,34 @@
             type="primary"
             style="border-radius: 0 8px 8px 0; height: 100%"
             @click="sendDanmaku"
-            >发送
+          >发送
           </el-button>
         </div>
       </div>
       <div class="video-toolbar-container">
         <div class="video-toolbar-left">
           <div class="toolbar-left-item-wrap">
-            <div class="toolbar-left-item" :class="{ active: videoStore.liked }" @click="handleLike">
-              <i class="iconfont icon-dianzan_kuai" :class="{ 'active-icon': videoStore.liked }"></i>
+            <div class="toolbar-left-item" :class="{ active: videoStore.liked }"
+                 @click="handleLike">
+              <i class="iconfont icon-dianzan_kuai"
+                 :class="{ 'active-icon': videoStore.liked }"></i>
               <span>{{ videoInfo.stat.like }}</span>
             </div>
-            <div class="toolbar-left-item">
-              <i class="iconfont icon-diancai-mian"></i>
+            <div class="toolbar-left-item" :class="{ active: videoStore.disliked }"
+                 @click="handleDislike">
+              <i class="iconfont icon-diancai-mian"
+                 :class="{ 'active-icon': videoStore.disliked }"></i>
               <span>不喜欢</span>
             </div>
-            <div class="toolbar-left-item" :class="{ active: videoStore.coined }" @click="handleCoin">
+            <div class="toolbar-left-item" :class="{ active: videoStore.coined }"
+                 @click="handleCoin">
               <i class="iconfont icon-toubix" :class="{ 'active-icon': videoStore.coined }"></i>
               <span>{{ videoInfo.stat.coin }}</span>
             </div>
-            <div class="toolbar-left-item" :class="{ active: videoStore.favorited }" @click="handleCollect">
-              <i class="iconfont icon-shoucang1" :class="{ 'active-icon': videoStore.favorited }"></i>
+            <div class="toolbar-left-item" :class="{ active: videoStore.favorited }"
+                 @click="handleCollect">
+              <i class="iconfont icon-shoucang1"
+                 :class="{ 'active-icon': videoStore.favorited }"></i>
               <span>{{ videoInfo.stat.favorite }}</span>
             </div>
             <div class="toolbar-left-item">
@@ -180,7 +187,7 @@
         </div>
         <div class="video-toolbar-right"></div>
       </div>
-      <el-divider style="margin: 0" />
+      <el-divider style="margin: 0"/>
       <div class="video-desc-container" v-if="videoInfo.video.descr">
         <div ref="descText" class="desc-info-text" :class="{ expand: isExpanded }">
           {{ videoInfo.video.descr }}
@@ -190,11 +197,11 @@
         </div>
       </div>
       <div class="video-tag-container">
-        <el-tag v-for="tag in rcmTags" :key="tag" :disable-transitions="false">
-          {{ tag }}
+        <el-tag v-for="tag in rcmTags" :key="tag" :disable-transitions="false" color="#f5f5f5">
+          <router-link :to="`/search/video?keyword=${tag}`">{{ tag }}</router-link>
         </el-tag>
       </div>
-      <el-divider style="margin: 10px" />
+      <el-divider style="margin: 10px"/>
       <div class="comment-wrap">
         <div class="header">
           <div class="navbar">
@@ -208,22 +215,24 @@
                 class="sort"
                 :class="{ active: commentStore.sort === 'hot' }"
                 @click="changeSort('hot')"
-                >最热</el-button
+              >最热
+              </el-button
               >
-              <el-divider direction="vertical" />
+              <el-divider direction="vertical"/>
               <el-button
                 link
                 class="sort"
                 :class="{ active: commentStore.sort === 'new' }"
                 @click="changeSort('new')"
-                >最新</el-button
+              >最新
+              </el-button
               >
             </div>
           </div>
           <div class="commentbox">
             <div class="user-avatar">
-              <img v-if="userStore.isLogin" :src="user.avatar" alt="" />
-              <img v-else src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/noface.jpg" alt="" />
+              <img v-if="userStore.isLogin" :src="user.avatar" alt=""/>
+              <img v-else src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/noface.jpg" alt=""/>
             </div>
             <div class="editor edit" v-if="userStore.isLogin">
               <el-input
@@ -242,88 +251,104 @@
                 size="small"
                 style="margin: 0 5px"
                 @click="userStore.showLoginWindow = !userStore.showLoginWindow"
-                >登录
+              >登录
               </el-button>
               <span>后发表评论 (・ω・)</span>
             </div>
           </div>
         </div>
         <div class="contents">
-          <div class="feed">
-            <template v-for="thread in commentThreads" :key="thread.rootId">
-              <CommentItem :comment="thread.rootComment" />
-              <CommentItem
-                v-for="reply in thread.visibleReplies"
-                :key="reply.id"
-                :comment="reply"
-              />
-              <div v-if="thread.totalReplies > COLLAPSED_REPLY_COUNT" class="reply-control">
-                <span v-if="!thread.expanded">共{{ thread.totalReplies }}条回复，</span>
-                <button
-                  v-if="!thread.expanded"
-                  type="button"
-                  class="reply-text-btn expand"
-                  @click="expandReplyList(thread.rootId)"
-                >
-                  点击查看
-                </button>
-                <div v-else class="reply-pagination">
-                  <template v-if="thread.totalPages > 1">
-                    <span class="reply-page-total">共{{ thread.totalPages }}页</span>
-                    <button
-                      v-if="thread.currentPage > 1"
-                      type="button"
-                      class="reply-text-btn"
-                      @click="goPrevReplyPage(thread.rootId, thread.currentPage, thread.totalPages)"
-                    >
-                      上一页
-                    </button>
-                    <button
-                      v-for="pageItem in thread.pageItems"
-                      :key="getReplyPageItemKey(pageItem)"
-                      type="button"
-                      class="reply-page-btn"
-                      :class="{
-                        active: pageItem.type === 'page' && pageItem.page === thread.currentPage,
-                        ellipsis: pageItem.type === 'ellipsis',
-                      }"
-                      :disabled="pageItem.type === 'ellipsis'"
-                      @click="handleReplyPageItemClick(thread.rootId, pageItem, thread.totalPages)"
-                    >
-                      {{ getReplyPageItemLabel(pageItem) }}
-                    </button>
-                    <button
-                      v-if="thread.currentPage < thread.totalPages"
-                      type="button"
-                      class="reply-text-btn"
-                      @click="goNextReplyPage(thread.rootId, thread.currentPage, thread.totalPages)"
-                    >
-                      下一页
-                    </button>
-                  </template>
+          <div class="feed" :class="{ 'comment-feed--guest': !userStore.isLogin && displayedCommentThreads.length >= 2 }">
+            <template v-for="(thread, index) in displayedCommentThreads" :key="thread.rootId">
+              <div class="comment-thread" :class="{ 'comment-item-wrapper': !userStore.isLogin && index === 1 }">
+                <CommentItem :comment="thread.rootComment"/>
+                <CommentItem
+                  v-for="reply in thread.visibleReplies"
+                  :key="reply.id"
+                  :comment="reply"
+                />
+                <div v-if="thread.totalReplies > COLLAPSED_REPLY_COUNT" class="reply-control">
+                  <span v-if="!thread.expanded">共{{ thread.totalReplies }}条回复，</span>
                   <button
+                    v-if="!thread.expanded"
                     type="button"
-                    class="reply-text-btn"
-                    @click="collapseReplyList(thread.rootId)"
+                    class="reply-text-btn expand"
+                    @click="expandReplyList(thread.rootId)"
                   >
-                    收起
+                    点击查看
                   </button>
+                  <div v-else class="reply-pagination">
+                    <template v-if="thread.totalPages > 1">
+                      <span class="reply-page-total">共{{ thread.totalPages }}页</span>
+                      <button
+                        v-if="thread.currentPage > 1"
+                        type="button"
+                        class="reply-text-btn"
+                        @click="goPrevReplyPage(thread.rootId, thread.currentPage, thread.totalPages)"
+                      >
+                        上一页
+                      </button>
+                      <button
+                        v-for="pageItem in thread.pageItems"
+                        :key="getReplyPageItemKey(pageItem)"
+                        type="button"
+                        class="reply-page-btn"
+                        :class="{
+                          active: pageItem.type === 'page' && pageItem.page === thread.currentPage,
+                          ellipsis: pageItem.type === 'ellipsis',
+                        }"
+                        :disabled="pageItem.type === 'ellipsis'"
+                        @click="handleReplyPageItemClick(thread.rootId, pageItem, thread.totalPages)"
+                      >
+                        {{ getReplyPageItemLabel(pageItem) }}
+                      </button>
+                      <button
+                        v-if="thread.currentPage < thread.totalPages"
+                        type="button"
+                        class="reply-text-btn"
+                        @click="goNextReplyPage(thread.rootId, thread.currentPage, thread.totalPages)"
+                      >
+                        下一页
+                      </button>
+                    </template>
+                    <button
+                      type="button"
+                      class="reply-text-btn"
+                      @click="collapseReplyList(thread.rootId)"
+                    >
+                      收起
+                    </button>
+                  </div>
                 </div>
+                <div v-if="!userStore.isLogin && index === 1 && commentStore.total > 2" class="comment-fade-mask"></div>
               </div>
             </template>
-            <!--            <el-divider style="margin: 20px 0" />-->
           </div>
-          <!-- 懒加载哨兵元素 -->
-          <div ref="commentSentinelRef" class="comment-sentinel"></div>
+          <!-- 未登录登录提示条 -->
+          <div
+            v-if="!userStore.isLogin && commentStore.total > 0"
+            class="login-comment-tip"
+            @click="userStore.showLoginWindow = true"
+          >
+            登录后查看 {{ commentStore.total }}+ 条评论
+          </div>
+          <!-- 懒加载哨兵元素 (仅登录用户显示) -->
+          <div v-if="userStore.isLogin" ref="commentSentinelRef" class="comment-sentinel"></div>
           <!-- 加载中提示 -->
-          <div v-if="commentStore.loading" class="comment-loading">
-            <el-icon class="is-loading"><Loading /></el-icon>
+          <div v-if="commentStore.loading && userStore.isLogin" class="comment-loading">
+            <el-icon class="is-loading">
+              <Loading/>
+            </el-icon>
             <span>加载中...</span>
           </div>
         </div>
-        <div class="end">
-          <div v-if="!commentStore.hasMore && commentList.length > 0" class="bottombar">没有更多评论</div>
-          <div v-else-if="!commentStore.loading && commentList.length === 0" class="bottombar">暂无评论，快来抢沙发吧~</div>
+        <div class="end" v-if="userStore.isLogin">
+          <div v-if="!commentStore.hasMore && commentList.length > 0" class="bottombar">
+            没有更多评论
+          </div>
+          <div v-else-if="!commentStore.loading && commentList.length === 0" class="bottombar">
+            暂无评论，快来抢沙发吧~
+          </div>
         </div>
       </div>
     </div>
@@ -332,19 +357,19 @@
         <div class="up-info-container">
           <div class="up-info-left">
             <div class="up-avatar-wrap">
-              <a :href="`/space/${videoInfo.user.uid}`"
-                ><img :src="videoInfo.user.avatar" alt=""
-              /></a>
+              <router-link :to="`/space/${videoInfo.user.uid}`"
+              ><img :src="videoInfo.user.avatar" alt=""
+              /></router-link>
             </div>
           </div>
           <div class="up-info-right">
             <div class="up-info__detail">
-              <a :href="`/space/${videoInfo.user.uid}`" class="up-name">{{
-                videoInfo.user.username
-              }}</a>
+              <router-link :to="`/space/${videoInfo.user.uid}`" class="up-name">{{
+                  videoInfo.user.username
+                }}</router-link>
               <a href="#" class="send-msg">
                 <el-icon>
-                  <Message />
+                  <Message/>
                 </el-icon>
                 发消息
               </a>
@@ -353,7 +378,7 @@
             <div class="up-info__btn-panel">
               <span class="charge-btn default-btn">
                 <el-icon>
-                  <CoffeeCup /> </el-icon
+                  <CoffeeCup/> </el-icon
                 >充电
               </span>
               <el-button
@@ -418,7 +443,7 @@
                   show-overflow-tooltip
                   :formatter="timeFormatter"
                 />
-                <el-table-column prop="content" label="弹幕内容" sortable show-overflow-tooltip />
+                <el-table-column prop="content" label="弹幕内容" sortable show-overflow-tooltip/>
                 <el-table-column
                   prop="createDate"
                   label="发送时间"
@@ -435,31 +460,31 @@
           <div class="card-box" v-for="list in videoList" :key="list.video.vid">
             <div class="pic-box">
               <router-link :to="`/video/${list.video.vid}`">
-                <img :src="list.video.coverUrl" alt="" />
+                <img :src="list.video.coverUrl" alt=""/>
               </router-link>
               <span class="duration">{{ formatDuration(list.video.duration) }}</span>
             </div>
             <div class="info">
-              <a href="#">
+              <router-link :to="`/video/${list.video.vid}`" :title="list.video.title">
                 <p class="title">{{ list.video.title }}</p>
-              </a>
+              </router-link>
               <div class="upname">
-                <a href="#">
+                <router-link :to="`/space/${list.user.uid}`">
                   <!--                  <el-icon class="icon">-->
                   <!--                    <User />-->
                   <!--                  </el-icon>-->
                   <!--                  <span class="up">up</span>-->
-                  <img src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg" />
+                  <img src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg"/>
                   <span class="name">{{ list.user.username }}</span>
-                </a>
+                </router-link>
               </div>
               <div class="playinfo">
                 <el-icon class="icon">
-                  <View />
+                  <View/>
                 </el-icon>
                 <span class="text">{{ list.stat.view }}</span>
                 <el-icon class="icon">
-                  <Comment />
+                  <Comment/>
                 </el-icon>
                 <span class="text">{{ list.stat.danmaku }}</span>
               </div>
@@ -469,26 +494,80 @@
       </div>
     </div>
   </div>
+
+  <!-- 收藏对话框 -->
+  <el-dialog
+    v-model="showFavoriteDialog"
+    title="添加到收藏夹"
+    width="420px"
+    :close-on-click-modal="false"
+  >
+    <div class="favorite-dialog-content">
+      <div
+        v-for="folder in userFavoriteFolders"
+        :key="folder.id"
+        class="folder-item"
+        :class="{ 'folder-item--selected': selectedFolderIds.includes(folder.id) }"
+        @click="toggleFolder(folder.id)"
+      >
+        <el-checkbox
+          :model-value="selectedFolderIds.includes(folder.id)"
+          class="folder-checkbox"
+        >
+          <span class="folder-name">{{ folder.name }}</span>
+        </el-checkbox>
+        <span class="folder-count" @click.stop>{{ folder.isDefault ? folder.videoCount : `${folder.videoCount}/1000` }}</span>
+      </div>
+
+      <!-- 新建收藏夹 -->
+      <div class="create-folder-section">
+        <div v-if="!showCreateFolderForm" class="create-folder-btn" @click="showCreateFolderForm = true">
+          <el-icon class="create-folder-icon"><Plus /></el-icon>
+          <span>新建收藏夹</span>
+        </div>
+        <div v-else class="create-folder-form">
+          <el-input
+            v-model="newFolderName"
+            placeholder="请输入收藏夹名称"
+            class="folder-name-input"
+            @keyup.enter="handleCreateFolder"
+          />
+          <div class="create-folder-actions">
+            <el-button size="small" @click="cancelCreateFolder">取消</el-button>
+            <el-button size="small" type="primary" @click="handleCreateFolder">创建</el-button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <div class="dialog-footer-divider"></div>
+        <div class="dialog-footer-actions">
+          <el-button @click="showFavoriteDialog = false">取消</el-button>
+          <el-button type="primary"  @click="confirmFavorite">确定</el-button>
+        </div>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
-// import { useDanmakuStore } from '@/stores/danmakuStore'
-import { formatDateTime, formatDuration, formatNumber } from '@/utils/utils'
+import {computed, nextTick, onMounted, onUnmounted, ref, watch} from 'vue'
+import {useRoute} from 'vue-router'
+import {formatDateTime, formatDuration, formatNumber} from '@/utils/utils'
 // 引入Plyr播放器
 import Plyr from 'plyr'
 import 'plyr/dist/plyr.css'
 // 引入弹幕组件
 import Danmaku from 'danmaku'
-import type { Comment, Danmu } from '@/types/api.ts'
-import { CoffeeCup, Loading } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
-import { storeToRefs } from 'pinia'
-import { useVideoStore } from '@/stores/videoStore'
-import { useDanmakuStore } from '@/stores/danmakuStore.ts'
-import { useCommentStore } from '@/stores/commentStore.ts'
-import { useUserStore } from '@/stores/userStore.ts'
-import { useHistoryStore } from '@/stores/historyStore.ts'
+import type {Comment, Danmu, FavoriteFolder} from '@/types/api.ts'
+import {CoffeeCup, Loading, Plus} from '@element-plus/icons-vue'
+import {ElMessage} from 'element-plus'
+import {storeToRefs} from 'pinia'
+import {useVideoStore} from '@/stores/videoStore'
+import {useDanmakuStore} from '@/stores/danmakuStore.ts'
+import {useCommentStore} from '@/stores/commentStore.ts'
+import {useUserStore} from '@/stores/userStore.ts'
+import {useHistoryStore} from '@/stores/historyStore.ts'
 import CommentItem from '@/components/comment-item/CommentItem.vue'
 
 const route = useRoute()
@@ -497,10 +576,10 @@ const danmakuStore = useDanmakuStore()
 const commentStore = useCommentStore()
 const userStore = useUserStore()
 const historyStore = useHistoryStore()
-const { videoInfo, videoList, isShow, onlineCount } = storeToRefs(videoStore)
-const { commentList } = storeToRefs(commentStore)
-const { danmakuList } = storeToRefs(danmakuStore)
-const { user } = storeToRefs(userStore)
+const {videoInfo, videoList, isShow, onlineCount} = storeToRefs(videoStore)
+const {commentList} = storeToRefs(commentStore)
+const {danmakuList} = storeToRefs(danmakuStore)
+const {user} = storeToRefs(userStore)
 const danmuList = ref([])
 const rcmTags = ref<string[] | undefined>()
 const danmaku = ref('')
@@ -527,6 +606,13 @@ let settingsPanelTimer: ReturnType<typeof setTimeout> | null = null
 // UP主关注状态和粉丝数
 const upFollowingStatus = ref(false)
 const upFanCount = ref(0)
+
+// 收藏夹相关状态
+const userFavoriteFolders = ref<FavoriteFolder[]>([])
+const showFavoriteDialog = ref(false)
+const selectedFolderIds = ref<number[]>([])
+const showCreateFolderForm = ref(false)
+const newFolderName = ref('')
 
 const COLLAPSED_REPLY_COUNT = 2
 const REPLY_PAGE_SIZE = 10
@@ -656,7 +742,7 @@ function flattenComments(comments: Comment[], level: number = 0): CommentWithLev
 
   for (const comment of comments) {
     // 添加当前层级信息
-    const commentWithLevel = { ...comment, level }
+    const commentWithLevel = {...comment, level}
 
     // 如果存在子评论，递归处理
     if (comment.replies && comment.replies.length > 0) {
@@ -680,22 +766,22 @@ const clampReplyPage = (page: number, totalPages: number) => {
 
 const getReplyPageItems = (currentPage: number, totalPages: number): ReplyPageItem[] => {
   if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => ({ type: 'page', page: index + 1 }))
+    return Array.from({length: totalPages}, (_, index) => ({type: 'page', page: index + 1}))
   }
 
   if (currentPage <= 4) {
     return [
-      ...Array.from({ length: 5 }, (_, index) => ({ type: 'page' as const, page: index + 1 })),
-      { type: 'ellipsis', key: 'ellipsis-end' },
-      { type: 'page', page: totalPages },
+      ...Array.from({length: 5}, (_, index) => ({type: 'page' as const, page: index + 1})),
+      {type: 'ellipsis', key: 'ellipsis-end'},
+      {type: 'page', page: totalPages},
     ]
   }
 
   if (currentPage >= totalPages - 3) {
     return [
-      { type: 'page', page: 1 },
-      { type: 'ellipsis', key: 'ellipsis-start' },
-      ...Array.from({ length: 5 }, (_, index) => ({
+      {type: 'page', page: 1},
+      {type: 'ellipsis', key: 'ellipsis-start'},
+      ...Array.from({length: 5}, (_, index) => ({
         type: 'page' as const,
         page: totalPages - 4 + index,
       })),
@@ -703,13 +789,13 @@ const getReplyPageItems = (currentPage: number, totalPages: number): ReplyPageIt
   }
 
   return [
-    { type: 'page', page: 1 },
-    { type: 'ellipsis', key: 'ellipsis-start' },
-    { type: 'page', page: currentPage - 1 },
-    { type: 'page', page: currentPage },
-    { type: 'page', page: currentPage + 1 },
-    { type: 'ellipsis', key: 'ellipsis-end' },
-    { type: 'page', page: totalPages },
+    {type: 'page', page: 1},
+    {type: 'ellipsis', key: 'ellipsis-start'},
+    {type: 'page', page: currentPage - 1},
+    {type: 'page', page: currentPage},
+    {type: 'page', page: currentPage + 1},
+    {type: 'ellipsis', key: 'ellipsis-end'},
+    {type: 'page', page: totalPages},
   ]
 }
 
@@ -722,7 +808,7 @@ const getReplyPageItemLabel = (pageItem: ReplyPageItem) => {
 }
 
 const setReplyListState = (rootId: number, expanded: boolean, page: number = 1) => {
-  replyDisplayState.value[rootId] = { expanded, page }
+  replyDisplayState.value[rootId] = {expanded, page}
 }
 
 const expandReplyList = (rootId: number) => {
@@ -757,7 +843,7 @@ const commentThreads = computed<CommentThreadView[]>(() => {
     const replies = flattenComments(rootComment.replies ?? [], 1)
     const totalReplies = replies.length
     const totalPages = Math.max(1, Math.ceil(totalReplies / REPLY_PAGE_SIZE))
-    const state = replyDisplayState.value[rootId] ?? { expanded: false, page: 1 }
+    const state = replyDisplayState.value[rootId] ?? {expanded: false, page: 1}
     const currentPage = clampReplyPage(state.page, totalPages)
     const visibleReplies = state.expanded
       ? replies.slice((currentPage - 1) * REPLY_PAGE_SIZE, currentPage * REPLY_PAGE_SIZE)
@@ -774,6 +860,13 @@ const commentThreads = computed<CommentThreadView[]>(() => {
       pageItems: getReplyPageItems(currentPage, totalPages),
     }
   })
+})
+
+const displayedCommentThreads = computed<CommentThreadView[]>(() => {
+  if (userStore.isLogin) {
+    return commentThreads.value
+  }
+  return commentThreads.value.slice(0, 2)
 })
 
 const createDateFormatter = (row: Danmu) => {
@@ -850,23 +943,43 @@ const initCommentObserver = () => {
     commentObserver = null
   }
   if (!commentSentinelRef.value) return
+  const loadMoreIfNeeded = () => {
+    if (commentStore.hasMore && !commentStore.loading) {
+      const vid = videoInfo.value?.video?.vid
+      if (vid) {
+        commentStore.loadMoreComments(vid)
+      }
+    }
+  }
   commentObserver = new IntersectionObserver(
     (entries) => {
-      if (entries[0].isIntersecting && commentStore.hasMore && !commentStore.loading) {
-        const vid = videoInfo.value?.video?.vid
-        if (vid) {
-          commentStore.loadMoreComments(vid)
-        }
+      if (entries[0].isIntersecting) {
+        loadMoreIfNeeded()
       }
     },
-    { rootMargin: '200px' }
+    {rootMargin: '200px'}
   )
   commentObserver.observe(commentSentinelRef.value)
+  setTimeout(() => {
+    if (commentSentinelRef.value) {
+      const rect = commentSentinelRef.value.getBoundingClientRect()
+      const isVisible = rect.top < window.innerHeight + 200 && rect.bottom > 0
+      if (isVisible) {
+        loadMoreIfNeeded()
+      }
+    }
+  }, 100)
 }
 // 点赞
 const handleLike = () => {
   if (videoInfo.value.video.vid) {
     videoStore.toggleLike(videoInfo.value.video.vid)
+  }
+}
+// 点踩
+const handleDislike = () => {
+  if (videoInfo.value.video.vid) {
+    videoStore.toggleDislike(videoInfo.value.video.vid)
   }
 }
 // 投币
@@ -876,9 +989,129 @@ const handleCoin = () => {
   }
 }
 // 收藏
-const handleCollect = () => {
-  if (videoInfo.value.video.vid) {
-    videoStore.toggleCollect(videoInfo.value.video.vid)
+const handleCollect = async () => {
+  if (!userStore.isLogin) {
+    ElMessage.warning('请先登录')
+    return
+  }
+
+  const vid = videoInfo.value.video.vid
+  if (!vid) return
+
+  // 加载收藏夹列表（传入当前视频ID以获取收藏状态）
+  await loadUserFavoriteFolders(vid)
+
+  // 初始化选中的收藏夹（根据后端返回的 collected 状态）
+  selectedFolderIds.value = userFavoriteFolders.value
+    .filter(folder => folder.collected)
+    .map(folder => folder.id)
+
+  showFavoriteDialog.value = true
+}
+
+// 确认收藏操作
+const confirmFavorite = async () => {
+  const vid = videoInfo.value.video.vid
+  if (!vid) return
+
+  try {
+    // 获取当前已收藏的收藏夹
+    const currentFolders = new Set(selectedFolderIds.value)
+    const previousFolders = new Set(
+      userFavoriteFolders.value
+        .filter(f => f.collected)
+        .map(f => f.id)
+    )
+
+    // 记录操作前的收藏状态
+    const wasFavorited = previousFolders.size > 0
+
+    // 找出需要添加的收藏夹
+    const toAdd = selectedFolderIds.value.filter(id => !previousFolders.has(id))
+    // 找出需要移除的收藏夹
+    const toRemove = userFavoriteFolders.value
+      .map(f => f.id)
+      .filter(id => !currentFolders.has(id) && previousFolders.has(id))
+
+    // 执行添加操作
+    for (const folderId of toAdd) {
+      await videoStore.collectToFolder(vid, folderId)
+    }
+
+    // 执行移除操作（不更新计数，统一在最后处理）
+    for (const folderId of toRemove) {
+      await videoStore.removeFromFolder(vid, folderId, false)
+    }
+
+    // 更新状态
+    const isNowFavorited = selectedFolderIds.value.length > 0
+    videoStore.favorited = isNowFavorited
+
+    // 如果从未收藏变为收藏，增加视频收藏数
+    if (!wasFavorited && isNowFavorited) {
+      videoStore.videoInfo.stat.favorite += 1
+    }
+
+    // 如果从收藏变为未收藏，减少视频收藏数
+    if (wasFavorited && !isNowFavorited) {
+      videoStore.videoInfo.stat.favorite -= 1
+    }
+
+    // 重新加载收藏夹列表以更新计数
+    await loadUserFavoriteFolders()
+
+    showFavoriteDialog.value = false
+    ElMessage.success('操作成功')
+  } catch (e) {
+    console.error('收藏操作失败:', e)
+    ElMessage.error('操作失败')
+  }
+}
+
+// 切换收藏夹选中状态
+const toggleFolder = (folderId: number) => {
+  const index = selectedFolderIds.value.indexOf(folderId)
+  if (index > -1) {
+    selectedFolderIds.value.splice(index, 1)
+  } else {
+    selectedFolderIds.value.push(folderId)
+  }
+}
+
+// 创建新收藏夹
+const handleCreateFolder = async () => {
+  const name = newFolderName.value.trim()
+  if (!name) {
+    ElMessage.warning('请输入收藏夹名称')
+    return
+  }
+
+  const newFolder = await videoStore.createFolder(name)
+  if (newFolder) {
+    // 添加到收藏夹列表
+    userFavoriteFolders.value.push(newFolder)
+    // 自动选中新创建的收藏夹
+    selectedFolderIds.value.push(newFolder.id)
+    // 重置表单
+    showCreateFolderForm.value = false
+    newFolderName.value = ''
+  }
+}
+
+// 取消创建收藏夹
+const cancelCreateFolder = () => {
+  showCreateFolderForm.value = false
+  newFolderName.value = ''
+}
+
+// 加载用户收藏夹列表
+const loadUserFavoriteFolders = async (vid?: number) => {
+  if (!userStore.isLogin) return
+
+  try {
+    userFavoriteFolders.value = await videoStore.getUserFavoriteFolders(vid)
+  } catch (e) {
+    console.error('加载收藏夹列表失败:', e)
   }
 }
 // 初始化播放器
@@ -1109,6 +1342,16 @@ watch([() => route.params.vid], async ([newVid], [oldVid]) => {
     }
   }
 })
+
+watch(
+  () => userStore.isLogin,
+  async (newIsLogin, oldIsLogin) => {
+    if (newIsLogin && !oldIsLogin) {
+      await nextTick()
+      initCommentObserver()
+    }
+  }
+)
 const initDanmaku = async (vid: number) => {
   console.log('开始创建弹幕实例')
   if (danmakuContainer.value && plyrPlayer.value) {
@@ -1177,6 +1420,8 @@ onMounted(async () => {
     await videoStore.getInteractionStatus(vid)
     await commentStore.getComment(vid)
     await loadUpFollowInfo()
+    // 加载用户收藏夹列表
+    await loadUserFavoriteFolders()
   }
   rcmTags.value = videoInfo.value.video.tags?.split('\n')
   await initPlayer()
@@ -1228,8 +1473,149 @@ onUnmounted(() => {
     handleBeforeUnload = null
   }
 })
+
 </script>
 <style scoped lang="less">
+// 收藏对话框样式
+.favorite-dialog-content {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 8px 0;
+
+  .folder-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 0 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    &:hover {
+      background-color: #f4f5f7;
+    }
+
+    &--selected {
+      .folder-checkbox {
+        :deep(.el-checkbox__label) {
+          .folder-name {
+            color: #0077e6;
+          }
+        }
+      }
+    }
+
+    .folder-checkbox {
+      :deep(.el-checkbox__inner) {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+      }
+
+      :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+        background-color: #0077e6;
+        border-color: #0077e6;
+      }
+
+      :deep(.el-checkbox__label) {
+        font-size: 14px;
+        color: #18191c;
+        padding-left: 10px;
+      }
+
+      .folder-name {
+        font-size: 14px;
+        color: #18191c;
+      }
+    }
+
+    .folder-count {
+      font-size: 14px;
+      color: #9499a0;
+    }
+  }
+
+  // 新建收藏夹区域
+  .create-folder-section {
+    padding: 10px 12px;
+    margin: 0 8px;
+
+    .create-folder-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px;
+      border: 1px dashed #d9d9d9;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #9499a0;
+      font-size: 14px;
+      transition: all 0.2s;
+
+      &:hover {
+        border-color: #0077e6;
+        color: #0077e6;
+      }
+
+      .create-folder-icon {
+        font-size: 16px;
+      }
+    }
+
+    .create-folder-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      .folder-name-input {
+        width: 100%;
+      }
+
+      .create-folder-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+
+        :deep(.el-button) {
+          padding: 6px 16px;
+        }
+      }
+    }
+  }
+}
+
+// 对话框底部样式
+.dialog-footer {
+  padding: 0;
+
+  .dialog-footer-divider {
+    height: 1px;
+    background-color: #f1f2f3;
+    margin: 0 -20px;
+  }
+
+  .dialog-footer-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 15px 0;
+
+    :deep(.el-button) {
+      width: 90px;
+      height: 36px;
+      border-radius: 4px;
+
+      &--primary:disabled {
+        background-color: #f4f5f7;
+        border-color: #e5e6eb;
+        color: #b8bac3;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
 .iconfont {
   font-size: 28px;
   margin-right: 8px;
@@ -1262,6 +1648,8 @@ onUnmounted(() => {
           font-weight: 500;
           color: #18191c;
           line-height: 28px;
+          white-space: nowrap;
+          overflow: hidden;
           text-overflow: ellipsis;
         }
       }
@@ -1562,7 +1950,6 @@ onUnmounted(() => {
 
       :deep(.el-tag.el-tag--primary.el-tag--light) {
         margin: 5px;
-        cursor: pointer;
       }
     }
 
@@ -1642,6 +2029,16 @@ onUnmounted(() => {
 
       .contents {
         .feed {
+          .comment-thread {
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e3e5e7;
+            margin-top: 10px;
+
+            &:first-child {
+              margin-top: 32px;
+            }
+          }
+
           .reply-control {
             margin: 8px 0 2px 67px;
             min-height: 22px;
@@ -1723,6 +2120,39 @@ onUnmounted(() => {
         padding: 20px 0;
         color: #9499a0;
         font-size: 13px;
+      }
+
+      .comment-item-wrapper {
+        position: relative;
+      }
+
+      .comment-fade-mask {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 150px;
+        background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .login-comment-tip {
+        margin-top: 20px;
+        margin-left: 65px;
+        margin-bottom: 100px;
+        padding: 16px;
+        background-color: #e3f4fd;
+        border-radius: 8px;
+        text-align: center;
+        color: #00aeec;
+        font-size: 15px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+
+        &:hover {
+          background-color: #d0ecfb;
+        }
       }
     }
   }
@@ -1819,9 +2249,8 @@ onUnmounted(() => {
               justify-content: center;
               padding: 0 15px !important;
               cursor: pointer;
-              transition:
-                background-color 0.2s,
-                border-color 0.2s;
+              transition: background-color 0.2s,
+              border-color 0.2s;
               gap: 4px;
               line-height: 1;
 

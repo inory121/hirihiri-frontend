@@ -42,7 +42,7 @@
             </router-link>
             <div class="video-card__content">
               <h3 class="video-card__title">
-                <router-link :to="`/video/${videoInfo.video.vid}`" target="_blank" class="video-card__title-link">{{
+                <router-link :to="`/video/${videoInfo.video.vid}`" target="_blank" class="video-card__title-link" :title="videoInfo.video.title">{{
                   videoInfo.video.title }}
                 </router-link>
               </h3>
@@ -54,13 +54,13 @@
                     <span class="video-card__username" style="margin-left: 3px">{{
                       videoInfo.user.username
                     }}</span>
-                    <span class="video-card__time" style="margin-left: 10px">{{
+                    <span v-if="!props.hideTime" class="video-card__time" style="margin-left: 10px">{{
                       formatTime(videoInfo.video.createDate)
                     }}</span>
                   </router-link>
                 </template>
                 <template v-else>
-                  <span class="video-card__time">{{
+                  <span v-if="!props.hideTime" class="video-card__time">{{
                     formatTime(videoInfo.video.createDate)
                   }}</span>
                 </template>
@@ -83,10 +83,12 @@ const props = withDefaults(
     data: VideoInfo[]
     loading?: boolean
     hideAuthor?: boolean
+    hideTime?: boolean
   }>(),
   {
     loading: false,
     hideAuthor: false,
+    hideTime: false,
   },
 )
 </script>
@@ -150,6 +152,7 @@ const props = withDefaults(
 
   &__title {
     height: 44px;
+    line-height: 22px;
   }
 
   &__title-link {

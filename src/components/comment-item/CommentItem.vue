@@ -4,15 +4,15 @@
     <div class="comment-main">
       <!-- 用户头像 -->
       <div class="user-avatar" :class="isSubComment ? 'sub' : ''">
-        <a :href="`/space/${comment.user?.uid}`">
+        <router-link :to="`/space/${comment.user?.uid}`">
           <img :src="comment.user?.avatar" alt=""/>
-        </a>
+        </router-link>
       </div>
       <div class="header-and-content" :class="isSubComment ? 'second' : ''">
         <!-- 用户名 + 等级等 -->
         <div class="comment-header">
           <div class="user-name">
-            <a :href="`/space/${comment.user?.uid}`">{{ comment.user?.username }}</a>
+            <router-link :to="`/space/${comment.user?.uid}`">{{ comment.user?.username }}</router-link>
           </div>
           <div class="user-level">
             <img
@@ -36,8 +36,8 @@
           <p>
             <template v-if="isSecondSubComment">
               回复
-              <a :href="`/space/${comment.toUser?.uid}`" class="at-user" target="_blank"
-              >@{{ comment.toUser?.username }}</a
+              <router-link :to="`/space/${comment.toUser?.uid}`" class="at-user" target="_blank"
+              >@{{ comment.toUser?.username }}</router-link
               >
               :
             </template>
@@ -51,14 +51,19 @@
         <div class="createDate">
           {{ formatCommentTime(comment.createDate) }}
         </div>
-        <div class="like">
-          <i class="iconfont icon-good"></i>
-          {{ comment.like }}
+        <div class="like" :class="{ active: comment.liked }" @click="handleLike">
+          <i class="iconfont" :class="comment.liked ? 'icon-dianzan_kuai' : 'icon-good'"></i>
+          <span class="count" style="margin-left: 5px">{{ comment.like }}</span>
         </div>
-        <div class="dislike">
-          <i class="iconfont icon-diancai"></i>
+        <div class="dislike" :class="{ active: comment.disliked }" @click="handleDislike">
+          <i class="iconfont" :class="comment.disliked ? 'icon-diancai-mian' : 'icon-diancai'"></i>
         </div>
         <div class="reply" @click="toggleReply">回复</div>
+      </div>
+
+      <!-- UP主觉得很赞 -->
+      <div class="up-liked" v-if="comment.upLiked && !isSubComment">
+        UP主觉得很赞
       </div>
 
       <!-- 回复输入框 -->
@@ -144,6 +149,23 @@ watch(
     replies.value = [...(newReplies || [])]
   },
 )
+
+const handleLike = () => {
+  if (!userStore.isLogin) {
+    userStore.showLoginWindow = true
+    return
+  }
+  commentStore.toggleLike(props.comment.id!)
+}
+
+const handleDislike = () => {
+  if (!userStore.isLogin) {
+    userStore.showLoginWindow = true
+    return
+  }
+  commentStore.toggleDislike(props.comment.id!)
+}
+
 // 发送子评论
 const sendSubComment = async () => {
   if (!props.comment.vid || !subComment.value.trim()) return
@@ -171,22 +193,14 @@ const sendSubComment = async () => {
   padding: 8px 0 8px 68px;
   position: relative;
 
-  &:not(.sub) {
-    border-top: 1px solid #e3e5e7;
-    margin-top: 10px;
-  }
-
-  &:first-child {
-    border-top: 0;
-  }
+  //&:not(.sub) {
+  //  padding-top: 0;
+  //}
 
   &.sub {
     padding-left: 100px;
-
-    &:last-child {
-      border-bottom: 1px solid #e3e5e7;
-      padding-bottom: 10px;
-    }
+    padding-top: 8px;
+    padding-bottom: 8px;
   }
 
   .comment-main {
@@ -282,11 +296,33 @@ const sendSubComment = async () => {
       .dislike,
       .reply {
         cursor: pointer;
+        transition: color 0.3s;
+        display: flex;
+        align-items: center;
+        color: #61666d;
 
         &:hover {
-          color: #409eff;
+          color: #00aeec;
+        }
+
+        &.active {
+          color: #00aeec;
+        }
+
+        .active-icon {
+          color: #00aeec;
         }
       }
+    }
+
+    .up-liked {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 2px 8px;
+      font-size: 12px;
+      color: #ff6699;
+      background-color: #fff0f5;
+      border-radius: 4px;
     }
 
     .commentbox {

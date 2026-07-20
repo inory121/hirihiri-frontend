@@ -44,7 +44,7 @@
           </el-carousel-item>
         </el-carousel>
         <!-- 当前标题 -->
-        <a href="#" class="carousel-title" :style="titleStyle">{{ currentTitle }}</a>
+        <router-link :to="`/video/${videoStore.videoList[currentIndex]?.video.vid}`" class="carousel-title" :style="titleStyle">{{ currentTitle }}</router-link>
       </template>
     </el-skeleton>
   </div>

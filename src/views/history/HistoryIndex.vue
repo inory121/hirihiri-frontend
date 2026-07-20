@@ -64,7 +64,7 @@
               class="history-item"
               @click="router.push(`/video/${item.vid}`)"
             >
-              <a :href="`/video/${item.vid}`">
+              <router-link :to="`/video/${item.vid}`">
                 <div class="item-cover">
                   <img :src="item.coverUrl" :alt="item.title"/>
                   <div class="cover-bottom">
@@ -77,12 +77,12 @@
                     ></div>
                   </div>
                 </div>
-              </a>
+              </router-link>
 
               <div class="item-info">
-                <a :href="`/video/${item.vid}`"><h3 class="item-title">{{ item.title }}</h3></a>
+                <router-link :to="`/video/${item.vid}`" :title="item.title"><h3 class="item-title">{{ item.title }}</h3></router-link>
                 <div class="item-meta">
-                  <a :href="`/space/${item.authorUid}`">
+                  <router-link :to="`/space/${item.authorUid}`">
                      <span class="item-author">
                     <img
                       src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg"
@@ -90,7 +90,7 @@
                     />
                     {{ item.authorUsername }}</span
                      >
-                  </a>
+                  </router-link>
 
                   <span class="item-time">{{ formatBrowseTime(item.browseTime) }}</span>
                 </div>
@@ -179,8 +179,8 @@ const handleClearAll = async () => {
   await historyStore.clearAllHistory()
 }
 
-const handleRecordChange = (enabled: boolean) => {
-  historyStore.setRecordEnabled(enabled)
+const handleRecordChange = (val: string | number | boolean) => {
+  historyStore.setRecordEnabled(Boolean(val))
 }
 
 onMounted(async () => {

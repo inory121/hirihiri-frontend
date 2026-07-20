@@ -95,7 +95,7 @@ const router = createRouter({
       meta: { requestAuth: false },
     },
     {
-      path: '/search',
+      path: '/search/:type(video|user)?',
       component: () => import('@/views/search/SearchIndex.vue'),
       meta: { requestAuth: false },
     },

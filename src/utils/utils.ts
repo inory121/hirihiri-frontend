@@ -110,5 +110,5 @@ export const getLevelByExp = (exp: number): number => {
 }
 
 // 根据等级数字拼接等级图标 URL
-export const getLevelIconUrl = (level: number): string =>
-  `https://hirihiri.oss-cn-nanjing.aliyuncs.com/level_${level}.svg`
+export const getLevelIconUrl = (level?: number): string =>
+  `https://hirihiri.oss-cn-nanjing.aliyuncs.com/level_${level ?? 0}.svg`

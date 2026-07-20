@@ -109,8 +109,10 @@ export const useUserStore = defineStore('user', {
           })
       }
     },
-    async getSearchUsers(keyword: string) {
-      await get<searchUserApiResponse>(`${USER_API.GET_SEARCH_USER}?keyword=${keyword}`).then(
+    async getSearchUsers(keyword: string, order = 'default') {
+      await get<searchUserApiResponse>(
+        `${USER_API.GET_SEARCH_USER}?keyword=${encodeURIComponent(keyword)}&order=${order}`,
+      ).then(
         (res) => {
           if (res.code === 200) {
             this.searchUserList = res.data

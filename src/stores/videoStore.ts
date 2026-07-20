@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { get, post } from '@/utils/request'
+import { del, get, post, put } from '@/utils/request'
 import router from '@/router'
 import { VIDEO_API } from '@/api/video'
 import type {
@@ -10,6 +10,11 @@ import type {
   VideoApiResponse,
   VideoInfo,
   VideoStat,
+  FavoriteFolder,
+  FavoriteFolderApiResponse,
+  FavoriteFolderItemApiResponse,
+  FavoriteVideoListApiResponse,
+  FavoriteVideoPageApiResponse,
 } from '@/types/api.ts'
 import ColorThief from 'colorthief'
 import { useUserStore } from '@/stores/userStore'
@@ -27,6 +32,8 @@ export const useVideoStore = defineStore('video', {
       },
       videoList: [] as VideoInfo[], // 推荐视频列表
       searchVideoList: [] as VideoInfo[],
+      hotSearchList: [] as string[],
+      searchSuggestList: [] as string[],
       userVideoList: [] as VideoInfo[], // 用户投稿视频列表
       loading: true, // 骨架屏显示
       userVideoLoading: true, // 用户投稿视频加载状态
@@ -36,6 +43,7 @@ export const useVideoStore = defineStore('video', {
       onlineCount: 0, // 当前视频在线人数
       // 视频互动状态
       liked: false,
+      disliked: false,
       coined: false,
       favorited: false,
     }
@@ -104,8 +112,8 @@ export const useVideoStore = defineStore('video', {
         }
       })
     },
-    async getSearchVideos(keyword: string) {
-      await get<VideoApiResponse>(`${VIDEO_API.GET_SEARCH_VIDEO}?keyword=${keyword}`).then(
+    async getSearchVideos(keyword: string, order = 'default') {
+      await get<VideoApiResponse>(`${VIDEO_API.GET_SEARCH_VIDEO}?keyword=${keyword}&order=${order}`).then(
         (res) => {
           if (res.code === 200) {
             this.searchVideoList = res.data
@@ -115,6 +123,28 @@ export const useVideoStore = defineStore('video', {
           }
         },
       )
+    },
+    async getHotSearchList(limit = 10) {
+      const res = await get<{ code: number; data: string[] }>(
+        `${VIDEO_API.GET_HOT_SEARCH}?limit=${limit}`,
+      )
+      this.hotSearchList = res.code === 200 ? res.data || [] : []
+    },
+    async getSearchSuggest(keyword: string, limit = 10): Promise<string[]> {
+      if (!keyword.trim()) {
+        this.searchSuggestList = []
+        return []
+      }
+      try {
+        const res = await get<{ code: number; data: string[] }>(
+          `${VIDEO_API.GET_SEARCH_SUGGEST}?keyword=${encodeURIComponent(keyword)}&limit=${limit}`,
+        )
+        this.searchSuggestList = res.code === 200 ? res.data || [] : []
+      } catch (e) {
+        console.error('获取搜索建议失败', e)
+        this.searchSuggestList = []
+      }
+      return this.searchSuggestList
     },
     async getUserVideos(uid: number) {
       this.userVideoLoading = true
@@ -166,13 +196,14 @@ export const useVideoStore = defineStore('video', {
         return
       }
       try {
-        const res = await get<{ code: number; data: [boolean, boolean, boolean] }>(
+        const res = await get<{ code: number; data: [boolean, boolean, boolean, boolean] }>(
           `${VIDEO_API.GET_INTERACTION_STATUS}/${vid}`
         )
         if (res.code === 200) {
           this.liked = res.data[0]
-          this.coined = res.data[1]
-          this.favorited = res.data[2]
+          this.disliked = res.data[1]
+          this.coined = res.data[2]
+          this.favorited = res.data[3]
         }
       } catch (e) {
         console.error('获取互动状态失败', e)
@@ -204,6 +235,27 @@ export const useVideoStore = defineStore('video', {
       }
     },
     // 投币/取消投币
+    async toggleDislike(vid: number) {
+      const userStore = useUserStore()
+      if (!userStore.isLogin) {
+        ElMessage.warning('璇峰厛鐧诲綍')
+        return
+      }
+      try {
+        const res = await post<{ code: number; data: string }>(
+          `${VIDEO_API.TOGGLE_DISLIKE}/${vid}`,
+        )
+        if (res.code === 200) {
+          this.disliked = !this.disliked
+          this.videoInfo.stat.dislike = Math.max(
+            0,
+            this.videoInfo.stat.dislike + (this.disliked ? 1 : -1),
+          )
+        }
+      } catch (e) {
+        console.error('涓嶅枩娆㈡搷浣滃け璐?', e)
+      }
+    },
     async toggleCoin(vid: number) {
       const userStore = useUserStore()
       if (!userStore.isLogin) {
@@ -252,6 +304,80 @@ export const useVideoStore = defineStore('video', {
       } catch (e) {
         console.error('收藏操作失败', e)
       }
+    },
+    async getUserFavoriteFolders(vid?: number, targetUid?: number): Promise<FavoriteFolder[]> {
+      const res = await get<FavoriteFolderApiResponse>(VIDEO_API.GET_FAVORITE_FOLDERS, {
+        params: { vid, uid: targetUid },
+      })
+      if (res.code !== 200) throw new Error(res.message)
+      return res.data || []
+    },
+    async createFolder(name: string, description?: string): Promise<FavoriteFolder | null> {
+      const res = await post<FavoriteFolderItemApiResponse>(VIDEO_API.CREATE_FAVORITE_FOLDER, {
+        folderName: name,
+        description: description || undefined,
+      })
+      if (res.code !== 200) throw new Error(res.message)
+      return res.data || null
+    },
+    async updateFolder(folderId: number, name: string, description?: string): Promise<boolean> {
+      const res = await put<{ code: number; message: string }>(
+        `${VIDEO_API.UPDATE_FAVORITE_FOLDER}/${folderId}`,
+        { folderName: name, description: description || undefined },
+      )
+      if (res.code !== 200) throw new Error(res.message)
+      return true
+    },
+    async deleteFolder(folderId: number): Promise<boolean> {
+      const res = await del<{ code: number; message: string }>(
+        `${VIDEO_API.DELETE_FAVORITE_FOLDER}/${folderId}`,
+      )
+      if (res.code !== 200) throw new Error(res.message)
+      return true
+    },
+    async collectToFolder(vid: number, folderId: number): Promise<boolean> {
+      const res = await post<{ code: number; message: string }>(
+        `${VIDEO_API.COLLECT_TO_FOLDER}/${vid}/folder/${folderId}`,
+      )
+      if (res.code !== 200) throw new Error(res.message)
+      return true
+    },
+    async removeFromFolder(vid: number, folderId: number, updateStat = true): Promise<boolean> {
+      const result = await this.collectToFolder(vid, folderId)
+      if (updateStat && this.favorited) {
+        this.favorited = false
+        this.videoInfo.stat.favorite = Math.max(0, this.videoInfo.stat.favorite - 1)
+      }
+      return result
+    },
+    async getFolderVideos(folderId: number, pageNum = 1, pageSize = 20): Promise<VideoInfo[]> {
+      const res = await get<FavoriteVideoPageApiResponse>(
+        `${VIDEO_API.GET_FOLDER_VIDEOS}/${folderId}/videos`,
+        { params: { pageNum, pageSize } },
+      )
+      if (res.code !== 200) throw new Error(res.message)
+      return res.data?.records || []
+    },
+    async getRecentFavorites(limit = 10, targetUid?: number): Promise<VideoInfo[]> {
+      const res = await get<FavoriteVideoListApiResponse>('/favorite/recent', {
+        params: { limit, uid: targetUid },
+      })
+      if (res.code !== 200) throw new Error(res.message)
+      return res.data || []
+    },
+    async getRecentCoinVideos(limit = 10, targetUid?: number): Promise<VideoInfo[]> {
+      const res = await get<FavoriteVideoListApiResponse>(VIDEO_API.GET_RECENT_COINS, {
+        params: { limit, uid: targetUid },
+      })
+      if (res.code !== 200) throw new Error(res.message)
+      return res.data || []
+    },
+    async getRecentLikeVideos(limit = 10, targetUid?: number): Promise<VideoInfo[]> {
+      const res = await get<FavoriteVideoListApiResponse>(VIDEO_API.GET_RECENT_LIKES, {
+        params: { limit, uid: targetUid },
+      })
+      if (res.code !== 200) throw new Error(res.message)
+      return res.data || []
     },
   },
 })
