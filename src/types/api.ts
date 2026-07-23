@@ -57,6 +57,7 @@ export interface Video {
   vid: number
   videoUrl: string
   dominantColor?: [number, number, number]
+  isTop?: number
 }
 
 export interface VideoInfo {

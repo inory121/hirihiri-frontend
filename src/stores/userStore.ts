@@ -258,34 +258,23 @@ export const useUserStore = defineStore('user', {
         ElMessage.error('操作失败，请稍后重试')
       }
     },
-    // 批量查询列表中每个用户的关注状态，写入 followStatusMap
-    async loadFollowStatusForList(list: User[]) {
-      if (!this.isLogin || !this.user.uid || !list || list.length === 0) return
-      const otherUids = list.filter((u) => u.uid !== this.user.uid).map((u) => u.uid)
-      if (otherUids.length === 0) return
-      const results = await Promise.all(
-        otherUids.map(async (uid) => {
-          try {
-            const res = await get<FollowStatusApiResponse>(`${FOLLOW_API.STATUS}/${uid}`)
-            return { uid, isFollowing: res.code === 200 ? res.data : false }
-          } catch (e) {
-            console.log(`获取用户${uid}的关注状态失败:`, e)
-            return { uid, isFollowing: false }
-          }
-        }),
-      )
-      for (const { uid, isFollowing } of results) {
-        this.followStatusMap[uid] = isFollowing
+    // 将列表中的 isFollowing 字段同步到 followStatusMap
+    syncFollowStatusFromList(list: User[]) {
+      if (!this.isLogin || !list || list.length === 0) return
+      for (const item of list) {
+        if (item.isFollowing !== undefined) {
+          this.followStatusMap[item.uid] = item.isFollowing
+        }
       }
     },
-    // 获取指定用户的粉丝列表，并加载每位用户的关注状态
+    // 获取指定用户的粉丝列表，并同步每位用户的关注状态
     async getFollowers(uid: number) {
       this.followListLoading = true
       try {
         const res = await get<FollowListApiResponse>(`${FOLLOW_API.FOLLOWERS}/${uid}`)
         if (res.code === 200) {
           this.followList = res.data
-          await this.loadFollowStatusForList(res.data)
+          this.syncFollowStatusFromList(res.data)
         } else {
           this.followList = []
         }
@@ -296,14 +285,14 @@ export const useUserStore = defineStore('user', {
         this.followListLoading = false
       }
     },
-    // 获取指定用户的关注列表，并加载每位用户的关注状态
+    // 获取指定用户的关注列表，并同步每位用户的关注状态
     async getFollowings(uid: number) {
       this.followListLoading = true
       try {
         const res = await get<FollowListApiResponse>(`${FOLLOW_API.FOLLOWINGS}/${uid}`)
         if (res.code === 200) {
           this.followList = res.data
-          await this.loadFollowStatusForList(res.data)
+          this.syncFollowStatusFromList(res.data)
         } else {
           this.followList = []
         }

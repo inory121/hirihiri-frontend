@@ -16,6 +16,9 @@ export enum VIDEO_API {
   REPORT_PLAY = "/video/play", // 上报播放量
   HEARTBEAT = "/video/heartbeat", // 在线观众心跳
   GET_BY_UID = "/video/user", // 按 uid 获取用户投稿视频
+  GET_PINNED = "/video/pinned", // 获取用户置顶视频
+  SET_PINNED = "/video/pinned/set", // 设置置顶视频
+  CANCEL_PINNED = "/video/pinned/cancel", // 取消置顶视频
   // 视频互动
   TOGGLE_LIKE = "/video/interaction/like", // 点赞/取消点赞
   TOGGLE_COIN = "/video/interaction/coin", // 投币/取消投币

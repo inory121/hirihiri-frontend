@@ -171,23 +171,50 @@
             <h3 class="user-home__section-title">置顶视频</h3>
           </div>
           <div class="user-home__pinned-video">
-            <template v-if="pinnedVideo">
+            <template v-if="videoStore.pinnedVideo">
               <div class="user-home__pinned-card">
-                <router-link :to="`/video/${pinnedVideo.video.vid}`" target="_blank"
-                             class="user-home__pinned-link">
-                  <img :src="pinnedVideo.video.coverUrl" alt="" class="user-home__pinned-cover"/>
+                <div class="user-home__pinned-link">
+                  <div class="user-home__pinned-cover-wrap">
+                    <router-link :to="`/video/${videoStore.pinnedVideo.video.vid}`" target="_blank">
+                      <img :src="videoStore.pinnedVideo.video.coverUrl" alt="" class="user-home__pinned-cover"/>
+                      <span class="user-home__pinned-duration">{{
+                        formatDuration(videoStore.pinnedVideo.video.duration)
+                      }}</span>
+                    </router-link>
+                  </div>
                   <div class="user-home__pinned-info">
-                    <h4 class="user-home__pinned-title">{{ pinnedVideo.video.title }}</h4>
-                    <div class="user-home__pinned-meta">
-                      <span>{{ formatNumber(pinnedVideo.stat.view) }} 播放</span>
-                      <span>{{ formatTime(pinnedVideo.video.createDate) }}</span>
+                    <router-link :to="`/video/${videoStore.pinnedVideo.video.vid}`" target="_blank">
+                      <h4 class="user-home__pinned-title">{{ videoStore.pinnedVideo.video.title }}</h4>
+                    </router-link>
+                    <div class="user-home__pinned-stats">
+                      <span class="user-home__pinned-stat">
+                        <el-icon><VideoPlay /></el-icon>
+                        {{ formatNumber(videoStore.pinnedVideo.stat.view) }}
+                      </span>
+                      <span class="user-home__pinned-stat">
+                        <el-icon><ChatDotRound /></el-icon>
+                        {{ formatNumber(videoStore.pinnedVideo.stat.danmaku ?? 0) }}
+                      </span>
+                      <span class="user-home__pinned-stat">
+                        {{ formatTime(videoStore.pinnedVideo.video.createDate) }}
+                      </span>
+                    </div>
+                    <p class="user-home__pinned-descr">{{ videoStore.pinnedVideo.video.descr }}</p>
+                    <div v-if="isOwnHome" class="user-home__pinned-actions">
+                      <el-button type="primary" size="default" @click="showPinnedDialog = true">编辑置顶</el-button>
+                      <el-button size="default" @click="handleCancelPinned">取消置顶</el-button>
                     </div>
                   </div>
-                </router-link>
+                </div>
               </div>
             </template>
             <template v-else>
-              <el-empty description="暂无置顶视频" :image-size="80"/>
+              <div v-if="isOwnHome" class="user-home__pinned-empty-self">
+                <el-empty description="暂无置顶视频，快去设置你的置顶视频吧" :image-size="80">
+                  <el-button type="primary" size="default" @click="showPinnedDialog = true">设置置顶</el-button>
+                </el-empty>
+              </div>
+              <el-empty v-else description="暂无置顶视频" :image-size="80"/>
             </template>
           </div>
         </section>
@@ -196,7 +223,7 @@
         <section class="user-home__section">
           <div class="user-home__section-header">
             <div class="user-home__section-title-with-sort">
-              <h3 class="user-home__section-title">视频 {{ videoStore.userVideoList.length }}</h3>
+              <h3 class="user-home__section-title">视频 <span class="user-home__section-title-separator">·</span> <span class="user-home__section-title-count">{{ videoStore.userVideoList.length }}</span></h3>
               <div class="user-home__video-sort">
                 <span
                   class="user-home__video-sort-item"
@@ -234,7 +261,7 @@
         <!-- 收藏夹 -->
         <section class="user-home__section">
           <div class="user-home__section-header">
-            <h3 class="user-home__section-title">收藏夹 {{ favoriteFolders.length }}</h3>
+            <h3 class="user-home__section-title">收藏夹 <span class="user-home__section-title-separator">·</span> <span class="user-home__section-title-count">{{ favoriteFolders.length }}</span></h3>
             <el-button text type="primary" @click="switchTab('favorites')">查看更多</el-button>
           </div>
           <div class="user-home__folder-grid">
@@ -243,13 +270,8 @@
               <router-link :to="`/space/${route.params.uid}?tab=favorites&folder=${folder.id}`"
                            class="user-home__folder-link">
                 <div class="user-home__folder-cover">
-                  <img v-if="folder.coverUrl" :src="folder.coverUrl" alt=""
+                  <img :src="folder.coverUrl || 'https://hirihiri.oss-cn-nanjing.aliyuncs.com/b8eb9637fec90527a6dc9737acdc3577e275c7b5.png'" alt=""
                        class="user-home__folder-image"/>
-                  <div v-else class="user-home__folder-placeholder">
-                    <el-icon>
-                      <Folder/>
-                    </el-icon>
-                  </div>
                 </div>
                 <div class="user-home__folder-info">
                   <h4 class="user-home__folder-name">{{ folder.name }}</h4>
@@ -332,14 +354,10 @@
               >
                 <div class="user-home__favorites-cover-wrap">
                   <img
-                    v-if="folder.coverUrl"
                     class="user-home__favorites-cover"
-                    :src="folder.coverUrl"
+                    :src="folder.coverUrl || 'https://hirihiri.oss-cn-nanjing.aliyuncs.com/b8eb9637fec90527a6dc9737acdc3577e275c7b5.png'"
                     :alt="folder.name"
                   />
-                  <el-icon v-else class="user-home__favorites-icon">
-                    <Folder/>
-                  </el-icon>
                 </div>
                 <span>{{ folder.name }}</span>
                 <span class="user-home__favorites-count">{{ folder.videoCount }}</span>
@@ -663,6 +681,67 @@
       </div>
     </template>
   </el-dialog>
+
+  <!-- 设置置顶视频弹窗 -->
+  <el-dialog
+    v-model="showPinnedDialog"
+    title="设置置顶视频"
+    width="640px"
+    :close-on-click-modal="false"
+    class="pinned-dialog"
+  >
+    <div class="pinned-dialog__content">
+      <div class="pinned-dialog__search">
+        <el-input
+          v-model="pinnedSearchKeyword"
+          placeholder="搜索我投稿的视频"
+          clearable
+          :prefix-icon="Search"
+        />
+      </div>
+      <div class="pinned-dialog__sort">
+        <span class="pinned-dialog__sort-label">投稿视频</span>
+        <el-select v-model="pinnedSortOrder" size="default" class="pinned-dialog__sort-select">
+          <el-option label="最新发布" value="date" />
+          <el-option label="最多播放" value="view" />
+          <el-option label="最多收藏" value="favorite" />
+        </el-select>
+      </div>
+      <div class="pinned-dialog__list">
+        <div
+          v-for="item in sortedPinnedVideos"
+          :key="item.video.vid"
+          class="pinned-dialog__item"
+          :class="{ 'pinned-dialog__item--active': selectedPinnedVid === item.video.vid }"
+          @click="selectedPinnedVid = item.video.vid"
+        >
+          <div class="pinned-dialog__radio-placeholder">
+            <div v-if="selectedPinnedVid === item.video.vid" class="pinned-dialog__radio-checked"></div>
+          </div>
+          <img :src="item.video.coverUrl" alt="" class="pinned-dialog__cover" />
+          <div class="pinned-dialog__item-info">
+            <div class="pinned-dialog__item-title">{{ item.video.title }}</div>
+            <div class="pinned-dialog__item-meta">
+              <span class="pinned-dialog__item-stat">
+                <el-icon><VideoPlay /></el-icon>
+                {{ formatNumber(item.stat.view) }}
+              </span>
+              <span class="pinned-dialog__item-stat">
+                {{ formatTime(item.video.createDate) }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <el-empty v-if="sortedPinnedVideos.length === 0" description="暂无视频" :image-size="60" />
+      </div>
+    </div>
+    <template #footer>
+      <div class="pinned-dialog__footer">
+        <el-button @click="showPinnedDialog = false">取消</el-button>
+        <el-button type="primary" :disabled="!selectedPinnedVid" @click="handleSetPinned(selectedPinnedVid)">确定</el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script lang="ts" setup>
@@ -673,7 +752,8 @@ import {
   formatNumber,
   getLevelByExp,
   getLevelIconUrl,
-  formatTime
+  formatTime,
+  formatDuration
 } from '@/utils/utils.ts'
 import {useUserStore} from '@/stores/userStore'
 import {useVideoStore} from '@/stores/videoStore'
@@ -694,7 +774,9 @@ import {
   StarFilled,
   VideoCameraFilled,
   UserFilled,
-  Avatar
+  Avatar,
+  VideoPlay,
+  ChatDotRound
 } from '@element-plus/icons-vue'
 import type {VideoInfo, FavoriteFolder} from '@/types/api'
 
@@ -705,11 +787,48 @@ const videoStore = useVideoStore()
 const activeTab = ref<'home' | 'favorites' | 'video' | 'followings' | 'followers'>('home')
 
 // 主页相关数据
-const pinnedVideo = ref<VideoInfo | null>(null) // 置顶视频
 const favoriteFolders = ref<FavoriteFolder[]>([]) // 收藏夹列表
 const recentCoinVideos = ref<VideoInfo[]>([]) // 最近投币的视频
 const recentLikeVideos = ref<VideoInfo[]>([]) // 最近点赞的视频
 const homeVideoSort = ref<'date' | 'view' | 'favorite'>('date') // 主页视频排序方式
+const showPinnedDialog = ref(false) // 是否显示设置置顶弹窗
+const pinnedSearchKeyword = ref('') // 置顶搜索关键词
+const pinnedSortOrder = ref<'date' | 'view' | 'favorite'>('date') // 置顶视频排序
+const selectedPinnedVid = ref<number>(0) // 选中的置顶视频ID
+
+// 过滤和排序后的置顶候选视频列表
+const sortedPinnedVideos = computed<VideoInfo[]>(() => {
+  let list = [...videoStore.userVideoList]
+  if (pinnedSearchKeyword.value.trim()) {
+    const kw = pinnedSearchKeyword.value.trim().toLowerCase()
+    list = list.filter(item =>
+      item.video.title.toLowerCase().includes(kw)
+    )
+  }
+  switch (pinnedSortOrder.value) {
+    case 'view':
+      list.sort((a, b) => (b.stat.view || 0) - (a.stat.view || 0))
+      break
+    case 'favorite':
+      list.sort((a, b) => (b.stat.favorite || 0) - (a.stat.favorite || 0))
+      break
+    case 'date':
+    default:
+      list.sort((a, b) =>
+        new Date(b.video.createDate).getTime() - new Date(a.video.createDate).getTime()
+      )
+  }
+  return list
+})
+
+// 打开置顶弹窗时默认选中当前置顶视频
+watch(showPinnedDialog, (val) => {
+  if (val && videoStore.pinnedVideo) {
+    selectedPinnedVid.value = videoStore.pinnedVideo.video.vid
+  } else if (val) {
+    selectedPinnedVid.value = 0
+  }
+})
 
 // 排序后的主页视频列表
 const sortedHomeVideos = computed<VideoInfo[]>(() => {
@@ -1054,10 +1173,9 @@ const handleDeleteFolder = async (folder: FavoriteFolder) => {
 // 加载主页数据
 const loadHomeData = async (targetUid: number) => {
   try {
-    // 置顶视频（取第一个视频作为置顶，数据库暂无置顶字段）
-    if (videoStore.userVideoList.length > 0) {
-      pinnedVideo.value = videoStore.userVideoList[0]
-    }
+    const [pinned] = await Promise.all([
+      videoStore.getPinnedVideo(targetUid),
+    ])
 
     // 并行加载收藏夹、最近投币、最近点赞
     // 传入目标用户uid，如果是自己访问自己主页，API返回自己的数据也正确
@@ -1072,6 +1190,34 @@ const loadHomeData = async (targetUid: number) => {
     recentLikeVideos.value = likes
   } catch (e) {
     console.error('加载主页数据失败:', e)
+  }
+}
+
+// 取消置顶
+const handleCancelPinned = async () => {
+  if (!videoStore.pinnedVideo) return
+  try {
+    await ElMessageBox.confirm('确定要取消置顶该视频吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+  const vid = videoStore.pinnedVideo.video.vid
+  const success = await videoStore.cancelPinnedVideo(vid)
+  if (success) {
+    await videoStore.getPinnedVideo(userStore.targetUser.uid)
+  }
+}
+
+// 设置置顶
+const handleSetPinned = async (vid: number) => {
+  const success = await videoStore.setPinnedVideo(vid)
+  if (success) {
+    showPinnedDialog.value = false
+    await videoStore.getPinnedVideo(userStore.targetUser.uid)
   }
 }
 
@@ -1204,7 +1350,6 @@ watch(
 .user-home__details {
   flex: 1;
   min-width: 0;
-  padding-top: 12px;
 }
 
 .user-home__name {
@@ -1393,7 +1538,7 @@ watch(
 .user-home__content {
   background: #fff;
   border-radius: 8px;
-  padding: 40px 20px;
+  padding: 20px 20px;
   min-height: 300px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
@@ -1408,13 +1553,18 @@ watch(
 .user-home__home {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+
 }
 
 .user-home__section {
   background: #fff;
   border-radius: 8px;
   padding: 20px;
+  border-bottom: 1px solid #e5e6eb;
+
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .user-home__section-header {
@@ -1429,6 +1579,16 @@ watch(
   font-weight: 600;
   color: #222;
   margin: 0;
+}
+
+.user-home__section-title-separator {
+  color: #dcdfe6;
+  margin: 0 4px;
+}
+
+.user-home__section-title-count {
+  color: #909399;
+  font-weight: normal;
 }
 
 .user-home__section-title-with-sort {
@@ -1481,57 +1641,114 @@ watch(
   .user-home__pinned-card {
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    transition: transform 0.2s, box-shadow 0.2s;
-
-    &:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    }
+    background: #fff;
   }
 
   .user-home__pinned-link {
     display: flex;
     text-decoration: none;
     color: inherit;
+    align-items: stretch;
+  }
+
+  .user-home__pinned-cover-wrap {
+    position: relative;
+    width: 25%;
+    max-width: 480px;
+    min-width: 280px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    aspect-ratio: 16/9;
   }
 
   .user-home__pinned-cover {
-    width: 320px;
-    height: 180px;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
-    flex-shrink: 0;
+    display: block;
+  }
+
+  .user-home__pinned-duration {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    padding: 1px 6px;
+    font-size: 12px;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+    line-height: 1.4;
   }
 
   .user-home__pinned-info {
     flex: 1;
-    padding: 16px;
+    padding: 12px 20px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    gap: 10px;
+    min-width: 0;
   }
 
   .user-home__pinned-title {
     font-size: 18px;
-    font-weight: 500;
-    color: #222;
-    margin: 0 0 12px;
+    font-weight: 600;
+    color: #18191c;
+    margin: 0;
     line-height: 1.4;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
 
     .user-home__pinned-link:hover & {
-      color: #fb7299;
+      color: #00aeec;
     }
   }
 
-  .user-home__pinned-meta {
+  .user-home__pinned-stats {
     display: flex;
+    align-items: center;
     gap: 16px;
     font-size: 13px;
     color: #9499a0;
+  }
+
+  .user-home__pinned-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    .el-icon {
+      font-size: 14px;
+    }
+  }
+
+  .user-home__pinned-descr {
+    font-size: 13px;
+    color: #61666d;
+    line-height: 1.6;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .user-home__pinned-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 16px;
+
+    .el-button {
+      padding: 10px 20px;
+    }
+  }
+
+  .user-home__pinned-empty-self {
+    text-align: center;
+    padding: 20px 0;
   }
 }
 
@@ -2049,6 +2266,139 @@ watch(
         background: #ccc;
         cursor: not-allowed;
       }
+    }
+  }
+}
+
+/* 置顶视频弹窗 */
+.pinned-dialog {
+  .pinned-dialog__content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .pinned-dialog__search {
+    .el-input {
+      width: 100%;
+    }
+  }
+
+  .pinned-dialog__sort {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    &-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #18191c;
+    }
+
+    &-select {
+      width: 120px;
+    }
+  }
+
+  .pinned-dialog__list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .pinned-dialog__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-bottom: 4px;
+
+    &:hover {
+      background-color: #f6f7f8;
+    }
+
+    &--active {
+      background-color: #e6f4ff;
+    }
+  }
+
+  .pinned-dialog__radio-placeholder {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #dcdfe6;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    margin-right: 12px;
+  }
+  
+  .pinned-dialog__radio-checked {
+    width: 8px;
+    height: 8px;
+    background: #409eff;
+    border-radius: 50%;
+  }
+  
+  .pinned-dialog__item--active .pinned-dialog__radio-placeholder {
+    border-color: #409eff;
+  }
+
+  .pinned-dialog__cover {
+    width: 140px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .pinned-dialog__item-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pinned-dialog__item-title {
+    font-size: 14px;
+    color: #18191c;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pinned-dialog__item-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: #9499a0;
+  }
+
+  .pinned-dialog__item-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+
+    .el-icon {
+      font-size: 13px;
+    }
+  }
+
+  .pinned-dialog__footer {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+
+    .el-button {
+      min-width: 100px;
     }
   }
 }

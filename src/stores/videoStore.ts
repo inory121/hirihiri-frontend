@@ -35,8 +35,10 @@ export const useVideoStore = defineStore('video', {
       hotSearchList: [] as string[],
       searchSuggestList: [] as string[],
       userVideoList: [] as VideoInfo[], // 用户投稿视频列表
+      pinnedVideo: null as VideoInfo | null, // 用户置顶视频
       loading: true, // 骨架屏显示
       userVideoLoading: true, // 用户投稿视频加载状态
+      pinnedVideoLoading: false, // 置顶视频加载状态
       isShow: false, // 是否显示视频详情
       pageNum: 0,
       pageSize: 20,
@@ -160,6 +162,56 @@ export const useVideoStore = defineStore('video', {
         this.userVideoList = []
       } finally {
         this.userVideoLoading = false
+      }
+    },
+    async getPinnedVideo(uid: number) {
+      this.pinnedVideoLoading = true
+      try {
+        const res = await get<OneVideoApiResponse>(`${VIDEO_API.GET_PINNED}/${uid}`)
+        if (res.code === 200 && res.data) {
+          this.pinnedVideo = res.data
+        } else {
+          this.pinnedVideo = null
+        }
+      } catch (e) {
+        console.log('加载置顶视频失败:', e)
+        this.pinnedVideo = null
+      } finally {
+        this.pinnedVideoLoading = false
+      }
+    },
+    async setPinnedVideo(vid: number): Promise<boolean> {
+      try {
+        const res = await post<{ code: number; data: string; message: string }>(
+          `${VIDEO_API.SET_PINNED}/${vid}`,
+        )
+        if (res.code === 200) {
+          ElMessage.success(res.message || '设置置顶成功')
+          return true
+        }
+        ElMessage.error(res.message || '设置置顶失败')
+        return false
+      } catch (e) {
+        console.error('设置置顶失败:', e)
+        ElMessage.error('设置置顶失败')
+        return false
+      }
+    },
+    async cancelPinnedVideo(vid: number): Promise<boolean> {
+      try {
+        const res = await post<{ code: number; data: string; message: string }>(
+          `${VIDEO_API.CANCEL_PINNED}/${vid}`,
+        )
+        if (res.code === 200) {
+          ElMessage.success(res.message || '取消置顶成功')
+          return true
+        }
+        ElMessage.error(res.message || '取消置顶失败')
+        return false
+      } catch (e) {
+        console.error('取消置顶失败:', e)
+        ElMessage.error('取消置顶失败')
+        return false
       }
     },
     async reportPlay(vid: number) {

@@ -72,7 +72,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Plus, ChatDotRound } from '@element-plus/icons-vue'
+import { ChatDotRound } from '@element-plus/icons-vue'
 import type { User } from '@/types/api'
 import { getLevelByExp, getLevelIconUrl } from '@/utils/utils.ts'
 
@@ -323,6 +323,7 @@ const handleFollow = () => {
   }
 
   &__level-icon {
+    width: 24px;
     height: 24px;
     flex-shrink: 0;
   }
