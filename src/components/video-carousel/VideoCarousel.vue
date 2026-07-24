@@ -30,7 +30,7 @@
           @change="handleCarouselChange"
         >
           <el-carousel-item
-            v-for="(videoInfo, index) in videoStore.videoList.slice(0, 7)"
+            v-for="(videoInfo, index) in recommendStore.feedList.slice(0, 7)"
             :key="index"
           >
             <router-link :to="`video/${videoInfo.video.vid}`" target="_blank">
@@ -44,7 +44,7 @@
           </el-carousel-item>
         </el-carousel>
         <!-- 当前标题 -->
-        <router-link :to="`/video/${videoStore.videoList[currentIndex]?.video.vid}`" class="carousel-title" :style="titleStyle">{{ currentTitle }}</router-link>
+        <router-link :to="`/video/${recommendStore.feedList[currentIndex]?.video.vid}`" class="carousel-title" :style="titleStyle">{{ currentTitle }}</router-link>
       </template>
     </el-skeleton>
   </div>
@@ -52,16 +52,16 @@
 
 <script lang="ts" setup>
 import { ref, watch, computed } from 'vue'
-import { useVideoStore } from '@/stores/videoStore.ts'
+import { useRecommendStore } from '@/stores/recommendStore.ts'
 
 const props = defineProps(['loading'])
-const videoStore = useVideoStore()
+const recommendStore = useRecommendStore()
 // 定义当前标题和当前索引
 const currentIndex = ref(0)
 const currentTitle = ref('')
 // 当前颜色计算
 const currentBgColor = computed(() => {
-  const color = videoStore.videoList[currentIndex.value]?.video.dominantColor || [255, 255, 255]
+  const color = recommendStore.feedList[currentIndex.value]?.video.dominantColor || [255, 255, 255]
   return `rgba(${color.join(',')},0.8)`
 })
 // 样式绑定
@@ -76,7 +76,7 @@ const handleCarouselChange = (current: number) => {
 }
 // 监听 currentIndex 变化，更新 currentTitle
 watch(
-  [() => videoStore.videoList, currentIndex],
+  [() => recommendStore.feedList, currentIndex],
   ([newList, newIndex]) => {
     currentTitle.value = newList[newIndex]?.video.title || ''
   },
@@ -136,6 +136,20 @@ watch(
 }
 
 :deep(.el-carousel__indicators.el-carousel__indicators--horizontal) {
-  min-width: 304px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  max-width: 100%;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+:deep(.el-carousel__indicator) {
+  padding: 6px 4px;
 }
 </style>

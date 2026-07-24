@@ -32,9 +32,26 @@ export const useVideoStore = defineStore('video', {
       },
       videoList: [] as VideoInfo[], // 推荐视频列表
       searchVideoList: [] as VideoInfo[],
+      searchVideoTotal: 0,
       hotSearchList: [] as string[],
       searchSuggestList: [] as string[],
       userVideoList: [] as VideoInfo[], // 用户投稿视频列表
+      userVideoTotal: 0,
+      userVideoStats: {
+        totalVideos: 0,
+        totalViews: 0,
+        totalLikes: 0,
+        totalCoins: 0,
+        totalFavorites: 0,
+        totalDanmaku: 0,
+      } as {
+        totalVideos: number
+        totalViews: number
+        totalLikes: number
+        totalCoins: number
+        totalFavorites: number
+        totalDanmaku: number
+      },
       pinnedVideo: null as VideoInfo | null, // 用户置顶视频
       loading: true, // 骨架屏显示
       userVideoLoading: true, // 用户投稿视频加载状态
@@ -114,13 +131,17 @@ export const useVideoStore = defineStore('video', {
         }
       })
     },
-    async getSearchVideos(keyword: string, order = 'default') {
-      await get<VideoApiResponse>(`${VIDEO_API.GET_SEARCH_VIDEO}?keyword=${keyword}&order=${order}`).then(
+    async getSearchVideos(keyword: string, order = 'default', pageNum = 1, pageSize = 36) {
+      await get<{ code: number; data: { records: VideoInfo[]; total: number } }>(
+        `${VIDEO_API.GET_SEARCH_VIDEO}?keyword=${keyword}&order=${order}&pageNum=${pageNum}&pageSize=${pageSize}`,
+      ).then(
         (res) => {
           if (res.code === 200) {
-            this.searchVideoList = res.data
+            this.searchVideoList = res.data.records
+            this.searchVideoTotal = res.data.total || 0
           } else {
             this.searchVideoList = []
+            this.searchVideoTotal = 0
             ElMessage.error('没有搜索到视频')
           }
         },
@@ -148,20 +169,52 @@ export const useVideoStore = defineStore('video', {
       }
       return this.searchSuggestList
     },
-    async getUserVideos(uid: number) {
+    async getUserVideos(uid: number, pageNum = 1, pageSize = 100, order = 'date') {
       this.userVideoLoading = true
       try {
-        const res = await get<VideoApiResponse>(`${VIDEO_API.GET_BY_UID}/${uid}`)
+        const res = await get<{ code: number; data: { records: VideoInfo[]; total: number } }>(`${VIDEO_API.GET_BY_UID}/${uid}`, {
+          params: { pageNum, pageSize, order },
+        })
         if (res.code === 200) {
-          this.userVideoList = res.data
+          this.userVideoList = res.data.records
+          this.userVideoTotal = res.data.total || 0
         } else {
           this.userVideoList = []
+          this.userVideoTotal = 0
         }
       } catch (e) {
         console.log('加载用户投稿视频失败:', e)
         this.userVideoList = []
+        this.userVideoTotal = 0
       } finally {
         this.userVideoLoading = false
+      }
+    },
+    async getUserVideoStats(uid: number) {
+      try {
+        const res = await get<{
+          code: number
+          data: {
+            totalVideos: number
+            totalViews: number
+            totalLikes: number
+            totalCoins: number
+            totalFavorites: number
+            totalDanmaku: number
+          }
+        }>(`${VIDEO_API.GET_BY_UID}/stats/${uid}`)
+        if (res.code === 200 && res.data) {
+          this.userVideoStats = {
+            totalVideos: Number(res.data.totalVideos) || 0,
+            totalViews: Number(res.data.totalViews) || 0,
+            totalLikes: Number(res.data.totalLikes) || 0,
+            totalCoins: Number(res.data.totalCoins) || 0,
+            totalFavorites: Number(res.data.totalFavorites) || 0,
+            totalDanmaku: Number(res.data.totalDanmaku) || 0,
+          }
+        }
+      } catch (e) {
+        console.log('加载用户视频统计数据失败:', e)
       }
     },
     async getPinnedVideo(uid: number) {
@@ -402,7 +455,7 @@ export const useVideoStore = defineStore('video', {
       }
       return result
     },
-    async getFolderVideos(folderId: number, pageNum = 1, pageSize = 20): Promise<VideoInfo[]> {
+    async getFolderVideos(folderId: number, pageNum = 1, pageSize = 36): Promise<VideoInfo[]> {
       const res = await get<FavoriteVideoPageApiResponse>(
         `${VIDEO_API.GET_FOLDER_VIDEOS}/${folderId}/videos`,
         { params: { pageNum, pageSize } },

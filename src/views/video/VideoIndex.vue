@@ -13,13 +13,13 @@
             <el-icon>
               <View/>
             </el-icon>
-            <span class="text">{{ videoInfo.stat.view }}</span>
+            <span class="text">{{ formatNumber(videoInfo.stat.view) }}</span>
           </div>
           <div class="dm-item item">
             <el-icon>
               <Comment/>
             </el-icon>
-            <span class="text">{{ videoInfo.stat.danmaku }}</span>
+            <span class="text">{{ formatNumber(videoInfo.stat.danmaku) }}</span>
           </div>
           <div class="createDate-item item">
             {{ formatDateTime(videoInfo.video.createDate) }}
@@ -465,7 +465,7 @@
           </el-collapse>
         </div>
         <div class="rec-list">
-          <div class="card-box" v-for="list in videoList" :key="list.video.vid">
+          <div class="card-box" v-for="list in relatedList" :key="list.video.vid">
             <div class="pic-box">
               <router-link :to="`/video/${list.video.vid}`">
                 <img :src="list.video.coverUrl" alt=""/>
@@ -478,23 +478,19 @@
               </router-link>
               <div class="upname">
                 <router-link :to="`/space/${list.user.uid}`">
-                  <!--                  <el-icon class="icon">-->
-                  <!--                    <User />-->
-                  <!--                  </el-icon>-->
-                  <!--                  <span class="up">up</span>-->
                   <img src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg"/>
-                  <span class="name">{{ list.user.username }}</span>
+                  <span class="name">{{ list.user.username || '未知用户' }}</span>
                 </router-link>
               </div>
               <div class="playinfo">
                 <el-icon class="icon">
                   <View/>
                 </el-icon>
-                <span class="text">{{ list.stat.view }}</span>
+                <span class="text">{{ formatNumber(list.stat.view) }}</span>
                 <el-icon class="icon">
                   <Comment/>
                 </el-icon>
-                <span class="text">{{ list.stat.danmaku }}</span>
+                <span class="text">{{ formatNumber(list.stat.danmaku) }}</span>
               </div>
             </div>
           </div>
@@ -576,6 +572,7 @@ import {useDanmakuStore} from '@/stores/danmakuStore.ts'
 import {useCommentStore} from '@/stores/commentStore.ts'
 import {useUserStore} from '@/stores/userStore.ts'
 import {useHistoryStore} from '@/stores/historyStore.ts'
+import {useRecommendStore} from '@/stores/recommendStore.ts'
 import CommentItem from '@/components/comment-item/CommentItem.vue'
 import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
 
@@ -585,7 +582,9 @@ const danmakuStore = useDanmakuStore()
 const commentStore = useCommentStore()
 const userStore = useUserStore()
 const historyStore = useHistoryStore()
+const recommendStore = useRecommendStore()
 const {videoInfo, videoList, isShow, onlineCount} = storeToRefs(videoStore)
+const {relatedList} = storeToRefs(recommendStore)
 const {commentList} = storeToRefs(commentStore)
 const {danmakuList} = storeToRefs(danmakuStore)
 const {user} = storeToRefs(userStore)
@@ -602,11 +601,14 @@ const isExpanded = ref(false) // 视频信息收起状态
 const descText = ref<HTMLElement | null>(null)
 const showToggleBtn = ref(false)
 const hasReportedPlay = ref(false) // 是否已上报播放量
+let isMounted = false // 避免首次加载时 onMounted 和 watch 同时执行
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null // 心跳定时器
 let handleBeforeUnload: (() => void) | null = null // 页面关闭事件处理函数
 let hasSavedInitialRecord = false // 是否已保存过初始历史记录（避免 play 事件重复保存）
 let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null // 保存历史记录的防抖计时器
 let lastSaveTime = 0 // 上一次保存历史记录的时间戳
+// 推荐观看进度上报状态
+const reportedProgressMarks = ref<Set<string>>(new Set())
 
 const danmakuEnabled = ref(true) // 弹幕开关
 const showDanmakuSettings = ref(false) // 设置面板显示状态
@@ -986,9 +988,16 @@ const handleLike = () => {
   }
 }
 // 点踩
-const handleDislike = () => {
+const handleDislike = async () => {
   if (videoInfo.value.video.vid) {
-    videoStore.toggleDislike(videoInfo.value.video.vid)
+    const wasDisliked = videoStore.disliked
+    await videoStore.toggleDislike(videoInfo.value.video.vid)
+    // 仅在新增点踩时上报事件，取消点踩时撤销事件
+    if (!wasDisliked && videoStore.disliked) {
+      recommendStore.reportDislike(videoInfo.value.video.vid, 'home')
+    } else if (wasDisliked && !videoStore.disliked) {
+      recommendStore.revokeDislike(videoInfo.value.video.vid, 'home')
+    }
   }
 }
 // 投币
@@ -1220,11 +1229,36 @@ const initPlayer = async () => {
       player?.play()
     })
 
-    // 监听播放进度,当播放达到3秒时上报播放量
+    // 监听播放进度,当播放达到3秒时上报播放量，同时上报推荐观看进度
     player.on('timeupdate', () => {
-      if (player && player.currentTime >= 3 && !hasReportedPlay.value) {
+      if (!player) return
+      const currentTime = player.currentTime
+      const duration = player.duration || videoInfo.value.video.duration || 0
+
+      if (currentTime >= 3 && !hasReportedPlay.value) {
         reportPlayCount()
         hasReportedPlay.value = true
+      }
+
+      // 上报推荐观看进度：5秒、25%、50%、75%
+      if (duration > 0) {
+        const marks = [
+          { label: '5s', threshold: 5, ratio: Math.min(5 / duration, 1) },
+          { label: '25%', threshold: duration * 0.25, ratio: 0.25 },
+          { label: '50%', threshold: duration * 0.5, ratio: 0.5 },
+          { label: '75%', threshold: duration * 0.75, ratio: 0.75 },
+        ]
+        marks.forEach((mark) => {
+          if (currentTime >= mark.threshold && !reportedProgressMarks.value.has(mark.label)) {
+            reportedProgressMarks.value.add(mark.label)
+            recommendStore.reportWatchProgress(
+              videoInfo.value.video.vid,
+              Math.floor(currentTime),
+              Number(mark.ratio.toFixed(4)),
+              'home',
+            )
+          }
+        })
       }
     })
 
@@ -1304,14 +1338,18 @@ const sendDanmaku = async () => {
   }
 }
 watch([() => route.params.vid], async ([newVid], [oldVid]) => {
-  if (newVid && newVid !== oldVid) {
+  if (newVid && newVid !== oldVid && isMounted) {
     hasReportedPlay.value = false
     hasSavedInitialRecord = false // 重置历史记录保存标志，新视频可以再次立即保存
     lastSaveTime = 0 // 重置定时保存时间戳
+    reportedProgressMarks.value.clear()
     if (saveDebounceTimer) {
       clearTimeout(saveDebounceTimer) // 清理防抖计时器
       saveDebounceTimer = null
     }
+
+    // flush 旧视频的推荐事件
+    recommendStore.flushEvents()
 
     // 1. 显示占位遮罩，避免看到 DOM 重建时裸 video 的尺寸闪烁
     if (playerPlaceholder.value) {
@@ -1323,25 +1361,27 @@ watch([() => route.params.vid], async ([newVid], [oldVid]) => {
     disposeDanmaku()
     disposePlayer()
 
-    // 3. 加载新视频信息和评论
+    // 3. 加载新视频信息、相关推荐和评论
+    await recommendStore.getRelated(Number(newVid), 10)
     await videoStore.getVideo(Number(newVid))
     await videoStore.getInteractionStatus(Number(newVid))
     await commentStore.getComment(Number(newVid))
     await loadUpFollowInfo()
+    await loadUserFavoriteFolders(Number(newVid))
 
-    // 3. 等待 Vue 根据 key 完成 DOM 重建（danmaku-wrap 和 video 都是全新的 DOM 元素）
+    // 4. 等待 Vue 根据 key 完成 DOM 重建（danmaku-wrap 和 video 都是全新的 DOM 元素）
     await nextTick()
 
-    // 4. 在全新的 video 元素上重新初始化 Plyr（不会有样式冲突问题）
+    // 5. 在全新的 video 元素上重新初始化 Plyr（不会有样式冲突问题）
     await initPlayer()
 
-    // 5. 初始化弹幕（initDanmaku 内部会等待视频元数据加载完成）
+    // 6. 初始化弹幕（initDanmaku 内部会等待视频元数据加载完成）
     await initDanmaku(Number(newVid))
 
-    // 6. 重新初始化评论懒加载
+    // 7. 重新初始化评论懒加载
     initCommentObserver()
 
-    // 7. 更新其他状态
+    // 8. 更新其他状态
     rcmTags.value = videoInfo.value.video?.tags?.split('\n')
     if (descText.value) {
       const height = descText.value.scrollHeight
@@ -1424,7 +1464,7 @@ const disposeDanmaku = () => {
 onMounted(async () => {
   const vid = Number(route.params.vid)
   if (!isNaN(vid)) {
-    await videoStore.getRecommendVideo()
+    await recommendStore.getRelated(vid, 10)
     await videoStore.getVideo(vid)
     await videoStore.getInteractionStatus(vid)
     await commentStore.getComment(vid)
@@ -1443,6 +1483,7 @@ onMounted(async () => {
   // 初始化评论懒加载
   await nextTick()
   initCommentObserver()
+  isMounted = true
 
   // 启动在线人数心跳 (每30秒一次)
   const viewerId = getViewerId()
@@ -1456,13 +1497,24 @@ onMounted(async () => {
     }, 30_000)
   }
 
-  // 页面关闭/刷新时保存进度（浏览器即将关闭，必须立即保存）
+  // 注册页面生命周期监听（visibilitychange + pagehide，用 sendBeacon 兜底事件上报）
+  recommendStore.initPageLifecycleListeners()
+  // 重试上次失败的事件
+  recommendStore.retryFailedEvents()
+
+  // 页面关闭/刷新时保存播放进度
   handleBeforeUnload = () => {
     savePlayProgressImmediate()
   }
   window.addEventListener('beforeunload', handleBeforeUnload)
 })
+
+// 路由参数变化时（同一组件内切换视频）重新加载
+// 注意：不再使用 onBeforeRouteUpdate，因为它和 watch 同时触发会导致重复销毁/初始化播放器
+// watch 中有 nextTick 等待 DOM 重建，是正确的做法
+
 onUnmounted(() => {
+  isMounted = false
   // 离开页面时保存进度（组件即将卸载，必须立即保存）
   savePlayProgressImmediate()
   resizeObserver?.disconnect() // 清理监听
@@ -1481,6 +1533,8 @@ onUnmounted(() => {
     window.removeEventListener('beforeunload', handleBeforeUnload)
     handleBeforeUnload = null
   }
+  // flush 推荐事件（组件卸载时用异步方式，页面真正关闭由 visibilitychange/pagehide 兜底）
+  recommendStore.flushEvents()
 })
 
 </script>

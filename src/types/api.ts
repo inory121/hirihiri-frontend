@@ -259,3 +259,28 @@ export interface FollowStatusApiResponse extends BaseResponse {
 export interface FollowListApiResponse extends BaseResponse {
   data: User[]
 }
+
+// 推荐流 DTO
+export interface RecommendFeedDTO {
+  items: VideoInfo[]
+  nextCursor: string | null
+  requestId: string
+}
+
+// 推荐行为事件
+export interface RecommendEvent {
+  eventId: string
+  vid: number
+  eventType: 'impression' | 'click' | 'watch_progress' | 'dislike'
+  requestId?: string
+  scene?: string
+  position?: number
+  watchSeconds?: number
+  progressRatio?: number
+  eventTime?: string
+}
+
+// 推荐反馈响应
+export interface RecommendFeedbackResponse extends BaseResponse {
+  data: string
+}

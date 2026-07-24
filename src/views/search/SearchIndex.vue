@@ -2,39 +2,27 @@
   <div style="min-height: 64px" class="hiri-header__bar">
     <HeaderBar />
   </div>
-  <div class="search-header">
-    <div class="search-input">
-      <el-input
-        v-model="input"
-        style="max-width: 600px; height: 44px; --el-input-border-radius: 6px"
-        placeholder="输入关键词搜索"
-        @keyup.enter="searchInfo"
-      >
-        <template #prepend>
-          <el-button :icon="Search" />
-        </template>
-        <template #append>
-          <el-button type="primary" @click="searchInfo">搜索</el-button>
-        </template>
-      </el-input>
+  <div class="search-header" :style="isInputSticky ? { paddingTop: inputPlaceholderHeight + 'px' } : {}">
+    <div class="search-input" ref="searchInputRef" :class="{ 'is-sticky': isInputSticky }">
+      <SearchBox class="search-input__box" :placeholder="keyword || '输入关键词搜索'" :default-value="keyword" />
     </div>
     <div class="search-category-tabs">
       <div class="search-category-tabs-inner">
         <router-link
-          :to="{ path: '/search/video', query: { keyword: input } }"
+          :to="{ path: '/search/video', query: { keyword } }"
           class="category-tab"
           :class="{ 'category-tab--active': activeCategory === 'video' }"
         >
           <span class="category-tab__text">视频</span>
-          <span class="category-tab__count">{{ formatCount(searchVideoList?.length) }}</span>
+          <span class="category-tab__count">{{ formatSearchCount(searchVideoTotal) }}</span>
         </router-link>
         <router-link
-          :to="{ path: '/search/user', query: { keyword: input } }"
+          :to="{ path: '/search/user', query: { keyword } }"
           class="category-tab"
           :class="{ 'category-tab--active': activeCategory === 'user' }"
         >
           <span class="category-tab__text">用户</span>
-          <span class="category-tab__count">{{ formatCount(searchUserList?.length) }}</span>
+          <span class="category-tab__count">{{ formatSearchCount(searchUserTotal) }}</span>
         </router-link>
       </div>
     </div>
@@ -81,11 +69,11 @@
               <el-icon class="icon" style="font-size: 16px">
                 <View />
               </el-icon>
-              <span class="text">{{ list.stat.view }}</span>
+              <span class="text">{{ formatNumber(list.stat.view) }}</span>
               <el-icon class="icon" style="margin-left: 10px; font-size: 16px">
                 <Comment />
               </el-icon>
-              <span class="text">{{ list.stat.danmaku }}</span>
+              <span class="text">{{ formatNumber(list.stat.danmaku) }}</span>
             </div>
             <span class="duration">{{ formatDuration(list.video.duration) }}</span>
           </div>
@@ -168,55 +156,123 @@
           </div>
         </div>
       </div>
+      <CustomPagination
+        v-if="activeCategory === 'user' && searchUserTotal > 0"
+        :current-page="userPageNum"
+        :page-size="userPageSize"
+        :total="searchUserTotal"
+        @current-change="handleUserPageChange"
+      />
     </div>
+    <CustomPagination
+      v-if="activeCategory === 'video' && searchVideoTotal > 0"
+      :current-page="videoPageNum"
+      :page-size="videoPageSize"
+      :total="searchVideoTotal"
+      @current-change="handleVideoPageChange"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { Search, View, Comment } from '@element-plus/icons-vue'
-import { onMounted, ref, watch, computed } from 'vue'
+import { View, Comment } from '@element-plus/icons-vue'
+import { onMounted, onUnmounted, ref, watch, computed, nextTick } from 'vue'
 import { useVideoStore } from '@/stores/videoStore.ts'
 import { useUserStore } from '@/stores/userStore.ts'
 import { storeToRefs } from 'pinia'
-import { formatDuration, formatTime, getLevelIconUrl } from '@/utils/utils.ts'
-import { useRoute, useRouter } from 'vue-router'
+import { formatDuration, formatTime, formatNumber, getLevelIconUrl } from '@/utils/utils.ts'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import CustomPagination from '@/components/pagination/CustomPagination.vue'
+import SearchBox from '@/components/search/SearchBox.vue'
 
 const route = useRoute()
-const router = useRouter()
 
 const videoStore = useVideoStore()
 const userStore = useUserStore()
-const { searchVideoList } = storeToRefs(videoStore)
-const { searchUserList, followStatusMap, isLogin, showLoginWindow } = storeToRefs(userStore)
-const input = ref('')
+const { searchVideoList, searchVideoTotal } = storeToRefs(videoStore)
+const { searchUserList, searchUserTotal, followStatusMap, isLogin, showLoginWindow } = storeToRefs(userStore)
 const videoOrder = ref('default')
 const userOrder = ref('default')
+const videoPageNum = ref(1)
+const videoPageSize = ref(36)
+const userPageNum = ref(1)
+const userPageSize = ref(36)
+
+// 搜索框吸顶：滚动超过搜索框初始位置后切换为fixed
+const searchInputRef = ref<HTMLElement | null>(null)
+const isInputSticky = ref(false)
+const inputPlaceholderHeight = ref(0)
+let initialOffsetTop = 0
+
+const measureInitialPosition = () => {
+  if (!searchInputRef.value) return
+  initialOffsetTop = searchInputRef.value.offsetTop
+  inputPlaceholderHeight.value = searchInputRef.value.offsetHeight
+}
+
+const handleScroll = () => {
+  if (initialOffsetTop === 0) return
+  if (window.scrollY >= initialOffsetTop && !isInputSticky.value) {
+    isInputSticky.value = true
+  } else if (window.scrollY < initialOffsetTop && isInputSticky.value) {
+    isInputSticky.value = false
+  }
+}
 
 const activeCategory = computed<'video' | 'user'>(() => {
   return route.path.startsWith('/search/user') ? 'user' : 'video'
 })
 
-const searchInfo = async () => {
-  const keyword = input.value.trim()
-  if (!keyword) return
-  const targetPath = activeCategory.value === 'video' ? '/search/video' : '/search/user'
-  await router.push({ path: targetPath, query: { keyword } })
-  if (activeCategory.value === 'video') {
-    await videoStore.getSearchVideos(keyword, videoOrder.value)
-  } else {
-    await userStore.getSearchUsers(keyword, userOrder.value)
+const keyword = computed(() => {
+  const k = route.query.keyword as string
+  try {
+    return k ? decodeURIComponent(k) : ''
+  } catch {
+    return k || ''
   }
+})
+
+const formatSearchCount = (count: number | undefined): string => {
+  count = count ?? 0
+  if (count >= 99) {
+    return '99+'
+  }
+  return String(count)
 }
 
 const changeVideoOrder = (order: string) => {
   videoOrder.value = order
-  videoStore.getSearchVideos(input.value, order)
+  videoPageNum.value = 1
+  videoStore.getSearchVideos(keyword.value, order, videoPageNum.value, videoPageSize.value)
 }
 
 const changeUserOrder = (order: string) => {
   userOrder.value = order
-  userStore.getSearchUsers(input.value, order)
+  userPageNum.value = 1
+  userStore.getSearchUsers(keyword.value, order, userPageNum.value, userPageSize.value)
+}
+
+const handleVideoPageChange = (pageNum: number) => {
+  videoPageNum.value = pageNum
+  videoStore.getSearchVideos(keyword.value, videoOrder.value, pageNum, videoPageSize.value)
+}
+
+const handleVideoSizeChange = (pageSize: number) => {
+  videoPageSize.value = pageSize
+  videoPageNum.value = 1
+  videoStore.getSearchVideos(keyword.value, videoOrder.value, videoPageNum.value, pageSize)
+}
+
+const handleUserPageChange = (pageNum: number) => {
+  userPageNum.value = pageNum
+  userStore.getSearchUsers(keyword.value, userOrder.value, pageNum, userPageSize.value)
+}
+
+const handleUserSizeChange = (pageSize: number) => {
+  userPageSize.value = pageSize
+  userPageNum.value = 1
+  userStore.getSearchUsers(keyword.value, userOrder.value, userPageNum.value, pageSize)
 }
 
 const handleFollow = (uid: number) => {
@@ -241,48 +297,34 @@ const formatCount = (count: number | undefined): string => {
 
 const loadSearchResults = async (keyword: string) => {
   if (activeCategory.value === 'video') {
-    await videoStore.getSearchVideos(keyword, videoOrder.value)
+    await videoStore.getSearchVideos(keyword, videoOrder.value, videoPageNum.value, videoPageSize.value)
   } else {
-    await userStore.getSearchUsers(keyword, userOrder.value)
+    await userStore.getSearchUsers(keyword, userOrder.value, userPageNum.value, userPageSize.value)
   }
 }
 
 onMounted(async () => {
-  const encodedKeyword = route.query.keyword as string
-  if (encodedKeyword) {
-    try {
-      input.value = decodeURIComponent(encodedKeyword)
-      await loadSearchResults(input.value)
-    } catch (e) {
-      console.error('解码失败', e)
-      input.value = encodedKeyword
-    }
-  }
+  nextTick(() => {
+    measureInitialPosition()
+  })
+  window.addEventListener('scroll', handleScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
 })
 
 watch(
-  () => route.query.keyword,
-  async (newKeyword) => {
-    if (typeof newKeyword === 'string') {
-      try {
-        input.value = decodeURIComponent(newKeyword)
-      } catch (e) {
-        console.error('解码失败', e)
-        input.value = newKeyword
-      }
+  [() => route.path, () => route.query.keyword],
+  async ([, newKeyword]) => {
+    if (!newKeyword || !keyword.value) {
+      return
     }
+    videoPageNum.value = 1
+    userPageNum.value = 1
+    await loadSearchResults(keyword.value)
   },
   { immediate: true },
-)
-
-watch(
-  () => route.path,
-  async () => {
-    const keyword = input.value
-    if (keyword) {
-      await loadSearchResults(keyword)
-    }
-  },
 )
 </script>
 
@@ -291,8 +333,10 @@ watch(
   --text-color: #18191c;
   --header-shadow: 0 2px 4px #00000014;
   --bg-color: #fff;
-  --position: fixed;
+  --position: static;
   --search-display: none;
+  position: relative;
+  z-index: 2;
 }
 
 .search-header {
@@ -303,7 +347,39 @@ watch(
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 25px 0 15px;
+    padding: 25px 64px 15px;
+    background: #fff;
+
+    &.is-sticky {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 10px 64px;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    &__box {
+      width: 100%;
+      max-width: 640px;
+      height: 54px;
+      border-radius: 10px;
+
+      :deep(.nav-searchform__input) {
+        font-size: 18px;
+      }
+
+      @media (max-width: 900px) {
+        height: 48px;
+        max-width: 640px;
+      }
+
+      @media (max-width: 520px) {
+        height: 44px;
+        max-width: 480px;
+      }
+    }
   }
 
   .search-category-tabs {

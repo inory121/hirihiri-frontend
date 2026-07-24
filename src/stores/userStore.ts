@@ -22,6 +22,7 @@ export const useUserStore = defineStore('user', {
       password: '',
       showLoginWindow: false, // 是否显示登录弹窗
       searchUserList: [] as User[], // 用户搜索结果列表
+      searchUserTotal: 0, // 用户搜索结果总数
       targetUserLoading: true, // 目标用户信息加载状态
       targetFollow: {
         // 目标用户的关注统计与当前登录用户的关注状态
@@ -109,20 +110,22 @@ export const useUserStore = defineStore('user', {
           })
       }
     },
-    async getSearchUsers(keyword: string, order = 'default') {
-      await get<searchUserApiResponse>(
-        `${USER_API.GET_SEARCH_USER}?keyword=${encodeURIComponent(keyword)}&order=${order}`,
+    async getSearchUsers(keyword: string, order = 'default', pageNum = 1, pageSize = 36) {
+      await get<{ code: number; data: { records: User[]; total: number } }>(
+        `${USER_API.GET_SEARCH_USER}?keyword=${encodeURIComponent(keyword)}&order=${order}&pageNum=${pageNum}&pageSize=${pageSize}`,
       ).then(
         (res) => {
           if (res.code === 200) {
-            this.searchUserList = res.data
+            this.searchUserList = res.data.records
+            this.searchUserTotal = res.data.total || 0
             if (this.isLogin) {
-              for (const item of res.data) {
+              for (const item of res.data.records) {
                 this.followStatusMap[item.uid] = !!item.isFollowing
               }
             }
           } else {
             this.searchUserList = []
+            this.searchUserTotal = 0
             ElMessage.error('没有搜索到用户')
           }
         },

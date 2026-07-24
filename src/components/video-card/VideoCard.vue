@@ -1,6 +1,12 @@
 <template>
   <!-- 视频卡片 -->
-  <div class="video-card-container" v-for="(videoInfo, index) in props.data" :key="index">
+  <div
+    class="video-card-container"
+    v-for="(videoInfo, index) in props.data"
+    :key="videoInfo.video?.vid ?? index"
+    :data-vid="videoInfo.video?.vid"
+    :data-index="index"
+  >
     <el-skeleton :loading="props.loading" animated :throttle="{ leading: 500, trailing: 500, initVal: true }">
       <!-- 骨架屏内容 -->
       <template #template>
@@ -16,7 +22,12 @@
         <!-- 真实数据内容 -->
         <div class="video-card">
           <div class="video-card__wrapper">
-            <router-link :to="`/video/${videoInfo.video.vid}`" target="_blank" class="video-card__link">
+            <router-link
+              :to="`/video/${videoInfo.video.vid}`"
+              target="_blank"
+              class="video-card__link"
+              @click="handleClick(videoInfo, index)"
+            >
               <div class="video-card__cover">
                 <img :src="videoInfo.video.coverUrl" alt="" class="video-card__image" />
                 <div class="video-card__stats">
@@ -42,7 +53,13 @@
             </router-link>
             <div class="video-card__content">
               <h3 class="video-card__title">
-                <router-link :to="`/video/${videoInfo.video.vid}`" target="_blank" class="video-card__title-link" :title="videoInfo.video.title">{{
+                <router-link
+                  :to="`/video/${videoInfo.video.vid}`"
+                  target="_blank"
+                  class="video-card__title-link"
+                  :title="videoInfo.video.title"
+                  @click="handleClick(videoInfo, index)"
+                >{{
                   videoInfo.video.title }}
                 </router-link>
               </h3>
@@ -91,6 +108,14 @@ const props = withDefaults(
     hideTime: false,
   },
 )
+
+const emit = defineEmits<{
+  (e: 'card-click', videoInfo: VideoInfo, index: number): void
+}>()
+
+const handleClick = (videoInfo: VideoInfo, index: number) => {
+  emit('card-click', videoInfo, index)
+}
 </script>
 
 <style scoped lang="less">

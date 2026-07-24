@@ -74,7 +74,7 @@
             :class="{ 'user-home__stat-item--active': activeTab === 'video' }"
             @click="switchTab('video')"
           >
-            <div class="user-home__stat-value">{{ videoStore.userVideoList.length }}</div>
+            <div class="user-home__stat-value">{{ videoStore.userVideoTotal }}</div>
             <div class="user-home__stat-label">投稿</div>
           </div>
           <div
@@ -100,11 +100,11 @@
             <div class="user-home__stat-label">粉丝</div>
           </div>
           <div class="user-home__stat-item">
-            <div class="user-home__stat-value">{{ formatNumber(totalLikes) }}</div>
+            <div class="user-home__stat-value">{{ formatNumber(videoStore.userVideoStats.totalLikes) }}</div>
             <div class="user-home__stat-label">获赞</div>
           </div>
           <div class="user-home__stat-item">
-            <div class="user-home__stat-value">{{ formatNumber(totalViews) }}</div>
+            <div class="user-home__stat-value">{{ formatNumber(videoStore.userVideoStats.totalViews) }}</div>
             <div class="user-home__stat-label">播放</div>
           </div>
         </div>
@@ -142,7 +142,7 @@
           <VideoCameraFilled/>
         </el-icon>
         <span>投稿</span>
-        <span class="user-home__tab-count">{{ videoStore.userVideoList.length }}</span>
+        <span class="user-home__tab-count">{{ videoStore.userVideoTotal }}</span>
       </div>
       <div class="user-home__tab" :class="{ 'user-home__tab--active': activeTab === 'followings' }"
            @click="switchTab('followings')">
@@ -402,28 +402,22 @@
           <!-- 右侧视频内容 -->
           <main class="user-home__favorites-content">
             <div class="user-home__favorites-toolbar">
-              <div class="user-home__favorites-tabs">
+              <div class="user-home__video-sort">
                 <span
-                  class="user-home__favorites-tab"
-                  :class="{ 'user-home__favorites-tab--active': favoritesViewMode === 'recent' }"
+                  class="user-home__video-sort-item"
+                  :class="{ 'user-home__video-sort-item--active': favoritesViewMode === 'recent' }"
                   @click="favoritesViewMode = 'recent'"
-                >
-                  最近收藏
-                </span>
+                >最近收藏</span>
                 <span
-                  class="user-home__favorites-tab"
-                  :class="{ 'user-home__favorites-tab--active': favoritesViewMode === 'most-played' }"
+                  class="user-home__video-sort-item"
+                  :class="{ 'user-home__video-sort-item--active': favoritesViewMode === 'most-played' }"
                   @click="favoritesViewMode = 'most-played'"
-                >
-                  最多播放
-                </span>
+                >最多播放</span>
                 <span
-                  class="user-home__favorites-tab"
-                  :class="{ 'user-home__favorites-tab--active': favoritesViewMode === 'latest-upload' }"
+                  class="user-home__video-sort-item"
+                  :class="{ 'user-home__video-sort-item--active': favoritesViewMode === 'latest-upload' }"
                   @click="favoritesViewMode = 'latest-upload'"
-                >
-                  最新投稿
-                </span>
+                >最新投稿</span>
               </div>
               <div class="user-home__favorites-actions">
                 <el-input
@@ -456,9 +450,9 @@
               </div>
             </div>
             <div class="user-home__favorites-videos">
-              <template v-if="selectedFolderVideos.length > 0">
+              <template v-if="sortedFolderVideos.length > 0">
                 <VideoCard
-                  :data="selectedFolderVideos"
+                  :data="sortedFolderVideos"
                   :loading="false"
                 />
               </template>
@@ -472,17 +466,41 @@
 
       <!-- 投稿 Tab -->
       <div v-else-if="activeTab === 'video'" class="user-home__video-tab">
+        <div class="user-home__video-sort-bar">
+          <span
+            class="user-home__video-sort-item"
+            :class="{ 'user-home__video-sort-item--active': userVideoSort === 'date' }"
+            @click="handleUserVideoSortChange('date')"
+          >最新发布</span>
+          <span
+            class="user-home__video-sort-item"
+            :class="{ 'user-home__video-sort-item--active': userVideoSort === 'view' }"
+            @click="handleUserVideoSortChange('view')"
+          >最多播放</span>
+          <span
+            class="user-home__video-sort-item"
+            :class="{ 'user-home__video-sort-item--active': userVideoSort === 'favorite' }"
+            @click="handleUserVideoSortChange('favorite')"
+          >最多收藏</span>
+        </div>
         <template v-if="videoStore.userVideoLoading">
           <el-skeleton :rows="6" animated/>
         </template>
         <template v-else-if="videoStore.userVideoList.length > 0">
-          <div class="user-home__video-grid">
+          <div class="user-home__video-grid user-home__video-grid--full">
             <VideoCard
               :data="videoStore.userVideoList"
               :loading="false"
               :hide-author="true"
             />
           </div>
+          <CustomPagination
+            v-if="videoStore.userVideoTotal > userVideoPageSize"
+            :current-page="userVideoPageNum"
+            :page-size="userVideoPageSize"
+            :total="videoStore.userVideoTotal"
+            @current-change="handleUserVideoPageChange"
+          />
         </template>
         <template v-else>
           <el-empty description="暂无投稿视频" :image-size="80"/>
@@ -761,6 +779,7 @@ import {ElMessage, ElMessageBox} from 'element-plus'
 import HeaderBar from '@/components/header-bar/HeaderBar.vue'
 import VideoCard from '@/components/video-card/VideoCard.vue'
 import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
+import CustomPagination from '@/components/pagination/CustomPagination.vue'
 import {
   Coin,
   Male,
@@ -785,12 +804,15 @@ const router = useRouter()
 const userStore = useUserStore()
 const videoStore = useVideoStore()
 const activeTab = ref<'home' | 'favorites' | 'video' | 'followings' | 'followers'>('home')
+const userVideoPageNum = ref(1)
+const userVideoPageSize = ref(42)
 
 // 主页相关数据
 const favoriteFolders = ref<FavoriteFolder[]>([]) // 收藏夹列表
 const recentCoinVideos = ref<VideoInfo[]>([]) // 最近投币的视频
 const recentLikeVideos = ref<VideoInfo[]>([]) // 最近点赞的视频
 const homeVideoSort = ref<'date' | 'view' | 'favorite'>('date') // 主页视频排序方式
+const userVideoSort = ref<'date' | 'view' | 'favorite'>('date') // 投稿tab排序方式
 const showPinnedDialog = ref(false) // 是否显示设置置顶弹窗
 const pinnedSearchKeyword = ref('') // 置顶搜索关键词
 const pinnedSortOrder = ref<'date' | 'view' | 'favorite'>('date') // 置顶视频排序
@@ -846,16 +868,6 @@ const sortedHomeVideos = computed<VideoInfo[]>(() => {
   }
 })
 
-// 用户视频总播放数
-const totalViews = computed(() => {
-  return videoStore.userVideoList.reduce((sum, item) => sum + item.stat.view, 0)
-})
-
-// 用户视频总获赞数
-const totalLikes = computed(() => {
-  return videoStore.userVideoList.reduce((sum, item) => sum + item.stat.like, 0)
-})
-
 // 是否是访问自己的主页
 const isOwnHome = computed(() => {
   return userStore.isLogin && userStore.user.uid === userStore.targetUser.uid
@@ -866,6 +878,24 @@ const selectedFolderId = ref<number>(0) // 当前选中的收藏夹ID
 const favoritesViewMode = ref<'recent' | 'most-played' | 'latest-upload'>('recent') // 收藏视图模式
 const favoritesSearchKeyword = ref('') // 收藏搜索关键词
 const selectedFolderVideos = ref<VideoInfo[]>([]) // 当前选中收藏夹的视频
+
+// 收藏夹视频排序
+const sortedFolderVideos = computed<VideoInfo[]>(() => {
+  const list = [...selectedFolderVideos.value]
+  switch (favoritesViewMode.value) {
+    case 'most-played':
+      return list.sort((a, b) => (b.stat.view || 0) - (a.stat.view || 0))
+    case 'latest-upload':
+      return list.sort((a, b) =>
+        new Date(b.video.createDate).getTime() - new Date(a.video.createDate).getTime()
+      )
+    case 'recent':
+    default:
+      // 后端返回的顺序即为最近收藏顺序
+      return list
+  }
+})
+
 const folderCount = ref<number>(0) // 收藏夹数量（tab 栏显示）
 // 新建收藏夹弹窗
 const showCreateFolderDialog = ref(false)
@@ -942,9 +972,8 @@ const initTabFromQuery = () => {
     }
     loadFavoritesData(uid)
   } else if (tab === 'video') {
-    if (videoStore.userVideoList.length === 0) {
-      videoStore.getUserVideos(uid)
-    }
+    userVideoPageNum.value = 1
+    videoStore.getUserVideos(uid, userVideoPageNum.value, userVideoPageSize.value)
   } else if (tab === 'followings') {
     userStore.getFollowings(uid)
   } else if (tab === 'followers') {
@@ -991,11 +1020,30 @@ const switchTab = (tab: 'home' | 'favorites' | 'video' | 'followings' | 'followe
     } else if (tab === 'favorites') {
       loadFavoritesData(uid)
     } else if (tab === 'video') {
-      if (videoStore.userVideoList.length === 0) {
-        videoStore.getUserVideos(uid)
-      }
+      userVideoPageNum.value = 1
+      videoStore.getUserVideos(uid, userVideoPageNum.value, userVideoPageSize.value, userVideoSort.value)
     }
   }
+}
+
+const handleUserVideoPageChange = (pageNum: number) => {
+  userVideoPageNum.value = pageNum
+  const uid = Number(route.params.uid)
+  videoStore.getUserVideos(uid, pageNum, userVideoPageSize.value, userVideoSort.value)
+}
+
+const handleUserVideoSortChange = (sort: 'date' | 'view' | 'favorite') => {
+  userVideoSort.value = sort
+  userVideoPageNum.value = 1
+  const uid = Number(route.params.uid)
+  videoStore.getUserVideos(uid, userVideoPageNum.value, userVideoPageSize.value, sort)
+}
+
+const handleUserVideoSizeChange = (pageSize: number) => {
+  userVideoPageSize.value = pageSize
+  userVideoPageNum.value = 1
+  const uid = Number(route.params.uid)
+  videoStore.getUserVideos(uid, userVideoPageNum.value, pageSize)
 }
 
 // 选择收藏夹
@@ -1131,7 +1179,7 @@ const handleDeleteFolder = async (folder: FavoriteFolder) => {
 
   try {
     const confirm = await ElMessageBox.confirm(
-      `确定要删除收藏夹「${folder.name}」吗？删除后该收藏夹中的视频将被移动到默认收藏夹。`,
+      `确定要删除收藏夹「${folder.name}」吗？删除后该收藏夹中的视频收藏将一并移除。`,
       '删除收藏夹',
       {
         confirmButtonText: '删除',
@@ -1249,6 +1297,7 @@ onMounted(() => {
   if (uid) {
     userStore.getTargetUserInfo(uid)
     userStore.getTargetFollowInfo(uid)
+    videoStore.getUserVideoStats(uid)
     // 先加载视频列表，再初始化 tab（home tab 的 loadHomeData 依赖视频列表）
     videoStore.getUserVideos(uid).then(() => {
       initTabFromQuery()
@@ -1265,6 +1314,7 @@ watch(
       const parsedUid = Number(newUid)
       userStore.getTargetUserInfo(parsedUid)
       userStore.getTargetFollowInfo(parsedUid)
+      videoStore.getUserVideoStats(parsedUid)
       selectedFolderId.value = 0
       videoStore.getUserVideos(parsedUid).then(() => {
         initTabFromQuery()
@@ -1625,6 +1675,12 @@ watch(
   }
 }
 
+.user-home__video-sort-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
 .user-home__more-link {
   font-size: 13px;
   color: #9499a0;
@@ -1766,12 +1822,26 @@ watch(
 }
 
 @media (min-width: 1100px) {
-  .user-home__video-grid,
+  .user-home__video-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .user-home__video-grid--full {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
   .user-home__coin-video-grid,
   .user-home__like-video-grid {
     grid-template-columns: repeat(5, 1fr);
   }
 }
+
+@media (min-width: 1400px) {
+  .user-home__video-grid--full {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
 
 /* 收藏夹网格样式 */
 .user-home__folder-grid {
@@ -2035,38 +2105,6 @@ watch(
   margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid #e7e7e7;
-}
-
-.user-home__favorites-tabs {
-  display: flex;
-  gap: 24px;
-}
-
-.user-home__favorites-tab {
-  font-size: 14px;
-  color: #61666d;
-  cursor: pointer;
-  transition: color 0.2s;
-  position: relative;
-
-  &:hover {
-    color: #fb7299;
-  }
-
-  &--active {
-    color: #fb7299;
-    font-weight: 500;
-
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -17px;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: #fb7299;
-    }
-  }
 }
 
 .user-home__favorites-actions {
@@ -2337,14 +2375,14 @@ watch(
     transition: all 0.2s;
     margin-right: 12px;
   }
-  
+
   .pinned-dialog__radio-checked {
     width: 8px;
     height: 8px;
     background: #409eff;
     border-radius: 50%;
   }
-  
+
   .pinned-dialog__item--active .pinned-dialog__radio-placeholder {
     border-color: #409eff;
   }

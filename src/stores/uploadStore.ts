@@ -14,6 +14,7 @@ interface VideoInfoDraft {
   descr: string
   mcId: string
   scId: string
+  category: string[]
   type: number
   auth: number
   tags: string[]
@@ -87,6 +88,7 @@ export const useUploadStore = defineStore('upload', {
         mcId: '',
         createDate: '',
         scId: '',
+        category: [] as string[],
         status: 1,
         tags: [] as string[],
         title: '',
@@ -115,12 +117,14 @@ export const useUploadStore = defineStore('upload', {
       }
     },
     resetFormState() {
+      this.uploadId = ''
       this.VideoInfo = {
         ...this.VideoInfo,
         tags: [],
         title: '',
         mcId: '',
         scId: '',
+        category: [],
         descr: '',
         type: 1,
       }
@@ -163,6 +167,7 @@ export const useUploadStore = defineStore('upload', {
           descr: this.VideoInfo.descr,
           mcId: this.VideoInfo.mcId,
           scId: this.VideoInfo.scId,
+          category: this.VideoInfo.category,
           type: this.VideoInfo.type,
           auth: this.VideoInfo.auth,
           tags: this.VideoInfo.tags,
@@ -200,12 +205,22 @@ export const useUploadStore = defineStore('upload', {
       this.VideoInfo.descr = videoInfo.descr || ''
       this.VideoInfo.mcId = videoInfo.mcId || ''
       this.VideoInfo.scId = videoInfo.scId || ''
+      this.VideoInfo.category = videoInfo.category || []
       this.VideoInfo.type = videoInfo.type ?? 1
       this.VideoInfo.auth = videoInfo.auth ?? 0
       this.VideoInfo.tags = videoInfo.tags || []
       this.VideoInfo.duration = videoInfo.duration || 0
       this.coverUrlBase64 = videoInfo.coverUrlBase64 || ''
       this.originalCover = videoInfo.coverUrlBase64 || ''
+      // 从 base64 恢复 coverFile
+      if (videoInfo.coverUrlBase64) {
+        const arr = videoInfo.coverUrlBase64.split(',')
+        const mime = arr[0]?.match(/:(.*?);/)?.[1] || 'image/jpeg'
+        const bstr = atob(arr[1] || '')
+        const u8arr = new Uint8Array(bstr.length)
+        for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i)
+        this.coverFile = new File([u8arr], 'cover.jpg', { type: mime })
+      }
     },
 
     // 初始化上传（全新开始）
@@ -257,8 +272,10 @@ export const useUploadStore = defineStore('upload', {
       const uploadedCount = status.uploadedChunks?.length || 0
 
       if (uploadedCount >= totalChunks && totalChunks > 0) {
-        // 创建一个虚拟的File对象，保留文件名信息用于显示
-        // 故意不设置 size，保持为 0，这样 captureCover 可以识别为虚拟文件并跳过处理
+        if (draft.videoInfo) {
+          this._restoreVideoInfoFromDraft(draft.videoInfo)
+        }
+
         this.file = new File([], draft.fileName, { type: 'video/mp4' })
         this.fileSize = draft.fileSize || 0
         this.uploadId = draft.uploadId
@@ -268,12 +285,7 @@ export const useUploadStore = defineStore('upload', {
         this.shouldResume = false
         this.videoOnServer = true
 
-        if (draft.videoInfo) {
-          this._restoreVideoInfoFromDraft(draft.videoInfo)
-        }
-
         ElMessage.success('检测到视频已上传完成，正在跳转投稿页面...')
-        // 直接跳转，不重置表单状态以保留恢复的投稿信息
         this.changeIsShow(false)
         return true
       }
@@ -295,6 +307,9 @@ export const useUploadStore = defineStore('upload', {
         ElMessage.warning('服务器上的临时文件已清理，开始重新上传')
         return null
       }
+      if (draft.videoInfo) {
+        this._restoreVideoInfoFromDraft(draft.videoInfo)
+      }
       this.file = file
       this.fileSize = file.size
       this.videoOnServer = false
@@ -304,9 +319,6 @@ export const useUploadStore = defineStore('upload', {
       this.shouldResume = false
       // ✅ 续传时以服务端返回的真实分片为准（前端草稿可能因并发记账不准）
       this.uploadedChunks = new Set(status.uploadedChunks)
-      if (draft.videoInfo) {
-        this._restoreVideoInfoFromDraft(draft.videoInfo)
-      }
       const totalChunks = draft.totalChunks
       const done = this.uploadedChunks.size
       this.progress = Math.floor((done / totalChunks) * 100)
@@ -385,15 +397,22 @@ export const useUploadStore = defineStore('upload', {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 60 * 1000,
       })
         .then((res) => {
           if (res.code === 200) {
             ElMessage.success(res.message)
-            this.resetFormState()
             this.clearDraft()
-          } else if (res.code === 500) {
-            ElMessage.error(res.message)
+            this.resetFormState()
+          } else {
+            ElMessage.error(res.message || '投稿失败，请重试')
           }
+        })
+        .catch((e) => {
+          const msg = e?.code === 'ECONNABORTED'
+            ? '处理超时，请稍后查看投稿状态或重试'
+            : '网络异常，投稿失败，请重试'
+          ElMessage.error(msg)
         })
         .finally(() => {
           this.loading = false

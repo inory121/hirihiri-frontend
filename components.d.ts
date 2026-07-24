@@ -9,6 +9,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     BackToTop: typeof import('./src/components/back-to-top/BackToTop.vue')['default']
     CommentItem: typeof import('./src/components/comment-item/CommentItem.vue')['default']
+    CustomPagination: typeof import('./src/components/pagination/CustomPagination.vue')['default']
     ElAside: typeof import('element-plus/es')['ElAside']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCarousel: typeof import('element-plus/es')['ElCarousel']
@@ -35,6 +36,7 @@ declare module 'vue' {
     ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
     ElMenuItemGroup: typeof import('element-plus/es')['ElMenuItemGroup']
     ElOption: typeof import('element-plus/es')['ElOption']
+    ElPagination: typeof import('element-plus/es')['ElPagination']
     ElPopconfirm: typeof import('element-plus/es')['ElPopconfirm']
     ElProgress: typeof import('element-plus/es')['ElProgress']
     ElRadio: typeof import('element-plus/es')['ElRadio']
@@ -55,6 +57,7 @@ declare module 'vue' {
     MyPopover: typeof import('./src/components/my-popover/MyPopover.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SearchBox: typeof import('./src/components/search/SearchBox.vue')['default']
     UserHoverCard: typeof import('./src/components/user-hover-card/UserHoverCard.vue')['default']
     VideoCard: typeof import('./src/components/video-card/VideoCard.vue')['default']
     VideoCarousel: typeof import('./src/components/video-carousel/VideoCarousel.vue')['default']

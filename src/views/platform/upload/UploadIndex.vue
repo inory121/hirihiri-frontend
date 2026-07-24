@@ -275,6 +275,7 @@
       </el-form-item>
       <el-form-item label="分区" prop="category">
         <el-cascader
+          v-model="uploadStore.VideoInfo.category"
           @change="handleCategoryChange"
           placeholder="请选择分区"
           :options="categoryStore.categories"
@@ -284,7 +285,7 @@
       <!--标签输入框-->
       <el-form-item label="标签" prop="tags">
         <el-input-tag
-          v-model="rcmTag"
+          v-model="uploadStore.VideoInfo.tags"
           draggable
           placeholder="按回车键Enter创建标签"
           @remove-tag="handleTagRemove"
@@ -366,10 +367,9 @@ const rules = reactive<FormRules<ruleForm>>({
   cover: [{ required: true, message: '请选择封面', trigger: 'blur' }],
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
   type: [{ required: true, message: '请选择类型', trigger: 'blur' }],
-  category: [{ required: true, message: '请选择分区', trigger: 'blur' }],
-  tags: [{ required: true, message: '请输入标签', trigger: 'blur' }],
+  category: [{ required: true, message: '请选择分区', trigger: 'change' }],
+  tags: [{ required: true, message: '请输入标签', trigger: 'change' }],
 })
-const rcmTag = ref<string[]>([]) // 标签输入框的内容
 // 标签展示区的内容
 const rcmTags = ref<string[] | undefined>([
   '二次元',
@@ -721,19 +721,19 @@ const handleCategoryChange = (valueArr: CascaderValue | null | undefined) => {
 }
 
 const handleTagClick = (tag: string) => {
-  // 添加到rcmTag（自动去重）
-  rcmTag.value = [...rcmTag.value.filter((item) => item !== tag), tag]
-  uploadStore.VideoInfo.tags = rcmTag.value
+  if (!uploadStore.VideoInfo.tags.includes(tag)) {
+    uploadStore.VideoInfo.tags = [...uploadStore.VideoInfo.tags, tag]
+  }
 }
 
 const handleTagRemove = (tag: string) => {
-  uploadStore.VideoInfo.tags = rcmTag.value.filter((item) => item !== tag)
+  uploadStore.VideoInfo.tags = uploadStore.VideoInfo.tags.filter((item) => item !== tag)
 }
 
 const handleCancelUpload = async () => {
   await uploadStore.cancelUpload()
   uploadStore.changeIsShow()
-  rcmTag.value = []
+  uploadStore.VideoInfo.tags = []
 }
 
 const handleReplaceVideo = async () => {
@@ -754,7 +754,7 @@ const handleReplaceVideoFileChange = async (event: Event) => {
     uploadStore.fileSize = file.size
     await uploadStore.initUpload()
     const totalChunks = Math.ceil(file.size / (10 * 1024 * 1024)) // 10MB 分片
-    rcmTag.value = []
+    uploadStore.VideoInfo.tags = []
     await startReplaceUpload(totalChunks)
   }
 }
@@ -858,9 +858,11 @@ watch(
       await captureCover()
       await generateVideoFrames()
     }
-    // 文件名称变化时同步标题
+    // 文件名称变化时同步标题（续传模式下不清空已恢复的 tags）
     if (newFileName && newFileName !== oldFileName) {
-      rcmTag.value = []
+      if (!uploadStore.isResumeMode) {
+        uploadStore.VideoInfo.tags = []
+      }
       uploadStore.VideoInfo.title = removeFileExtension(newFileName)
     }
   },
@@ -884,6 +886,16 @@ watch(
     }
   },
   { deep: true },
+)
+
+watch(
+  () => uploadStore.VideoInfo.category,
+  (val) => {
+    if (Array.isArray(val) && val.length >= 2) {
+      rcmTags.value = categoryStore.rcmTags(val as [string, string])
+    }
+  },
+  { immediate: true },
 )
 
 onMounted(async () => {
