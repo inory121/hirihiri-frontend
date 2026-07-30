@@ -3,8 +3,7 @@ import type {
   RecommendFeedDTO,
   RecommendEvent,
   RecommendFeedbackResponse,
-  VideoApiResponse,
-  VideoInfo,
+  VideoApiResponse
 } from '@/types/api'
 
 export enum RECOMMEND_API {

@@ -56,7 +56,7 @@ export interface Video {
   uid: number
   vid: number
   videoUrl: string
-  dominantColor?: [number, number, number]
+  coverColor?: string
   isTop?: number
 }
 
@@ -156,6 +156,8 @@ export interface Comment {
   parentId: number
   toUserId: number
   content: string
+  // 评论中 @ 的用户列表（后端解析 @uid 返回），前端据此零请求渲染可点击 @提及
+  mentionUsers?: Array<{ uid: number; username: string; nickname?: string; avatar?: string }>
   like?: number
   dislike?: number
   liked?: boolean
@@ -200,6 +202,7 @@ export interface User {
   level?: number
   fanCount?: number
   videoCount?: number
+  like?: number
   isFollowing?: boolean
 }
 
@@ -215,17 +218,6 @@ export interface UserDataApiResponse extends BaseResponse {
 export interface UserApiResponse extends BaseResponse {
   data: User
 }
-export interface searchUserApiResponse extends BaseResponse {
-  data: SearchUserItem[]
-}
-
-export interface SearchUserItem extends User {
-  level: number
-  fanCount: number
-  videoCount: number
-  isFollowing: boolean
-}
-
 // 浏览历史接口
 export interface HistoryVideoDTO {
   id: number
@@ -283,4 +275,88 @@ export interface RecommendEvent {
 // 推荐反馈响应
 export interface RecommendFeedbackResponse extends BaseResponse {
   data: string
+}
+
+// ======================== 消息系统类型 ========================
+
+export interface MessagePeerUser {
+  uid: number
+  username: string
+  nickname: string
+  avatar: string
+}
+
+export interface MessageUnread {
+  totalUnread: number
+  privateUnread: number
+  strangerUnread: number
+  replyUnread: number
+  atUnread: number
+  likeUnread: number
+  systemUnread: number
+}
+
+export interface MessageSession {
+  sessionId: number
+  peerUser: MessagePeerUser
+  lastMessage: string | null
+  lastMessageTime: string | null
+  unreadCount: number
+  following: boolean
+}
+
+export interface MessagePrivateMessage {
+  id: number
+  sessionId: number
+  senderUid: number
+  receiverUid: number
+  content: string
+  contentType: string
+  isRead: number
+  createTime: string
+  readTime: string | null
+  senderUser: MessagePeerUser
+  /** 客户端生成的临时消息 ID，用于乐观更新精确替换 */
+  clientMessageId?: string
+  /** 消息发送状态 */
+  status?: 'sending' | 'sent' | 'failed'
+}
+
+export interface MessageNotice {
+  id: number
+  receiveUid: number
+  noticeType: 'reply' | 'at' | 'like' | 'system'
+  bizType: string | null
+  bizId: number | null
+  title: string
+  contentSummary: string | null
+  isRead: number
+  extJson: string | null
+  createTime: string
+  actorUser: MessagePeerUser | null
+}
+
+// API 响应类型
+export interface MessageUnreadApiResponse extends BaseResponse {
+  data: MessageUnread
+}
+
+export interface MessageSessionListApiResponse extends BaseResponse {
+  data: MessageSession[]
+}
+
+export interface MessageSessionItemApiResponse extends BaseResponse {
+  data: MessageSession
+}
+
+export interface MessagePrivateListApiResponse extends BaseResponse {
+  data: MessagePrivateMessage[]
+}
+
+export interface MessagePrivateItemApiResponse extends BaseResponse {
+  data: MessagePrivateMessage
+}
+
+export interface MessageNoticeListApiResponse extends BaseResponse {
+  data: MessageNotice[]
 }

@@ -104,10 +104,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted, nextTick, watch, defineProps } from 'vue'
-import { useVideoStore } from '@/stores/videoStore.ts'
-import { useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
+import {defineProps, nextTick, onMounted, onUnmounted, ref, watch} from 'vue'
+import {useVideoStore} from '@/stores/videoStore.ts'
+import {useRouter} from 'vue-router'
+import {storeToRefs} from 'pinia'
 
 const props = defineProps<{
   placeholder?: string
@@ -158,8 +158,7 @@ const handleInput = () => {
     clearTimeout(suggestTimer)
   }
   suggestTimer = setTimeout(async () => {
-    const list = await videoStore.getSearchSuggest(keyword, 10)
-    suggestList.value = list
+    suggestList.value = await videoStore.getSearchSuggest(keyword, 10)
   }, 300)
 }
 
@@ -249,10 +248,9 @@ const searchByKeyword = (keyword: string) => {
   input.value = keyword
   addHistory(keyword)
   showSearchPanel.value = false
-  router.push({
-    path: '/search/video',
-    query: { keyword },
-  })
+  // 新标签页打开搜索结果页
+  const { href } = router.resolve({ path: '/search/video', query: { keyword } })
+  window.open(href, '_blank')
 }
 
 const handleSearch = () => {
@@ -260,12 +258,9 @@ const handleSearch = () => {
   if (!keyword) return
   addHistory(keyword)
   showSearchPanel.value = false
-  router.push({
-    path: '/search/video',
-    query: {
-      keyword: encodeURIComponent(keyword),
-    },
-  })
+  // 新标签页打开搜索结果页（去掉手动 encodeURIComponent，避免与 router 编码重复）
+  const { href } = router.resolve({ path: '/search/video', query: { keyword } })
+  window.open(href, '_blank')
 }
 
 onMounted(() => {
@@ -299,13 +294,13 @@ onUnmounted(() => {
   width: 100%;
   position: relative;
   border-radius: inherit;
-  border: 1px solid #e3e5e7;
-  background: #f1f2f3;
+  border: 1px solid @border-color;
+  background: @bg-gray;
   transition: all 0.3s ease;
 
   &--focus {
     background: #fff;
-    border-color: #e3e5e7;
+    border-color: @border-color;
     border-radius: inherit;
   }
 
@@ -317,18 +312,16 @@ onUnmounted(() => {
     background: transparent;
     padding: 0 16px;
     font-size: 14px;
-    color: #18191c;
+    color: @text-1;
     min-width: 0;
 
     &::placeholder {
-      color: #9499a0;
+      color: @text-3;
     }
   }
 
   &__clear {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    .flex-center();
     width: 28px;
     height: 100%;
     border: none;
@@ -339,35 +332,33 @@ onUnmounted(() => {
     transition: color 0.2s;
 
     &:hover {
-      color: #9499a0;
+      color: @text-3;
     }
   }
 
   &__btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    .flex-center();
     width: 48px;
     height: 100%;
     border: none;
     border-left: 1px solid transparent;
     background: transparent;
     cursor: pointer;
-    color: #9499a0;
+    color: @text-3;
     transition: all 0.3s ease;
     flex-shrink: 0;
 
     &:hover {
-      color: #00aeec;
+      color: @blue;
     }
   }
 
   &--focus &__btn {
-    border-left-color: #e3e5e7;
+    border-left-color: @border-color;
     background: #fff;
 
     &:hover {
-      background: #f1f2f3;
+      background: @bg-gray;
     }
   }
 
@@ -399,23 +390,23 @@ onUnmounted(() => {
     &__title {
       font-size: 14px;
       font-weight: 600;
-      color: #18191c;
+      color: @text-1;
     }
 
     &__clear {
       font-size: 12px;
-      color: #9499a0;
+      color: @text-3;
       cursor: pointer;
       transition: color 0.2s;
 
       &:hover {
-        color: #fb7299;
+        color: @pink;
       }
     }
 
     &__expand {
       font-size: 12px;
-      color: #9499a0;
+      color: @text-3;
       text-align: center;
       cursor: pointer;
       margin-top: 8px;
@@ -423,7 +414,7 @@ onUnmounted(() => {
       transition: color 0.2s;
 
       &:hover {
-        color: #00aeec;
+        color: @blue;
       }
     }
   }
@@ -433,7 +424,7 @@ onUnmounted(() => {
     padding: 0 16px;
     line-height: 36px;
     font-size: 14px;
-    color: #18191c;
+    color: @text-1;
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
@@ -445,7 +436,7 @@ onUnmounted(() => {
     }
 
     :deep(.suggest-item__highlight) {
-      color: #fb7299;
+      color: @pink;
       font-weight: 500;
     }
   }
@@ -489,18 +480,14 @@ onUnmounted(() => {
 
     .search-history-item__text {
       max-width: 130px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      .ellipsis();
     }
 
     .search-history-item__close {
       position: absolute;
       top: -6px;
       right: -6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      .flex-center();
       width: 15px;
       height: 15px;
       border-radius: 50%;
@@ -547,12 +534,12 @@ onUnmounted(() => {
       flex-shrink: 0;
       font-size: 12px;
       font-weight: 600;
-      color: #9499a0;
+      color: @text-3;
       text-align: center;
       margin-right: 8px;
 
       &.hot-search-item__rank--top {
-        color: #fb7299;
+        color: @pink;
       }
     }
 
@@ -560,10 +547,8 @@ onUnmounted(() => {
       flex: 1;
       min-width: 0;
       font-size: 13px;
-      color: #18191c;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      color: @text-1;
+      .ellipsis();
     }
   }
 }

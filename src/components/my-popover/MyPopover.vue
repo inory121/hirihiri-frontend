@@ -122,7 +122,7 @@ onUnmounted(() => {
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e3e5e7;
+    border: 1px solid @border-color;
   }
 
   &.to-bottom {

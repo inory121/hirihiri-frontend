@@ -119,10 +119,10 @@
       <MyPopover class="avatar-popover-login" v-if="userStore.isLogin">
         <template #content>
           <div class="header-entry-large">
-            <router-link v-if="userStore.user.uid" :to="`/space/${userStore.user.uid}`" class="nickname-item">{{ userStore.user.username }}</router-link>
+            <a v-if="userStore.user.uid" :href="`/space/${userStore.user.uid}`" class="nickname-item" target="_blank">{{ userStore.user.username }}</a>
             <div class="vip-item">
               <a class="vip-item__label">
-                <img src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/8d4f8bfc713826a5412a0a27eaaac4d6b9ede1d9.png"
+                <img src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/8d4f8bfc713826a5412a0a27eaaac4d6b9ede1d9.png"
                   alt="" />
               </a>
 
@@ -161,14 +161,14 @@
               <div class="vip-entry-btn">会员中心</div>
             </div>
             <div class="links-item">
-              <router-link v-if="userStore.user.uid" :to="`/space/${userStore.user.uid}`" class="single-link-item">
+              <a v-if="userStore.user.uid" :href="`/space/${userStore.user.uid}`" class="single-link-item" target="_blank">
                 <div class="link-title">
                   <el-icon :size="20" style="margin-right: 16px">
                     <User />
                   </el-icon>
                   <span>个人中心</span>
                 </div>
-              </router-link>
+              </a>
               <router-link to="/platform/upload-manager/article" class="single-link-item">
                 <div class="link-title">
                   <el-icon :size="20" style="margin-right: 16px">
@@ -199,9 +199,9 @@
           <li>
             <!--头像-->
             <div>
-              <router-link v-if="userStore.user.uid" :to="`/space/${userStore.user.uid}`" class="header-entry-mini">
+              <a v-if="userStore.user.uid" :href="`/space/${userStore.user.uid}`" class="header-entry-mini" target="_blank">
                 <img class="hiri-avatar-img" :src="userStore.user.avatar" alt="" />
-              </router-link>
+              </a>
             </div>
           </li>
         </template>
@@ -221,11 +221,13 @@
           <span class="right-entry-text">大会员</span>
         </a>
       </li>
-      <li @click="handleRightEntryClick">
-        <a href="#" class="right-default-entry v-popover-wrap">
-          <el-icon class="right-icon">
-            <Message />
-          </el-icon>
+      <li>
+        <a href="/message" class="right-default-entry v-popover-wrap" target="_blank" @click="handleRightEntryClick">
+          <el-badge :value="totalUnreadCount" :hidden="totalUnreadCount === 0" :max="99" class="message-badge">
+            <el-icon class="right-icon">
+              <Message />
+            </el-icon>
+          </el-badge>
           <span class="right-entry-text">消息</span>
         </a>
       </li>
@@ -238,20 +240,20 @@
         </a>
       </li>
       <li @click="handleRightEntryClick">
-        <router-link :to="`/space/${userStore.user.uid}?tab=favorites`" class="right-default-entry v-popover-wrap">
+        <a :href="`/space/${userStore.user.uid}?tab=favorites`" class="right-default-entry v-popover-wrap" target="_blank">
           <el-icon class="right-icon">
             <Star />
           </el-icon>
           <span class="right-entry-text">收藏</span>
-        </router-link>
+        </a>
       </li>
       <li @click="handleRightEntryClick">
-        <router-link to="/history" class="right-default-entry v-popover-wrap" target="_blank">
+        <a href="/history" class="right-default-entry v-popover-wrap" target="_blank">
           <el-icon class="right-icon">
             <Clock />
           </el-icon>
           <span class="right-entry-text">历史</span>
-        </router-link>
+        </a>
       </li>
       <li @click="handleRightEntryClick">
         <router-link to="/platform/home" class="right-default-entry v-popover-wrap">
@@ -276,15 +278,19 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { computed } from 'vue'
 import MyPopover from '@/components/my-popover/MyPopover.vue'
 import SearchBox from '@/components/search/SearchBox.vue'
 import { useUserStore } from '@/stores/userStore.ts'
+import { useMessageStore } from '@/stores/messageStore.ts'
 import { useRouter } from 'vue-router'
 import { formatNumber, getLevelByExp, getLevelIconUrl } from '@/utils/utils'
 
 const router = useRouter()
 const userStore = useUserStore()
+const messageStore = useMessageStore()
+
+const totalUnreadCount = computed(() => messageStore.unread.totalUnread)
 
 const goMySpace = (tab: string) => {
   if (!userStore.user.uid) return
@@ -312,6 +318,7 @@ const handleRightEntryClick = (event: Event) => {
     return
   }
 }
+
 </script>
 
 <style lang="less" scoped>
@@ -371,14 +378,14 @@ const handleRightEntryClick = (event: Event) => {
         width: 194px;
         height: 40px;
         border-radius: 8px;
-        border: 1px solid #e3e5e7;
+        border: 1px solid @border-color;
       }
     }
 
     .login-sns-wp {
       margin-top: 20px;
       font-size: 13px;
-      color: #9499a0;
+      color: @text-3;
 
       .login-sns-title {
         text-align: center;
@@ -476,13 +483,13 @@ const handleRightEntryClick = (event: Event) => {
       max-width: 500px;
       position: relative;
       border-radius: 8px;
-      border: 1px solid #e3e5e7;
+      border: 1px solid @border-color;
       background: #f1f2f3;
       transition: all 0.3s ease;
 
       &--focus {
         background: #fff;
-        border-color: #e3e5e7;
+        border-color: @border-color;
         border-radius: 8px 8px 0 0;
       }
 
@@ -494,18 +501,16 @@ const handleRightEntryClick = (event: Event) => {
         background: transparent;
         padding: 0 16px;
         font-size: 14px;
-        color: #18191c;
+        color: @text-1;
         min-width: 0;
 
         &::placeholder {
-          color: #9499a0;
+          color: @text-3;
         }
       }
 
       &__clear {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        .flex-center();
         width: 28px;
         height: 100%;
         border: none;
@@ -516,31 +521,29 @@ const handleRightEntryClick = (event: Event) => {
         transition: color 0.2s;
 
         &:hover {
-          color: #9499a0;
+          color: @text-3;
         }
       }
 
       &__btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        .flex-center();
         width: 48px;
         height: 100%;
         border: none;
         border-left: 1px solid transparent;
         background: transparent;
         cursor: pointer;
-        color: #9499a0;
+        color: @text-3;
         transition: all 0.3s ease;
         flex-shrink: 0;
 
         &:hover {
-          color: #00aeec;
+          color: @blue;
         }
       }
 
       &--focus &__btn {
-        border-left-color: #e3e5e7;
+        border-left-color: @border-color;
         background: #fff;
 
         &:hover {
@@ -576,29 +579,29 @@ const handleRightEntryClick = (event: Event) => {
         &__title {
           font-size: 14px;
           font-weight: 600;
-          color: #18191c;
+          color: @text-1;
         }
 
         &__clear {
           font-size: 12px;
-          color: #9499a0;
+          color: @text-3;
           cursor: pointer;
           transition: color 0.2s;
 
-          &:hover {
-            color: #fb7299;
-          }
+        &:hover {
+          color: @pink;
+        }
         }
 
         &__divider {
           height: 1px;
-          background: #e3e5e7;
+          background: @border-color;
           margin: 16px 0;
         }
 
         &__expand {
           font-size: 12px;
-          color: #9499a0;
+          color: @text-3;
           text-align: center;
           cursor: pointer;
           margin-top: 8px;
@@ -606,7 +609,7 @@ const handleRightEntryClick = (event: Event) => {
           transition: color 0.2s;
 
           &:hover {
-            color: #00aeec;
+            color: @blue;
           }
         }
       }
@@ -616,7 +619,7 @@ const handleRightEntryClick = (event: Event) => {
         padding: 0 16px;
         line-height: 36px;
         font-size: 14px;
-        color: #18191c;
+        color: @text-1;
         cursor: pointer;
         white-space: nowrap;
         overflow: hidden;
@@ -628,7 +631,7 @@ const handleRightEntryClick = (event: Event) => {
         }
 
         :deep(.suggest-item__highlight) {
-          color: #fb7299;
+          color: @pink;
           font-weight: 500;
         }
       }
@@ -672,18 +675,14 @@ const handleRightEntryClick = (event: Event) => {
 
         .search-history-item__text {
           max-width: 100px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          .ellipsis();
         }
 
         .search-history-item__close {
           position: absolute;
           top: -6px;
           right: -6px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          .flex-center();
           width: 14px;
           height: 14px;
           border-radius: 50%;
@@ -730,12 +729,12 @@ const handleRightEntryClick = (event: Event) => {
           flex-shrink: 0;
           font-size: 12px;
           font-weight: 600;
-          color: #9499a0;
+          color: @text-3;
           text-align: center;
           margin-right: 8px;
 
           &.hot-search-item__rank--top {
-            color: #fb7299;
+            color: @pink;
           }
         }
 
@@ -743,10 +742,8 @@ const handleRightEntryClick = (event: Event) => {
           flex: 1;
           min-width: 0;
           font-size: 13px;
-          color: #18191c;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          color: @text-1;
+          .ellipsis();
         }
       }
     }
@@ -769,10 +766,8 @@ const handleRightEntryClick = (event: Event) => {
     }
 
     .avatar-logout {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: #00aeec;
+      .flex-center();
+      background-color: @blue;
       font-size: 14px;
       color: #ffffff;
       cursor: pointer;
@@ -818,9 +813,7 @@ const handleRightEntryClick = (event: Event) => {
       }
 
       .vip-item {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        .flex-center();
         margin: 4px 0;
 
         .vip-item__label {
@@ -839,8 +832,10 @@ const handleRightEntryClick = (event: Event) => {
           padding-left: 5px;
 
           .level-icon-img {
-            width: 40px;
-            height: 14px;
+            // 等级图标 SVG 为 1:1 正方形（viewBox 0 0 30 30），按方形显示以免被压成扁条
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
           }
         }
       }
@@ -852,12 +847,12 @@ const handleRightEntryClick = (event: Event) => {
 
         .coin-item__text {
           padding-right: 5px;
-          color: #9499a0;
+          color: @text-3;
         }
 
         .coin-item__num {
           padding-right: 10px;
-          color: #18191c;
+          color: @text-1;
         }
       }
 
@@ -886,20 +881,20 @@ const handleRightEntryClick = (event: Event) => {
           }
 
           .counts-item__num {
-            color: #18191c;
+            color: @text-1;
             font-size: 18px;
           }
 
           .counts-item__text {
             font-size: 12px;
-            color: #9499a0;
+            color: @text-3;
           }
         }
       }
 
       .vip-entry-container {
         cursor: pointer;
-        background-image: url(https://hirihiri.oss-cn-nanjing.aliyuncs.com/eAwhtOhoSo.png);
+        background-image: url(https://hirihiri2.oss-cn-shanghai.aliyuncs.com/eAwhtOhoSo.png);
         display: flex;
         align-items: center;
         justify-content: space-around;
@@ -920,9 +915,7 @@ const handleRightEntryClick = (event: Event) => {
         }
 
         .vip-entry-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          .flex-center();
           color: rgb(72 104 195);
           background: rgb(255, 255, 255);
           font-size: 12px;
@@ -940,13 +933,13 @@ const handleRightEntryClick = (event: Event) => {
           align-items: center;
           height: 38px;
           border-radius: 6px;
-          color: #61666d;
+          color: @text-2;
           font-size: 14px;
           transition: background-color 0.3s;
           padding: 0 14px;
 
           &:hover {
-            background-color: #e3e5e7;
+            background-color: @border-color;
           }
 
           .link-title {
@@ -960,14 +953,14 @@ const handleRightEntryClick = (event: Event) => {
         align-items: center;
         height: 38px;
         border-radius: 6px;
-        color: #61666d;
+        color: @text-2;
         font-size: 14px;
         transition: background-color 0.3s;
         cursor: pointer;
         padding: 0 14px;
 
         &:hover {
-          background-color: #e3e5e7;
+          background-color: @border-color;
         }
       }
     }
@@ -977,6 +970,7 @@ const handleRightEntryClick = (event: Event) => {
       height: 64px;
       margin-right: 15px;
       font-size: 14px;
+      flex-shrink: 0;
     }
 
     .v-popover-wrap {
@@ -1000,8 +994,27 @@ const handleRightEntryClick = (event: Event) => {
       font-size: 20px;
     }
 
+    .right-entry-text {
+      display: block;
+      white-space: nowrap;
+      word-break: keep-all;
+      overflow-wrap: normal;
+    }
+
     .v-popover-wrap:hover .right-icon {
       animation: jump 0.3s;
+    }
+
+    .message-badge {
+      display: inline-flex;
+      align-items: center;
+
+      :deep(.el-badge__content) {
+        font-size: 10px;
+        height: 16px;
+        line-height: 16px;
+        padding: 0 4px;
+      }
     }
   }
 }
@@ -1061,9 +1074,9 @@ const handleRightEntryClick = (event: Event) => {
   }
 }
 
-@media (max-width: 1330px) {
-  .right-entry-text {
-    display: none;
+@media (max-width: 1279.9px) {
+  .hiri-header__bar .right-entry .right-entry-text {
+    display: none !important;
   }
 }
 </style>

@@ -7,17 +7,17 @@
       <div v-show="visible" class="user-hover-card" :class="`placement-${computedPlacement}`" :style="cardStyle">
         <div class="user-hover-card__inner">
           <div class="user-hover-card__bg">
-            <img :src="user.background || 'https://hirihiri.oss-cn-nanjing.aliyuncs.com/background.png'" alt="" class="user-hover-card__bg-img" />
+            <img :src="user.background || 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/background.png'" alt="" class="user-hover-card__bg-img" />
           </div>
           <div class="user-hover-card__body">
             <div class="user-hover-card__avatar-col">
-              <router-link :to="`/space/${user.uid}`">
+              <a :href="`/space/${user.uid}`" target="_blank">
                 <img :src="user.avatar" alt="" class="user-hover-card__avatar" />
-              </router-link>
+              </a>
             </div>
             <div class="user-hover-card__content-col">
               <div class="user-hover-card__name-row">
-                <router-link :to="`/space/${user.uid}`" class="user-hover-card__name">{{ user.username }}</router-link>
+                <a :href="`/space/${user.uid}`" class="user-hover-card__name" target="_blank">{{ user.username }}</a>
                 <span v-if="user.sex === 1" class="user-hover-card__sex male">♂</span>
                 <span v-else-if="user.sex === 2" class="user-hover-card__sex female">♀</span>
                 <img
@@ -27,15 +27,15 @@
                 />
               </div>
               <div class="user-hover-card__stats">
-                <router-link :to="`/space/${user.uid}/following`" class="stat-item">
+                <a :href="`/space/${user.uid}/following`" target="_blank" class="stat-item">
                   <span class="stat-num">{{ formatNumber(user.videoCount ?? 0) }}</span>
                   <span class="stat-label">关注</span>
-                </router-link>
+                </a>
                 <span class="stat-divider"> </span>
-                <router-link :to="`/space/${user.uid}/fans`" class="stat-item">
+                <a :href="`/space/${user.uid}/fans`" target="_blank" class="stat-item">
                   <span class="stat-num">{{ formatNumber(user.fanCount ?? 0) }}</span>
                   <span class="stat-label">粉丝</span>
-                </router-link>
+                </a>
                 <span class="stat-divider"> </span>
                 <span class="stat-item">
                   <span class="stat-num">{{ formatNumber(likeCount ?? 0) }}</span>
@@ -58,9 +58,9 @@
                 <el-button type="primary" size="default" @click="handleFollow">
                   {{ isFollowing ? '已关注' : '+ 关注' }}
                 </el-button>
-                <router-link :to="`/space/${user.uid}`">
+                <a :href="`/message?target=${user.uid}`" target="_blank">
                   <el-button size="default" :icon="ChatDotRound">发消息</el-button>
-                </router-link>
+                </a>
               </div>
             </div>
           </div>
@@ -178,6 +178,29 @@ const handleMouseLeave = () => {
 const handleFollow = () => {
   emit('follow', props.user.uid)
 }
+
+const show = () => {
+  if (leaveTimer) {
+    clearTimeout(leaveTimer)
+    leaveTimer = undefined
+  }
+  checkSpace()
+  visible.value = true
+}
+
+const hide = () => {
+  if (enterTimer) {
+    clearTimeout(enterTimer)
+    enterTimer = undefined
+  }
+  visible.value = false
+}
+
+defineExpose({
+  show,
+  hide,
+  visible,
+})
 </script>
 
 <style scoped lang="less">
@@ -193,7 +216,7 @@ const handleFollow = () => {
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid #e3e5e7;
+  border: 1px solid @border-color;
 
   &.placement-bottom {
     top: 100%;
@@ -302,10 +325,8 @@ const handleFollow = () => {
   &__name {
     font-size: 18px;
     font-weight: 600;
-    color: #18191c;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: @text-1;
+    .ellipsis();
     text-decoration: none;
   }
 
@@ -314,11 +335,11 @@ const handleFollow = () => {
     font-weight: 600;
 
     &.male {
-      color: #00aeec;
+      color: @blue;
     }
 
     &.female {
-      color: #fb7299;
+      color: @pink;
     }
   }
 
@@ -331,7 +352,7 @@ const handleFollow = () => {
   &__stats {
     display: flex;
     align-items: center;
-    color: #9499a0;
+    color: @text-3;
     font-size: 13px;
     margin-bottom: 14px;
   }
@@ -347,18 +368,18 @@ const handleFollow = () => {
   .stat-num {
     font-size: 14px;
     font-weight: 600;
-    color: #18191c;
+    color: @text-1;
   }
 
   .stat-label {
     font-size: 13px;
-    color: #9499a0;
+    color: @text-3;
   }
 
   .stat-divider {
     width: 1px;
     height: 12px;
-    background: #e3e5e7;
+    background: @border-color;
     margin: 0 12px;
   }
 
@@ -371,20 +392,18 @@ const handleFollow = () => {
     border-radius: 4px;
     margin: 0 0 14px;
     font-size: 13px;
-    color: #61666d;
+    color: @text-2;
     width: 100%;
     box-sizing: border-box;
 
     .auth-text {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      .ellipsis();
     }
   }
 
   &__desc {
     font-size: 13px;
-    color: #61666d;
+    color: @text-2;
     line-height: 1.5;
     margin-bottom: 16px;
     display: -webkit-box;

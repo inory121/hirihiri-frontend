@@ -55,15 +55,13 @@ onUnmounted(() => {
   border-radius: 50%;
   background-color: #fff;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  .flex-center();
   cursor: pointer;
-  color: #9499a0;
+  color: @text-3;
   transition: all 0.25s ease;
 
   &:hover {
-    color: #00a1d6;
+    color: @blue-deep;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
     transform: translateY(-2px);
   }

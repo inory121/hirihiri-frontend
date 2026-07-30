@@ -1,0 +1,44 @@
+// 全局 Less 变量（已通过 vite.config.ts 的 less.additionalData 全局注入，组件无需手动 @import）
+// 文字颜色
+@text-1: #18191c; // 主要文字（B站）
+@text-2: #61666d; // 次要文字（B站）
+@text-3: #9499a0; // 辅助 / 占位文字（B站）
+
+// 主题色
+@blue: #00aeec;   // 主色蓝（B站）
+@blue-deep: #00a1d6; // 深蓝（B站）
+@pink: #fb7299;   // 品牌粉（关注、点赞等强调，B站）
+
+// 边框 / 背景
+@border-color: #e3e5e7;
+@bg-gray: #f1f2f3;
+
+// 通用中性色
+@white: #fff;
+@black: #000;
+@bg-page: #f6f7f8; // 后台页面背景（Arco/Element 浅灰）
+
+// 布局 / 文本 工具 mixin（已全局注入，组件内用 .flex-center(); 调用，不产生重复 CSS 输出）
+.flex-center() {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-center-col() {
+  .flex-center();
+  flex-direction: column;
+}
+
+.ellipsis() {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ellipsis-2() {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}

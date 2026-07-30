@@ -3,7 +3,6 @@ import { get, post } from '@/utils/request'
 import { USER_API } from '@/api/user'
 import { FOLLOW_API } from '@/api/follow'
 import type {
-  searchUserApiResponse,
   User,
   UserApiResponse,
   UserDataApiResponse,
@@ -40,6 +39,7 @@ export const useUserStore = defineStore('user', {
       followList: [] as User[], // 当前 tab 下展示的关注/粉丝用户列表
       followListLoading: false, // followList 加载状态
       followStatusMap: {} as Record<number, boolean>, // 用户 uid -> 是否已关注 的映射
+      userByUidCache: {} as Record<number, User>, // 按 uid 缓存的用户信息（供 @uid 反查 username）
     }
   },
   getters: {},
@@ -141,6 +141,7 @@ export const useUserStore = defineStore('user', {
         const res = await get<UserApiResponse>(`${USER_API.USER_INFO}/${uid}`)
         if (res.code === 200) {
           this.targetUser = res.data
+          this.userByUidCache[res.data.uid] = res.data
         } else {
           this.targetUser = {} as User
         }
@@ -150,6 +151,23 @@ export const useUserStore = defineStore('user', {
       } finally {
         this.targetUserLoading = false
       }
+    },
+    // 根据 uid 直接获取用户对象（带缓存），供 MentionContent 把 @uid 反查为 @username
+    async getUserByUid(uid: number): Promise<User | null> {
+      if (!uid || uid <= 0) return null
+      if (this.user && this.user.uid === uid) return this.user
+      const cached = this.userByUidCache[uid]
+      if (cached) return cached
+      try {
+        const res = await get<UserApiResponse>(`${USER_API.USER_INFO}/${uid}`)
+        if (res.code === 200 && res.data && res.data.uid) {
+          this.userByUidCache[res.data.uid] = res.data
+          return res.data
+        }
+      } catch (e) {
+        console.log('getUserByUid 失败:', e)
+      }
+      return null
     },
     // 获取当前登录用户的关注数/粉丝数
     async getCurrentUserFollowCount(targetUid: number) {

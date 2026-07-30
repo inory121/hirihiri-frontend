@@ -57,8 +57,8 @@
           class="danmaku-toggle-icon"
           :style="{
             '--icon-url': danmakuEnabled
-              ? 'url(https://hirihiri.oss-cn-nanjing.aliyuncs.com/danmuopen.svg)'
-              : 'url(https://hirihiri.oss-cn-nanjing.aliyuncs.com/danmuclose.svg)',
+              ? 'url(https://hirihiri2.oss-cn-shanghai.aliyuncs.com/danmuopen.svg)'
+              : 'url(https://hirihiri2.oss-cn-shanghai.aliyuncs.com/danmuclose.svg)',
           }"
           @click="toggleDanmaku"
           :title="danmakuEnabled ? '关闭弹幕' : '开启弹幕'"
@@ -198,7 +198,7 @@
       </div>
       <div class="video-tag-container">
         <el-tag v-for="tag in rcmTags" :key="tag" :disable-transitions="false" color="#f5f5f5">
-          <router-link :to="`/search/video?keyword=${tag}`">{{ tag }}</router-link>
+          <a :href="`/search/video?keyword=${tag}`" target="_blank">{{ tag }}</a>
         </el-tag>
       </div>
       <el-divider style="margin: 10px"/>
@@ -232,17 +232,74 @@
           <div class="commentbox">
             <div class="user-avatar">
               <img v-if="userStore.isLogin" :src="user.avatar" alt=""/>
-              <img v-else src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/noface.jpg" alt=""/>
+              <img v-else src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/noface.jpg" alt=""/>
             </div>
-            <div class="editor edit" v-if="userStore.isLogin">
-              <el-input
-                v-model="comment"
-                style="height: 50px"
-                placeholder="wifi连接中......检测到粉丝评论输出电波......"
-              ></el-input>
-              <el-button type="primary" size="large" style="margin-left: 10px" @click="sendComment">
-                发布
-              </el-button>
+            <div class="editor edit" v-if="userStore.isLogin" @focusout="onEditorFocusOut">
+              <div class="at-input-wrap">
+                <MentionInput
+                  ref="rootMentionInput"
+                  v-model="comment"
+                  :active="isRootFocused || comment.trim().length > 0 || syncToDynamic"
+                  placeholder="wifi连接中......检测到粉丝评论输出电波......"
+                  @atTrigger="onRootAtTrigger"
+                  @focus="onRootCommentFocus"
+                />
+                <div
+                  v-if="showRootAtPanel"
+                  class="at-panel"
+                  :class="{ 'is-above': rootAtPanelPlacement === 'above' }"
+                  @mousedown.prevent
+                >
+                  <div class="at-panel-header">选择或输入你想@的人</div>
+                  <div class="at-section">
+                    <div class="at-section-title">我的关注</div>
+                    <div v-if="rootFollowings.length === 0" class="at-empty">暂无关注</div>
+                    <div
+                      v-for="u in filteredRootFollowings"
+                      :key="u.uid"
+                      class="at-user-item"
+                      @click="selectAtUser(u)"
+                    >
+                      <img :src="u.avatar || defaultAvatar" class="at-avatar" alt=""/>
+                      <div class="at-info">
+                        <span class="at-name">{{ u.username }}</span>
+                        <span class="at-fans">{{ u.fanCount || 0 }}粉丝</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-if="rootAtSearchKeyword" class="at-section">
+                    <div class="at-section-title">其他</div>
+                    <div v-if="rootSearchUsers.length === 0" class="at-empty">未找到用户</div>
+                    <div
+                      v-for="u in rootSearchUsers"
+                      :key="u.uid"
+                      class="at-user-item"
+                      @click="selectAtUser(u)"
+                    >
+                      <img :src="u.avatar || defaultAvatar" class="at-avatar" alt=""/>
+                      <div class="at-info">
+                        <span class="at-name">{{ u.username }}</span>
+                        <span class="at-fans">{{ u.fanCount || 0 }}粉丝</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="editor-actions" v-show="isRootFocused || comment.trim().length > 0 || syncToDynamic" @mousedown.prevent>
+                <div class="toolbar-icons">
+                  <span class="tool-icon at-trigger" title="@用户" @click.stop="onAtButtonClick">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                      <circle cx="12" cy="12" r="4"/>
+                      <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/>
+                    </svg>
+                  </span>
+                  <el-checkbox v-model="syncToDynamic" label="同时转发到我的动态" style="margin-left: 12px"/>
+                </div>
+                <el-button type="primary" class="publish-btn" @click="sendComment">
+                  发布
+                </el-button>
+              </div>
             </div>
             <div class="edit" v-else>
               <span>请先</span>
@@ -261,13 +318,19 @@
           <div class="feed" :class="{ 'comment-feed--guest': !userStore.isLogin && displayedCommentThreads.length >= 2 }">
             <template v-for="(thread, index) in displayedCommentThreads" :key="thread.rootId">
               <div class="comment-thread" :class="{ 'comment-item-wrapper': !userStore.isLogin && index === 1 }">
-                <CommentItem :comment="thread.rootComment"/>
+                <CommentItem
+                  :comment="thread.rootComment"
+                  @avatar-hover="onCommentAvatarHover"
+                  @avatar-leave="onCommentAvatarLeave"
+                />
                 <CommentItem
                   v-for="reply in thread.visibleReplies"
                   :key="reply.id"
                   :comment="reply"
+                  @avatar-hover="onCommentAvatarHover"
+                  @avatar-leave="onCommentAvatarLeave"
                 />
-                <div v-if="thread.totalReplies > COLLAPSED_REPLY_COUNT" class="reply-control">
+                <div v-if="thread.totalReplies > COLLAPSED_REPLY_COUNT && (!thread.expanded || thread.totalPages > 1)" class="reply-control">
                   <span v-if="!thread.expanded">共{{ thread.totalReplies }}条回复，</span>
                   <button
                     v-if="!thread.expanded"
@@ -312,12 +375,89 @@
                       </button>
                     </template>
                     <button
+                      v-if="thread.totalPages > 1"
                       type="button"
                       class="reply-text-btn"
                       @click="collapseReplyList(thread.rootId)"
                     >
                       收起
                     </button>
+                  </div>
+                </div>
+                <!-- 回复输入框：放在 reply-control 之下（回复列表/分页控件下方） -->
+                <div
+                  v-if="userStore.isLogin && isReplyActiveInThread(thread)"
+                  class="thread-reply-box"
+                  @focusout="onReplyEditorFocusOut"
+                >
+                  <div class="thread-reply-avatar">
+                    <img :src="user.avatar" alt=""/>
+                  </div>
+                  <div class="thread-reply-editor">
+                    <div class="at-input-wrap">
+                      <MentionInput
+                        ref="replyMentionInput"
+                        v-model="replyContent"
+                        :no-bg-change="true"
+                        :placeholder="`回复 @${getReplyTargetName(activeReplyCommentId)}`"
+                        @atTrigger="onReplyAtTrigger"
+                        @focus="onReplyFocus"
+                      />
+                      <div
+                        v-if="showReplyAtPanel"
+                        class="at-panel"
+                        :class="{ 'is-above': replyAtPanelPlacement === 'above' }"
+                        @mousedown.prevent
+                      >
+                        <div class="at-panel-header">选择或输入你想@的人</div>
+                        <div class="at-section">
+                          <div class="at-section-title">我的关注</div>
+                          <div v-if="replyFollowings.length === 0" class="at-empty">暂无关注</div>
+                          <div
+                            v-for="u in filteredReplyFollowings"
+                            :key="u.uid"
+                            class="at-user-item"
+                            @click="selectReplyAtUser(u)"
+                          >
+                            <img :src="u.avatar || defaultAvatar" class="at-avatar" alt=""/>
+                            <div class="at-info">
+                              <span class="at-name">{{ u.username }}</span>
+                              <span class="at-fans">{{ u.fanCount || 0 }}粉丝</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div v-if="replyAtSearchKeyword" class="at-section">
+                          <div class="at-section-title">其他</div>
+                          <div v-if="replySearchUsers.length === 0" class="at-empty">未找到用户</div>
+                          <div
+                            v-for="u in replySearchUsers"
+                            :key="u.uid"
+                            class="at-user-item"
+                            @click="selectReplyAtUser(u)"
+                          >
+                            <img :src="u.avatar || defaultAvatar" class="at-avatar" alt=""/>
+                            <div class="at-info">
+                              <span class="at-name">{{ u.username }}</span>
+                              <span class="at-fans">{{ u.fanCount || 0 }}粉丝</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="editor-actions" v-show="isReplyFocused || replyContent.trim().length > 0" @mousedown.prevent>
+                      <div class="toolbar-icons">
+                        <span class="tool-icon at-trigger" title="@用户" @click.stop="onReplyAtButtonClick">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                               stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                            <circle cx="12" cy="12" r="4"/>
+                            <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/>
+                          </svg>
+                        </span>
+                      </div>
+                      <div class="reply-actions-right">
+                        <el-button type="primary" class="publish-btn" @click="sendReply(thread)">发布</el-button>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div v-if="!userStore.isLogin && index === 1 && commentStore.total > 2" class="comment-fade-mask"></div>
@@ -364,18 +504,18 @@
                 :like-count="videoInfo.stat?.like ?? 0"
                 @follow="handleUpFollow"
               >
-                <router-link :to="`/space/${videoInfo.user.uid}`"
+                <a :href="`/space/${videoInfo.user.uid}`" target="_blank"
                 ><img :src="videoInfo.user.avatar" alt=""
-                /></router-link>
+                /></a>
               </UserHoverCard>
             </div>
           </div>
           <div class="up-info-right">
             <div class="up-info__detail">
-              <router-link :to="`/space/${videoInfo.user.uid}`" class="up-name">{{
+              <a :href="`/space/${videoInfo.user.uid}`" target="_blank" class="up-name">{{
                   videoInfo.user.username
-                }}</router-link>
-              <a href="#" class="send-msg">
+                }}</a>
+              <a :href="`/message?target=${videoInfo.user.uid}`" target="_blank" class="send-msg">
                 <el-icon>
                   <Message/>
                 </el-icon>
@@ -467,20 +607,20 @@
         <div class="rec-list">
           <div class="card-box" v-for="list in relatedList" :key="list.video.vid">
             <div class="pic-box">
-              <router-link :to="`/video/${list.video.vid}`">
+              <a :href="`/video/${list.video.vid}`" target="_blank">
                 <img :src="list.video.coverUrl" alt=""/>
-              </router-link>
+              </a>
               <span class="duration">{{ formatDuration(list.video.duration) }}</span>
             </div>
             <div class="info">
-              <router-link :to="`/video/${list.video.vid}`" :title="list.video.title">
+              <a :href="`/video/${list.video.vid}`" :title="list.video.title" target="_blank">
                 <p class="title">{{ list.video.title }}</p>
-              </router-link>
+              </a>
               <div class="upname">
-                <router-link :to="`/space/${list.user.uid}`">
-                  <img src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg"/>
+                <a :href="`/space/${list.user.uid}`" target="_blank">
+                  <img src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg" alt=""/>
                   <span class="name">{{ list.user.username || '未知用户' }}</span>
-                </router-link>
+                </a>
               </div>
               <div class="playinfo">
                 <el-icon class="icon">
@@ -559,11 +699,12 @@ import {computed, nextTick, onMounted, onUnmounted, ref, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import {formatDateTime, formatDuration, formatNumber} from '@/utils/utils'
 // 引入Plyr播放器
+// @ts-ignore plyr 以 CommonJS `export =` 导出，verbatimModuleSyntax 下默认导入无类型声明，运行时由 Vite 互操作正常
 import Plyr from 'plyr'
 import 'plyr/dist/plyr.css'
 // 引入弹幕组件
 import Danmaku from 'danmaku'
-import type {Comment, Danmu, FavoriteFolder} from '@/types/api.ts'
+import type {Comment, Danmu, FavoriteFolder, User} from '@/types/api.ts'
 import {CoffeeCup, Loading, Plus} from '@element-plus/icons-vue'
 import {ElMessage} from 'element-plus'
 import {storeToRefs} from 'pinia'
@@ -575,6 +716,7 @@ import {useHistoryStore} from '@/stores/historyStore.ts'
 import {useRecommendStore} from '@/stores/recommendStore.ts'
 import CommentItem from '@/components/comment-item/CommentItem.vue'
 import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
+import MentionInput from '@/components/mention-input/MentionInput.vue'
 
 const route = useRoute()
 const videoStore = useVideoStore()
@@ -583,7 +725,7 @@ const commentStore = useCommentStore()
 const userStore = useUserStore()
 const historyStore = useHistoryStore()
 const recommendStore = useRecommendStore()
-const {videoInfo, videoList, isShow, onlineCount} = storeToRefs(videoStore)
+const {videoInfo, isShow, onlineCount} = storeToRefs(videoStore)
 const {relatedList} = storeToRefs(recommendStore)
 const {commentList} = storeToRefs(commentStore)
 const {danmakuList} = storeToRefs(danmakuStore)
@@ -592,6 +734,399 @@ const danmuList = ref([])
 const rcmTags = ref<string[] | undefined>()
 const danmaku = ref('')
 const comment = ref('')
+const defaultAvatar = 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/noface.jpg'
+
+// ======================== 根评论 @ 功能 ========================
+const showRootAtPanel = ref(false)
+const isRootFocused = ref(false)
+const rootFollowings = ref<User[]>([])
+const rootAtSearchKeyword = ref('')
+const rootSearchUsers = ref<User[]>([])
+const syncToDynamic = ref(false)
+const rootMentionInput = ref<InstanceType<typeof MentionInput> | null>(null)
+type AtPanelPlacement = 'above' | 'below'
+const rootAtPanelPlacement = ref<AtPanelPlacement>('below')
+const replyAtPanelPlacement = ref<AtPanelPlacement>('below')
+let rootAtSearchTimer: ReturnType<typeof setTimeout> | null = null
+
+// 首次打开面板时加载关注列表
+const ensureRootFollowings = async () => {
+  if (rootFollowings.value.length === 0 && userStore.isLogin) {
+    await userStore.getFollowings(user.value.uid)
+    rootFollowings.value = [...userStore.followList]
+  }
+}
+
+// MentionInput 检测到 @ 及其后的搜索关键词时触发
+const onRootAtTrigger = async (keyword: string | null) => {
+  if (rootAtSearchTimer) {
+    clearTimeout(rootAtSearchTimer)
+    rootAtSearchTimer = null
+  }
+
+  if (keyword === null) {
+    showRootAtPanel.value = false
+    rootAtSearchKeyword.value = ''
+    rootSearchUsers.value = []
+    return
+  }
+
+  showRootAtPanel.value = true
+  rootAtSearchKeyword.value = keyword
+  await ensureRootFollowings()
+
+  const searchKeyword = keyword.trim()
+  if (!searchKeyword) {
+    rootSearchUsers.value = []
+    return
+  }
+
+  rootAtSearchTimer = setTimeout(async () => {
+    await userStore.getSearchUsers(searchKeyword, 'default', 1, 10)
+    if (rootAtSearchKeyword.value === searchKeyword && showRootAtPanel.value) {
+      rootSearchUsers.value = [...userStore.searchUserList]
+    }
+  }, 300)
+}
+
+// 点击 @ 按钮：在 MentionInput 中插入 @ 字符并弹出面板
+const onAtButtonClick = async () => {
+  showRootAtPanel.value = true
+  await ensureRootFollowings()
+  await nextTick()
+  // 手动向编辑器插入 @
+  const editor = rootMentionInput.value?.$el?.querySelector('.mention-editor') as HTMLElement | null
+  if (editor) {
+    editor.focus()
+    document.execCommand('insertText', false, '@')
+  }
+}
+
+// 输入框获得焦点：显示工具栏
+const onRootCommentFocus = () => {
+  isRootFocused.value = true
+}
+
+// 焦点离开整个编辑器区域时：若焦点仍落在编辑器内部，不隐藏工具栏
+const onEditorFocusOut = (e: FocusEvent) => {
+  const related = e.relatedTarget as HTMLElement | null
+  if (related && related.closest('.editor.edit')) return
+  isRootFocused.value = false
+  showRootAtPanel.value = false
+}
+
+// 过滤后的关注列表（按搜索关键词）
+const filteredRootFollowings = computed(() => {
+  if (!rootAtSearchKeyword.value) return rootFollowings.value
+  const kw = rootAtSearchKeyword.value.toLowerCase()
+  return rootFollowings.value.filter(u => u.username?.toLowerCase().includes(kw))
+})
+
+// 选中一个用户：通过 MentionInput 插入 @username mention
+const selectAtUser = (u: User) => {
+  rootMentionInput.value?.insertMention(u.username!, u.uid!)
+  showRootAtPanel.value = false
+  rootAtSearchKeyword.value = ''
+}
+
+// ======================== 回复框逻辑 ========================
+const { activeReplyCommentId } = storeToRefs(commentStore)
+const { setActiveReplyCommentId } = commentStore
+
+const replyContent = ref('')
+const isReplyFocused = ref(false)
+const showReplyAtPanel = ref(false)
+const replyFollowings = ref<User[]>([])
+const replyAtSearchKeyword = ref('')
+const replySearchUsers = ref<User[]>([])
+// v-for 内的 ref 会自动变成数组，取第 0 个即当前唯一激活的回复框
+const replyMentionInput = ref<InstanceType<typeof MentionInput>[]>([])
+let replyAtSearchTimer: ReturnType<typeof setTimeout> | null = null
+
+// 便捷访问器：当前活跃的回复 MentionInput 实例
+const activeReplyInput = () => replyMentionInput.value[0] ?? null
+
+type AtPanelTarget = 'root' | 'reply'
+const atPanelPlacementRaf: Record<AtPanelTarget, number | null> = {
+  root: null,
+  reply: null,
+}
+
+// 根据输入框上下方的可视空间决定候选弹窗方向
+const updateAtPanelPlacement = (target: AtPanelTarget) => {
+  nextTick(() => {
+    const pendingRaf = atPanelPlacementRaf[target]
+    if (pendingRaf !== null) cancelAnimationFrame(pendingRaf)
+
+    atPanelPlacementRaf[target] = requestAnimationFrame(() => {
+      atPanelPlacementRaf[target] = null
+      const input = target === 'root' ? rootMentionInput.value : activeReplyInput()
+      const inputElement = input?.$el as HTMLElement | undefined
+      const panel = inputElement?.parentElement?.querySelector<HTMLElement>('.at-panel')
+      if (!inputElement || !panel) return
+
+      const inputRect = inputElement.getBoundingClientRect()
+      const panelHeight = Math.min(panel.scrollHeight, 260)
+      const gap = 8
+      const spaceAbove = Math.max(0, inputRect.top - gap)
+      const spaceBelow = Math.max(0, window.innerHeight - inputRect.bottom - gap)
+      const placement: AtPanelPlacement =
+        spaceBelow >= panelHeight || spaceBelow >= spaceAbove ? 'below' : 'above'
+
+      if (target === 'root') {
+        rootAtPanelPlacement.value = placement
+      } else {
+        replyAtPanelPlacement.value = placement
+      }
+    })
+  })
+}
+
+watch(
+  [showRootAtPanel, rootAtSearchKeyword, () => rootFollowings.value.length, () => rootSearchUsers.value.length],
+  ([visible]) => {
+    if (visible) updateAtPanelPlacement('root')
+  },
+  {flush: 'post'}
+)
+
+watch(
+  [showReplyAtPanel, replyAtSearchKeyword, () => replyFollowings.value.length, () => replySearchUsers.value.length],
+  ([visible]) => {
+    if (visible) updateAtPanelPlacement('reply')
+  },
+  {flush: 'post'}
+)
+
+const handleAtPanelViewportChange = () => {
+  if (showRootAtPanel.value) updateAtPanelPlacement('root')
+  if (showReplyAtPanel.value) updateAtPanelPlacement('reply')
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleAtPanelViewportChange)
+  window.addEventListener('scroll', handleAtPanelViewportChange, true)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleAtPanelViewportChange)
+  window.removeEventListener('scroll', handleAtPanelViewportChange, true)
+  Object.values(atPanelPlacementRaf).forEach((rafId) => {
+    if (rafId !== null) cancelAnimationFrame(rafId)
+  })
+})
+
+// 判断该 thread 是否有激活的回复框
+const isReplyActiveInThread = (thread: CommentThreadView): boolean => {
+  if (activeReplyCommentId.value === null) return false
+  // 根评论本身
+  if (thread.rootComment.id === activeReplyCommentId.value) return true
+  // 任意子评论
+  const allReplies = flattenComments(thread.rootComment.replies ?? [], 1)
+  return allReplies.some(r => r.id === activeReplyCommentId.value)
+}
+
+// 获取回复目标用户名
+const getReplyTargetName = (commentId: number | null): string => {
+  if (commentId === null) return ''
+  // 在所有评论中查找
+  const findInList = (list: Comment[]): Comment | null => {
+    for (const c of list) {
+      if (c.id === commentId) return c
+      if (c.replies?.length) {
+        const found = findInList(c.replies)
+        if (found) return found
+      }
+    }
+    return null
+  }
+  const target = findInList(commentStore.commentList)
+  return target?.user?.username ?? ''
+}
+
+// 关注列表确保加载
+const ensureReplyFollowings = async () => {
+  if (replyFollowings.value.length === 0 && userStore.isLogin) {
+    await userStore.getFollowings(user.value.uid)
+    replyFollowings.value = [...userStore.followList]
+  }
+}
+
+// MentionInput 在回复框中检测到 @ 及其后的搜索关键词时触发
+const onReplyAtTrigger = async (keyword: string | null) => {
+  if (replyAtSearchTimer) {
+    clearTimeout(replyAtSearchTimer)
+    replyAtSearchTimer = null
+  }
+
+  if (keyword === null) {
+    showReplyAtPanel.value = false
+    replyAtSearchKeyword.value = ''
+    replySearchUsers.value = []
+    return
+  }
+
+  showReplyAtPanel.value = true
+  replyAtSearchKeyword.value = keyword
+  await ensureReplyFollowings()
+
+  const searchKeyword = keyword.trim()
+  if (!searchKeyword) {
+    replySearchUsers.value = []
+    return
+  }
+
+  replyAtSearchTimer = setTimeout(async () => {
+    await userStore.getSearchUsers(searchKeyword, 'default', 1, 10)
+    if (replyAtSearchKeyword.value === searchKeyword && showReplyAtPanel.value) {
+      replySearchUsers.value = [...userStore.searchUserList]
+    }
+  }, 300)
+}
+
+// 点击回复框 @ 按钮
+const onReplyAtButtonClick = async () => {
+  showReplyAtPanel.value = true
+  await ensureReplyFollowings()
+  await nextTick()
+  const editor = activeReplyInput()?.$el?.querySelector('.mention-editor') as HTMLElement | null
+  if (editor) {
+    editor.focus()
+    document.execCommand('insertText', false, '@')
+  }
+}
+
+const onReplyFocus = () => {
+  isReplyFocused.value = true
+}
+
+// 点击“回复”打开回复框时自动聚焦输入框，从而自动显示工具栏（@用户等功能）
+watch(activeReplyCommentId, async (id) => {
+  if (id == null) return
+  await nextTick()
+  const editor = activeReplyInput()?.$el?.querySelector('.mention-editor') as HTMLElement | null
+  if (editor) editor.focus()
+})
+
+const onReplyEditorFocusOut = (e: FocusEvent) => {
+  // 失焦不再隐藏工具栏和 @ 面板
+  // 只有点击对应的回复按钮（触发 cancelReply / setActiveReplyCommentId(null)）时才关闭
+  const related = e.relatedTarget as HTMLElement | null
+  if (related && related.closest('.thread-reply-box')) return
+  // 仅关闭 @ 面板，保留工具栏显示
+  showReplyAtPanel.value = false
+}
+
+const filteredReplyFollowings = computed(() => {
+  if (!replyAtSearchKeyword.value) return replyFollowings.value
+  const kw = replyAtSearchKeyword.value.toLowerCase()
+  return replyFollowings.value.filter(u => u.username?.toLowerCase().includes(kw))
+})
+
+const selectReplyAtUser = (u: User) => {
+  activeReplyInput()?.insertMention(u.username!, u.uid!)
+  showReplyAtPanel.value = false
+  replyAtSearchKeyword.value = ''
+}
+
+// 查找评论并返回其 rootId 和 toUserId
+const findCommentInfo = (commentId: number): { rootId: number; toUserId: number; parentId: number } | null => {
+  const findInList = (list: Comment[], rootId: number): { rootId: number; toUserId: number; parentId: number } | null => {
+    for (const c of list) {
+      if (c.id === commentId) {
+        return { rootId: rootId || c.id!, toUserId: c.user!.uid, parentId: c.id! }
+      }
+      if (c.replies?.length) {
+        const found = findInList(c.replies, c.id!)
+        if (found) return found
+      }
+    }
+    return null
+  }
+  return findInList(commentStore.commentList, 0)
+}
+
+const sendReply = async (thread: CommentThreadView) => {
+  if (!replyContent.value.trim() || !activeReplyCommentId.value) return
+  const vid = videoInfo.value.video.vid
+  if (!vid) return
+
+  const info = findCommentInfo(activeReplyCommentId.value)
+  if (!info) return
+
+  const targetComment = (() => {
+    const findInList = (list: Comment[]): Comment | null => {
+      for (const c of list) {
+        if (c.id === activeReplyCommentId.value) return c
+        if (c.replies?.length) { const f = findInList(c.replies); if (f) return f }
+      }
+      return null
+    }
+    return findInList(commentStore.commentList)
+  })()
+
+  // 提交时把 mention span 替换为 @<uid> 数字形式，后端按 @\d+ 解析生成 at 通知
+  const submitContent = activeReplyInput()?.getSubmitContent?.() ?? replyContent.value
+
+  const newComment = await commentStore.sendComment({
+    vid,
+    uid: user.value.uid,
+    content: submitContent,
+    isTop: 0,
+    rootId: info.rootId,
+    parentId: info.parentId,
+    toUserId: targetComment?.user?.uid ?? info.toUserId,
+  })
+
+  if (newComment) {
+    // 本地插入回复到评论树，避免整页 getComment 刷新把临时置顶/置顶楼层冲掉
+    const inserted = insertReplyToTree(newComment as Comment)
+    if (!inserted) {
+      // 父评论不在本地列表（如处于分页之外），退化为整页刷新
+      await commentStore.getComment(vid)
+    }
+    replyContent.value = ''
+    activeReplyInput()?.clear()
+    setActiveReplyCommentId(null)
+    // 展开并翻到最后一页，确保新回复可见
+    setReplyListState(info.rootId || (newComment.id as number), true, Number.MAX_SAFE_INTEGER)
+  }
+}
+
+// 将新回复插入本地评论树，返回是否找到父节点
+const insertReplyToTree = (reply: Comment): boolean => {
+  const walk = (list: Comment[]): boolean => {
+    for (const c of list) {
+      if (c.id === reply.parentId) {
+        if (!c.replies) c.replies = []
+        c.replies.push(reply)
+        return true
+      }
+      if (c.replies?.length && walk(c.replies)) return true
+    }
+    return false
+  }
+  return walk(commentStore.commentList)
+}
+
+// 将新根评论本地插入为列表最前（临时评论第一，置顶第二），
+// 避免整页 getComment 刷新把已有的临时评论/置顶楼层冲掉。
+const insertRootCommentLocally = (root: Comment): void => {
+  const normalized: Comment = {
+    ...root,
+    replies: root.replies ?? [],
+    liked: root.liked ?? false,
+    disliked: root.disliked ?? false,
+    like: root.like ?? 0,
+    dislike: root.dislike ?? 0,
+    isTop: root.isTop ?? 0,
+    user: root.user ?? ({ uid: user.value.uid, username: user.value.username, avatar: user.value.avatar } as User),
+  }
+  // 新评论直接插到最前；若存在置顶评论，则置顶顺延到第二位
+  const rest = commentStore.commentList.filter((c) => c.id !== normalized.id)
+  rest.unshift(normalized)
+  commentStore.commentList = rest
+}
 const danmakuContainer = ref<HTMLElement>()
 const plyrPlayer = ref<HTMLVideoElement>()
 const playerPlaceholder = ref<HTMLElement>()
@@ -698,6 +1233,29 @@ const handleUpFollow = async () => {
   }
 }
 
+// 右上角联动卡片：随评论区头像 hover 显示对应用户信息
+const cornerCardRef = ref<InstanceType<typeof UserHoverCard> | null>(null)
+const hoveredCommentUser = ref<any | null>(null)
+let cornerHideTimer: ReturnType<typeof setTimeout> | null = null
+
+const onCommentAvatarHover = (user: any) => {
+  if (cornerHideTimer) {
+    clearTimeout(cornerHideTimer)
+    cornerHideTimer = null
+  }
+  hoveredCommentUser.value = user
+  nextTick(() => {
+    cornerCardRef.value?.show()
+  })
+}
+
+const onCommentAvatarLeave = () => {
+  if (cornerHideTimer) clearTimeout(cornerHideTimer)
+  cornerHideTimer = setTimeout(() => {
+    cornerCardRef.value?.hide()
+  }, 250)
+}
+
 const enterSettingsPanel = () => {
   if (settingsPanelTimer) {
     clearTimeout(settingsPanelTimer)
@@ -767,10 +1325,6 @@ function flattenComments(comments: Comment[], level: number = 0): CommentWithLev
 }
 
 // 扁平化评论列表（自动响应 commentList 变化）
-const flatComments = computed(() => {
-  return flattenComments(commentList.value)
-})
-
 const clampReplyPage = (page: number, totalPages: number) => {
   return Math.min(Math.max(page, 1), Math.max(totalPages, 1))
 }
@@ -923,19 +1477,23 @@ const savePlayProgressImmediate = () => {
 
 const sendComment = async () => {
   if (!videoInfo.value.video.vid || !comment.value.trim()) return
+  // 提交时把 mention span 替换为 @<uid> 数字形式，后端按 @\d+ 解析生成 at 通知
+  const submitContent = rootMentionInput.value?.getSubmitContent?.() ?? comment.value
   const newComment = await commentStore.sendComment({
     vid: videoInfo.value.video.vid,
     uid: user.value.uid,
-    content: comment.value,
+    content: submitContent,
     isTop: 0,
     rootId: 0,
     parentId: 0,
     toUserId: videoInfo.value.user.uid,
   })
   if (newComment) {
-    await commentStore.getComment(videoInfo.value.video.vid)
+    // 本地插入为除置顶外的第一条评论，避免整页刷新冲掉已有的临时评论（含回复）
+    insertRootCommentLocally(newComment as Comment)
     comment.value = ''
-    // currentReplyCommentId.value = null // 隐藏回复框
+    rootMentionInput.value?.clear()
+    isRootFocused.value = false
   }
 }
 // 切换评论排序
@@ -944,6 +1502,54 @@ const changeSort = async (sort: 'hot' | 'new') => {
   commentStore.setSort(sort)
   if (videoInfo.value.video.vid) {
     await commentStore.getComment(videoInfo.value.video.vid)
+  }
+}
+
+// 滚动到目标评论并高亮（从通知页跳转时使用）
+// 方案：按评论ID拉取所属评论树并临时置顶渲染（有置顶评论则排其后），
+// 不依赖排序方式和分页位置，保持当前"最热"排序不变。
+const scrollToAndHighlightComment = async (commentId: number) => {
+  // 1. 拉取目标评论树并置顶插入 commentList
+  const thread = await commentStore.pinCommentThread(commentId)
+  if (!thread) return
+
+  // 2. 如果目标是子评论，展开该楼层回复列表并翻到目标所在页
+  const isRootTarget = thread.id === commentId
+  if (!isRootTarget) {
+    const replies = thread.replies ?? []
+    const replyIndex = replies.findIndex((r) => r.id === commentId)
+    if (replyIndex === -1) return // 目标子评论已被删除
+    const page = Math.floor(replyIndex / REPLY_PAGE_SIZE) + 1
+    setReplyListState(thread.id!, true, page)
+  }
+
+  // 3. 等 Vue 渲染后在 DOM 中定位元素并滚动高亮
+  await nextTick()
+  await new Promise((resolve) => setTimeout(resolve, 100))
+
+  const threadIndex = displayedCommentThreads.value.findIndex((t) => t.rootId === thread.id)
+  if (threadIndex === -1) return
+  const threadEl = document.querySelectorAll('.comment-thread')[threadIndex] as HTMLElement | undefined
+  if (!threadEl) return
+
+  let targetEl: HTMLElement | null
+  if (isRootTarget) {
+    targetEl = threadEl.querySelector(':scope > .comment:not(.sub)')
+  } else {
+    // 子评论：按当前页内的相对索引定位
+    const replies = thread.replies ?? []
+    const replyIndex = replies.findIndex((r) => r.id === commentId)
+    const pageIndex = replyIndex % REPLY_PAGE_SIZE
+    const subEls = threadEl.querySelectorAll(':scope > .comment.sub')
+    targetEl = (subEls[pageIndex] as HTMLElement) || null
+  }
+
+  if (targetEl) {
+    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    targetEl.classList.add('comment--highlighted')
+    setTimeout(() => {
+      targetEl.classList.remove('comment--highlighted')
+    }, 4000)
   }
 }
 
@@ -1485,6 +2091,12 @@ onMounted(async () => {
   initCommentObserver()
   isMounted = true
 
+  // 如果 URL 携带 commentId，自动滚动到目标评论并高亮
+  const targetCommentId = route.query.commentId ? Number(route.query.commentId) : null
+  if (targetCommentId) {
+    await scrollToAndHighlightComment(targetCommentId)
+  }
+
   // 启动在线人数心跳 (每30秒一次)
   const viewerId = getViewerId()
   const currentVid = Number(route.params.vid)
@@ -1582,19 +2194,19 @@ onUnmounted(() => {
 
       :deep(.el-checkbox__label) {
         font-size: 14px;
-        color: #18191c;
+        color: @text-1;
         padding-left: 10px;
       }
 
       .folder-name {
         font-size: 14px;
-        color: #18191c;
+        color: @text-1;
       }
     }
 
     .folder-count {
       font-size: 14px;
-      color: #9499a0;
+      color: @text-3;
     }
   }
 
@@ -1604,15 +2216,13 @@ onUnmounted(() => {
     margin: 0 8px;
 
     .create-folder-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      .flex-center();
       gap: 6px;
       padding: 10px;
       border: 1px dashed #d9d9d9;
       border-radius: 4px;
       cursor: pointer;
-      color: #9499a0;
+      color: @text-3;
       font-size: 14px;
       transition: all 0.2s;
 
@@ -1654,14 +2264,12 @@ onUnmounted(() => {
 
   .dialog-footer-divider {
     height: 1px;
-    background-color: #f1f2f3;
+    background-color: @bg-gray;
     margin: 0 -20px;
   }
 
   .dialog-footer-actions {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    .flex-center();
     padding: 15px 0;
 
     :deep(.el-button) {
@@ -1684,12 +2292,6 @@ onUnmounted(() => {
   margin-right: 8px;
 }
 
-.hiri-header__bar {
-  --text-color: #18191c;
-  --header-shadow: 0 2px 4px #00000014;
-  --bg-color: #fff;
-}
-
 .video-container {
   height: 100%;
   display: flex;
@@ -1709,7 +2311,7 @@ onUnmounted(() => {
         .video-title {
           font-size: 20px;
           font-weight: 500;
-          color: #18191c;
+          color: @text-1;
           line-height: 28px;
           white-space: nowrap;
           overflow: hidden;
@@ -1720,7 +2322,7 @@ onUnmounted(() => {
       .video-info-meta {
         display: flex;
         font-size: 13px;
-        color: #9499a0;
+        color: @text-3;
         margin-top: 10px;
         margin-left: 5px;
 
@@ -1788,7 +2390,7 @@ onUnmounted(() => {
         height: 24px;
         margin-right: 12px;
         cursor: pointer;
-        background-color: #61666d;
+        background-color: @text-2;
         -webkit-mask-image: var(--icon-url);
         mask-image: var(--icon-url);
         -webkit-mask-size: contain;
@@ -1800,7 +2402,7 @@ onUnmounted(() => {
         transition: background-color 0.2s;
 
         &:hover {
-          background-color: #fb7299;
+          background-color: @pink;
         }
       }
 
@@ -1814,9 +2416,9 @@ onUnmounted(() => {
         .setting-icon-mask {
           width: 100%;
           height: 100%;
-          background-color: #61666d;
-          -webkit-mask-image: url('https://hirihiri.oss-cn-nanjing.aliyuncs.com/danmusetting.svg');
-          mask-image: url('https://hirihiri.oss-cn-nanjing.aliyuncs.com/danmusetting.svg');
+          background-color: @text-2;
+          -webkit-mask-image: url('https://hirihiri2.oss-cn-shanghai.aliyuncs.com/danmusetting.svg');
+          mask-image: url('https://hirihiri2.oss-cn-shanghai.aliyuncs.com/danmusetting.svg');
           -webkit-mask-size: contain;
           mask-size: contain;
           -webkit-mask-repeat: no-repeat;
@@ -1827,7 +2429,7 @@ onUnmounted(() => {
         }
 
         &:hover .setting-icon-mask {
-          background-color: #fb7299;
+          background-color: @pink;
         }
 
         .danmaku-settings-panel {
@@ -1853,7 +2455,7 @@ onUnmounted(() => {
 
             .settings-label {
               font-size: 13px;
-              color: #61666d;
+              color: @text-2;
               margin-right: 12px;
               min-width: 40px;
             }
@@ -1870,20 +2472,20 @@ onUnmounted(() => {
               font-size: 12px;
               border: 1px solid #e5e9ef;
               background: #fff;
-              color: #61666d;
+              color: @text-2;
               border-radius: 4px;
               cursor: pointer;
               transition: all 0.2s;
 
               &:hover {
-                border-color: #fb7299;
-                color: #fb7299;
+                border-color: @pink;
+                color: @pink;
               }
 
               &.active {
-                background: #fb7299;
+                background: @pink;
                 color: #fff;
-                border-color: #fb7299;
+                border-color: @pink;
               }
             }
 
@@ -1906,7 +2508,7 @@ onUnmounted(() => {
                 }
 
                 &.active {
-                  border-color: #fb7299;
+                  border-color: @pink;
                   box-shadow: 0 0 0 2px rgba(251, 114, 153, 0.3);
                 }
               }
@@ -1943,18 +2545,18 @@ onUnmounted(() => {
 
           .toolbar-left-item {
             width: 92px;
-            color: #61666d;
+            color: @text-2;
             display: flex;
             align-items: center;
             transition: all 0.3s;
             cursor: pointer;
 
             &:hover {
-              color: #00aeec;
+              color: @blue;
             }
 
             &.active {
-              color: #00aeec;
+              color: @blue;
             }
 
             .icon {
@@ -1963,7 +2565,7 @@ onUnmounted(() => {
             }
 
             .active-icon {
-              color: #00aeec;
+              color: @blue;
             }
 
             span {
@@ -1998,7 +2600,7 @@ onUnmounted(() => {
         line-height: 18px;
 
         .toggle-btn-text {
-          color: #61666d;
+          color: @text-2;
           cursor: pointer;
 
           &:hover {
@@ -2019,6 +2621,95 @@ onUnmounted(() => {
     .comment-wrap {
       margin-top: 20px;
 
+      // 根评论和回复框共用的 @ 候选弹窗
+      .at-panel {
+        position: absolute;
+        top: calc(100% + 6px);
+        bottom: auto;
+        left: 0;
+        width: 280px;
+        max-width: calc(100vw - 24px);
+        max-height: 260px;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+        z-index: 100;
+        overflow-y: auto;
+        animation: atPanelInBelow 0.15s ease-out;
+
+        &.is-above {
+          top: auto;
+          bottom: calc(100% + 6px);
+          animation-name: atPanelInAbove;
+        }
+
+        .at-panel-header {
+          padding: 10px 14px 6px;
+          font-size: 13px;
+          color: @text-3;
+        }
+
+        .at-section {
+          .at-section-title {
+            padding: 8px 14px 4px;
+            font-size: 12px;
+            color: @text-3;
+          }
+
+          .at-empty {
+            padding: 8px 14px;
+            font-size: 13px;
+            color: #c9cdd4;
+          }
+
+          .at-user-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 14px;
+            cursor: pointer;
+            transition: background 0.12s;
+
+            &:hover { background: @bg-gray; }
+
+            .at-avatar {
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              object-fit: cover;
+              flex-shrink: 0;
+            }
+
+            .at-info {
+              display: flex;
+              flex-direction: column;
+              min-width: 0;
+
+              .at-name {
+                font-size: 13px;
+                color: @text-1;
+                .ellipsis();
+              }
+
+              .at-fans {
+                font-size: 11px;
+                color: @text-3;
+              }
+            }
+          }
+        }
+      }
+
+      @keyframes atPanelInBelow {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes atPanelInAbove {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
       .header {
         .navbar {
           display: flex;
@@ -2035,7 +2726,7 @@ onUnmounted(() => {
             .count {
               margin: 0 30px 0 6px;
               font-size: 13px;
-              color: #9499a0;
+              color: @text-3;
             }
           }
 
@@ -2044,10 +2735,10 @@ onUnmounted(() => {
             align-items: center;
 
             .sort {
-              color: #9499a0;
+              color: @text-3;
 
               &.active {
-                color: #18191c;
+                color: @text-1;
               }
             }
 
@@ -2059,9 +2750,9 @@ onUnmounted(() => {
 
         .commentbox {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           margin-top: 20px;
-          height: 50px;
+          min-height: 50px;
 
           .user-avatar {
             img {
@@ -2078,15 +2769,43 @@ onUnmounted(() => {
           height: 100%;
           border-radius: 6px;
           font-size: 12px;
-          color: #9499a0;
-          background-color: #f1f2f3;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          color: @text-3;
+          background-color: @bg-gray;
+          .flex-center();
         }
 
         .editor {
           background-color: #fff;
+          flex-direction: column;
+          align-items: stretch;
+          justify-content: flex-start;
+          gap: 8px;
+          height: auto;
+
+          // @ 输入区域
+          .at-input-wrap {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+
+            .el-input { width: 100%; }
+          }
+
+          // 焦点显示的工具栏（@按钮/复选框/发布）
+          .editor-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+
+            .toolbar-icons {
+              display: flex;
+              align-items: center;
+            }
+
+            // .tool-icon / .at-trigger 样式已提升至组件级公共样式（根评论与子评论回复框共用）
+          }
+
         }
       }
 
@@ -2098,7 +2817,7 @@ onUnmounted(() => {
             margin-top: 10px;
 
             &:first-child {
-              margin-top: 32px;
+              margin-top: 18px;
             }
           }
 
@@ -2107,7 +2826,7 @@ onUnmounted(() => {
             min-height: 22px;
             font-size: 13px;
             line-height: 22px;
-            color: #9499a0;
+            color: @text-3;
           }
 
           .reply-pagination {
@@ -2115,7 +2834,7 @@ onUnmounted(() => {
             align-items: center;
             flex-wrap: wrap;
             gap: 4px;
-            color: #18191c;
+            color: @text-1;
           }
 
           .reply-page-total {
@@ -2128,14 +2847,14 @@ onUnmounted(() => {
             padding: 0 4px;
             height: 22px;
             line-height: 22px;
-            color: #18191C;
+            color: @text-1;
             background: transparent;
             font: inherit;
             cursor: pointer;
           }
 
           .reply-text-btn.expand {
-            color: #9499a0;
+            color: @text-3;
           }
 
           .reply-text-btn:hover,
@@ -2153,7 +2872,57 @@ onUnmounted(() => {
           }
 
           .reply-page-btn.ellipsis:hover {
-            color: #9499a0;
+            color: @text-3;
+          }
+
+          // 回复输入框（统一放在 thread 末尾）
+          .thread-reply-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 10px 0 6px 65px;
+            padding-top: 8px;
+
+            .thread-reply-avatar {
+              flex-shrink: 0;
+              width: 32px;
+              height: 32px;
+
+              img {
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                object-fit: cover;
+              }
+            }
+
+            .thread-reply-editor {
+              flex: 1;
+              min-width: 0;
+
+              .at-input-wrap {
+                position: relative;
+                width: 100%;
+              }
+
+              .editor-actions {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-top: 8px;
+
+                .toolbar-icons {
+                  display: flex;
+                  align-items: center;
+                }
+
+                .reply-actions-right {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                }
+              }
+            }
           }
         }
       }
@@ -2163,7 +2932,7 @@ onUnmounted(() => {
           width: 100%;
           margin-top: 20px;
           font-size: 13px;
-          color: #9499a0;
+          color: @text-3;
           text-align: center;
           user-select: none;
           padding-bottom: 100px;
@@ -2176,12 +2945,10 @@ onUnmounted(() => {
       }
 
       .comment-loading {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        .flex-center();
         gap: 8px;
         padding: 20px 0;
-        color: #9499a0;
+        color: @text-3;
         font-size: 13px;
       }
 
@@ -2208,7 +2975,7 @@ onUnmounted(() => {
         background-color: #e3f4fd;
         border-radius: 8px;
         text-align: center;
-        color: #00aeec;
+        color: @blue;
         font-size: 15px;
         cursor: pointer;
         transition: background-color 0.2s;
@@ -2252,20 +3019,20 @@ onUnmounted(() => {
           .up-info__detail {
             .up-name {
               font-size: 15px;
-              color: #fb7299;
+              color: @pink;
               margin-right: 12px;
               font-weight: 500;
             }
 
             .send-msg {
               font-size: 13px;
-              color: #61666d;
+              color: @text-2;
             }
 
             .up-description {
               font-size: 13px;
               margin-top: 2px;
-              color: #9499a0;
+              color: @text-3;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -2278,9 +3045,7 @@ onUnmounted(() => {
 
             .default-btn {
               height: 30px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
+              .flex-center();
               cursor: pointer;
               border-radius: 6px;
               font-size: 14px;
@@ -2302,8 +3067,8 @@ onUnmounted(() => {
               flex: 1 1 auto;
               max-width: 200px;
               height: 30px !important;
-              background-color: #00a1d6 !important;
-              border-color: #00a1d6 !important;
+              background-color: @blue-deep !important;
+              border-color: @blue-deep !important;
               color: #fff !important;
               border-radius: 6px !important;
               font-size: 14px !important;
@@ -2333,12 +3098,12 @@ onUnmounted(() => {
               &--followed {
                 background-color: #e3e5e7 !important;
                 border-color: #e3e5e7 !important;
-                color: #9499a0 !important;
+                color: @text-3 !important;
 
                 &:hover {
-                  background-color: #f1f2f3 !important;
-                  border-color: #f1f2f3 !important;
-                  color: #9499a0 !important;
+                  background-color: @bg-gray !important;
+                  border-color: @bg-gray !important;
+                  color: @text-3 !important;
                 }
               }
             }
@@ -2349,7 +3114,7 @@ onUnmounted(() => {
             //  }
             //
             //  :nth-of-type(2):hover {
-            //    background-color: #f1f2f3;
+            //    background-color: @bg-gray;
             //  }
             //}
           }
@@ -2358,7 +3123,7 @@ onUnmounted(() => {
 
       .danmaku-box {
         min-height: 44px;
-        background: #f1f2f3;
+        background: @bg-gray;
         border-radius: 6px;
       }
 
@@ -2426,7 +3191,7 @@ onUnmounted(() => {
               -webkit-line-clamp: 2;
 
               &:hover {
-                color: #fb7299;
+                color: @pink;
               }
             }
 
@@ -2441,19 +3206,19 @@ onUnmounted(() => {
                 font-size: 10px;
                 height: 15px;
                 width: 16px;
-                border: 1px solid #9499a0;
+                border: 1px solid @text-3;
                 border-radius: 5px;
                 margin-right: 5px;
               }
 
               a {
-                color: #9499a0;
+                color: @text-3;
                 display: flex;
                 align-items: center;
                 transition: color 0.3s;
 
                 &:hover {
-                  color: #fb7299;
+                  color: @pink;
                 }
 
                 .icon {
@@ -2471,7 +3236,7 @@ onUnmounted(() => {
             }
 
             .playinfo {
-              color: #9499a0;
+              color: @text-3;
               display: flex;
               align-items: flex-start;
 
@@ -2511,6 +3276,95 @@ onUnmounted(() => {
       width: 190px !important;
       height: 106.8px !important;
     }
+  }
+}
+
+// === @ 按钮（根评论 / 子评论回复框共用，放在顶层避免嵌套作用域问题）===
+// 根评论 @ 按钮在 .commentbox 下，子评论在 .thread-reply-box 下，分属不同父级
+.commentbox .tool-icon.at-trigger,
+.thread-reply-box .tool-icon.at-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid #e3e5e7;
+  border-radius: 6px;
+  background-color: #fff;
+  color: @text-2;
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.2s, color 0.2s;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    border-color: @blue;
+    color: @blue;
+  }
+}
+
+// 发布按钮统一尺寸 70x32（根评论 / 子评论共用）
+.commentbox .publish-btn.el-button,
+.thread-reply-box .publish-btn.el-button {
+  width: 70px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+}
+</style>
+
+<style lang="less">
+.user-hover-card-anchor {
+  position: fixed;
+  top: 64px;
+  right: 24px;
+  z-index: 1500;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+
+  .user-hover-card-wrapper {
+    position: static;
+    display: block;
+  }
+
+  .user-hover-card-anchor__trigger {
+    width: 0;
+    height: 0;
+  }
+
+  .user-hover-card {
+    pointer-events: auto;
+  }
+}
+
+// 通知跳转时评论高亮动画
+.comment--highlighted {
+  animation: comment-highlight-pulse 4s ease-out;
+  background-color: #e8f4fd !important;
+  border-radius: 6px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: @blue-deep;
+    border-radius: 3px 0 0 3px;
+  }
+
+  @keyframes comment-highlight-pulse {
+    0% { background-color: #b3e5fc; box-shadow: 0 0 12px rgba(0, 161, 214, 0.35); }
+    30% { background-color: #e8f4fd; box-shadow: none; }
+    100% { background-color: transparent; box-shadow: none; }
   }
 }
 </style>

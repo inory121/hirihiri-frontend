@@ -61,9 +61,9 @@
       <div class="video-list">
         <div class="card-box" v-for="list in searchVideoList" :key="list.video.vid">
           <div class="pic-box">
-            <router-link :to="`/video/${list.video.vid}`">
+            <a :href="`/video/${list.video.vid}`" target="_blank">
               <img alt="" :src="list.video.coverUrl" />
-            </router-link>
+            </a>
             <div class="mask"></div>
             <div class="playinfo">
               <el-icon class="icon" style="font-size: 16px">
@@ -78,15 +78,15 @@
             <span class="duration">{{ formatDuration(list.video.duration) }}</span>
           </div>
           <div class="info">
-            <router-link :to="`/video/${list.video.vid}`" :title="list.video.title">
+            <a :href="`/video/${list.video.vid}`" target="_blank" :title="list.video.title">
               <p class="title" v-html="list.video.title"></p>
-            </router-link>
+            </a>
             <div class="upname">
-              <router-link :to="`/space/${list.user.uid}`">
-                <img src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg" class="video-card__avatar" />
+              <a :href="`/space/${list.user.uid}`" target="_blank">
+                <img src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg" class="video-card__avatar"  alt=""/>
                 <span class="name" style="margin-left: 3px">{{ list.user.username }}</span>
                 <span class="create_date"> · {{ formatTime(list.video.createDate) }}</span>
-              </router-link>
+              </a>
             </div>
           </div>
         </div>
@@ -124,12 +124,12 @@
       </div>
       <div class="user-list">
         <div class="user-card" v-for="item in searchUserList" :key="item.uid">
-          <router-link :to="`/space/${item.uid}`" class="avatar-wrap">
+          <a :href="`/space/${item.uid}`" target="_blank" class="avatar-wrap">
             <img :src="item.avatar" alt="" class="avatar" />
-          </router-link>
+          </a>
           <div class="user-info">
             <div class="user-name-row">
-              <router-link :to="`/space/${item.uid}`" class="username">{{ item.username }}</router-link>
+              <a :href="`/space/${item.uid}`" target="_blank" class="username">{{ item.username }}</a>
               <img
                 class="level-icon"
                 :src="getLevelIconUrl(item.level)"
@@ -257,24 +257,10 @@ const handleVideoPageChange = (pageNum: number) => {
   videoPageNum.value = pageNum
   videoStore.getSearchVideos(keyword.value, videoOrder.value, pageNum, videoPageSize.value)
 }
-
-const handleVideoSizeChange = (pageSize: number) => {
-  videoPageSize.value = pageSize
-  videoPageNum.value = 1
-  videoStore.getSearchVideos(keyword.value, videoOrder.value, videoPageNum.value, pageSize)
-}
-
 const handleUserPageChange = (pageNum: number) => {
   userPageNum.value = pageNum
   userStore.getSearchUsers(keyword.value, userOrder.value, pageNum, userPageSize.value)
 }
-
-const handleUserSizeChange = (pageSize: number) => {
-  userPageSize.value = pageSize
-  userPageNum.value = 1
-  userStore.getSearchUsers(keyword.value, userOrder.value, userPageNum.value, pageSize)
-}
-
 const handleFollow = (uid: number) => {
   if (!isLogin.value) {
     showLoginWindow.value = true
@@ -330,9 +316,6 @@ watch(
 
 <style scoped lang="less">
 .hiri-header__bar {
-  --text-color: #18191c;
-  --header-shadow: 0 2px 4px #00000014;
-  --bg-color: #fff;
   --position: static;
   --search-display: none;
   position: relative;
@@ -341,12 +324,10 @@ watch(
 
 .search-header {
   background: #fff;
-  border-bottom: 1px solid #e3e5e7;
+  border-bottom: 1px solid @border-color;
 
   .search-input {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    .flex-center();
     padding: 25px 64px 15px;
     background: #fff;
 
@@ -398,18 +379,18 @@ watch(
   gap: 6px;
   padding: 16px 0;
   font-size: 16px;
-  color: #61666d;
+  color: @text-2;
   text-decoration: none;
   position: relative;
   cursor: pointer;
   transition: color 0.2s;
 
   &:hover {
-    color: #18191c;
+    color: @text-1;
   }
 
   &--active {
-    color: #fb7299;
+    color: @pink;
     font-weight: 500;
 
     &::after {
@@ -419,7 +400,7 @@ watch(
       left: 0;
       right: 0;
       height: 3px;
-      background: #fb7299;
+      background: @pink;
       border-radius: 2px;
     }
   }
@@ -430,7 +411,7 @@ watch(
 
   &__count {
     font-size: 13px;
-    color: #9499a0;
+    color: @text-3;
     font-weight: normal;
   }
 }
@@ -450,23 +431,23 @@ watch(
   .sort-item {
     padding: 6px 16px;
     font-size: 14px;
-    color: #61666d;
+    color: @text-2;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
 
     &:hover {
-      color: #18191c;
-      background: #e3e5e7;
+      color: @text-1;
+      background: @border-color;
     }
 
     &--active {
-      color: #00aeec;
+      color: @blue;
       background: #e1f2ff;
       font-weight: 500;
 
       &:hover {
-        color: #00aeec;
+        color: @blue;
         background: #e1f2ff;
       }
     }
@@ -565,7 +546,7 @@ watch(
           -webkit-line-clamp: 2;
 
           &:hover {
-            color: #fb7299;
+            color: @pink;
           }
         }
 
@@ -580,19 +561,19 @@ watch(
             font-size: 10px;
             height: 15px;
             width: 16px;
-            border: 1px solid #9499a0;
+            border: 1px solid @text-3;
             border-radius: 5px;
             margin-right: 5px;
           }
 
           a {
-            color: #9499a0;
+            color: @text-3;
             display: flex;
             align-items: center;
             transition: color 0.3s;
 
             &:hover {
-              color: #fb7299;
+              color: @pink;
             }
 
             .icon {
@@ -610,7 +591,7 @@ watch(
         }
 
         .playinfo {
-          color: #9499a0;
+          color: @text-3;
           display: flex;
           align-items: flex-start;
 
@@ -671,11 +652,11 @@ watch(
           .username {
             font-size: 18px;
             font-weight: 600;
-            color: #18191c;
+            color: @text-1;
             transition: color 0.3s;
 
             &:hover {
-              color: #fb7299;
+              color: @pink;
             }
           }
 
@@ -692,7 +673,7 @@ watch(
 
           .user-stats {
             font-size: 13px;
-            color: #9499a0;
+            color: @text-3;
             display: flex;
             align-items: center;
             flex-shrink: 0;
@@ -708,10 +689,8 @@ watch(
 
           .user-desc {
             font-size: 13px;
-            color: #61666d;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            color: @text-2;
+            .ellipsis();
             flex-shrink: 1;
             min-width: 0;
           }

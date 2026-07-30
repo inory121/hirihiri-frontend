@@ -18,7 +18,7 @@
             recommendStore.feedList.length > 0
               ? recommendStore.feedList
               : recommendStore.feedLoading
-                ? Array.from({ length: 11 }, () => ({ video: {}, stat: {}, user: {}, category: {} }) as VideoInfo)
+                ? placeholderFeed
                 : []
           "
           :loading="recommendStore.feedLoading && recommendStore.feedList.length === 0"
@@ -53,6 +53,14 @@ import { Loading } from '@element-plus/icons-vue'
 const recommendStore = useRecommendStore()
 const categoryStore = useCategoryStore()
 const userStore = useUserStore()
+
+// 骨架屏占位数据：在 <script> 内构造并标注类型，避免在模板表达式中做类型断言
+const placeholderFeed: VideoInfo[] = Array.from({ length: 11 }, () => ({
+  video: {},
+  stat: {},
+  user: {},
+  category: {},
+}) as VideoInfo)
 
 const loadMoreRef = ref<HTMLElement>()
 let loadMoreObserver: IntersectionObserver | null = null
@@ -186,7 +194,7 @@ onUnmounted(() => {
   // 滚动后切换为固定白底黑字
   &.is-scrolled {
     --position: fixed;
-    --text-color: #18191c;
+    --text-color: @text-1;
     --bg-color: #fff;
     --header-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   }
@@ -215,23 +223,18 @@ onUnmounted(() => {
 
 .loading-tip,
 .no-more-tip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  .flex-center();
   gap: 8px;
   padding: 20px 0;
-  color: #9499a0;
+  color: @text-3;
   font-size: 14px;
 }
 
 .error-tip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  .flex-center-col();
   gap: 12px;
   padding: 40px 0;
-  color: #9499a0;
+  color: @text-3;
   font-size: 14px;
 }
 

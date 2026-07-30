@@ -64,7 +64,7 @@
               class="history-item"
               @click="router.push(`/video/${item.vid}`)"
             >
-              <router-link :to="`/video/${item.vid}`">
+              <a :href="`/video/${item.vid}`" target="_blank">
                 <div class="item-cover">
                   <img :src="item.coverUrl" :alt="item.title"/>
                   <div class="cover-bottom">
@@ -77,20 +77,20 @@
                     ></div>
                   </div>
                 </div>
-              </router-link>
+              </a>
 
               <div class="item-info">
-                <router-link :to="`/video/${item.vid}`" :title="item.title"><h3 class="item-title">{{ item.title }}</h3></router-link>
+                <a :href="`/video/${item.vid}`" target="_blank" :title="item.title"><h3 class="item-title">{{ item.title }}</h3></a>
                 <div class="item-meta">
-                  <router-link :to="`/space/${item.authorUid}`">
+                  <a :href="`/space/${item.authorUid}`" target="_blank">
                      <span class="item-author">
                     <img
-                      src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg"
+                      src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg"
                       class="video-card__avatar"
-                    />
+                     alt=""/>
                     {{ item.authorUsername }}</span
                      >
-                  </router-link>
+                  </a>
 
                   <span class="item-time">{{ formatBrowseTime(item.browseTime) }}</span>
                 </div>
@@ -189,12 +189,6 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="less">
-.hiri-header__bar {
-  --text-color: #18191c;
-  --header-shadow: 0 2px 4px #00000014;
-  --bg-color: #fff;
-}
-
 .history-record {
   padding-top: 30px;
   margin: 0 300px;
@@ -237,17 +231,14 @@ onMounted(async () => {
     margin-top: 20px;
 
     .loading {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+      .flex-center-col();
       padding: 40px;
 
       .loading-spinner {
         width: 40px;
         height: 40px;
         border: 4px solid #f3f3f3;
-        border-top: 4px solid #fb7299;
+        border-top: 4px solid @pink;
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
@@ -255,7 +246,7 @@ onMounted(async () => {
       .loading-text {
         margin-top: 16px;
         font-size: 14px;
-        color: #9499a0;
+        color: @text-3;
       }
     }
 
@@ -312,7 +303,7 @@ onMounted(async () => {
 
             .progress-bar {
               height: 3px;
-              background-color: #fb7299;
+              background-color: @pink;
               margin-top: 4px;
             }
           }
@@ -326,7 +317,7 @@ onMounted(async () => {
           .item-title {
             font-size: 16px;
             font-weight: 500;
-            color: #18191c;
+            color: @text-1;
             line-height: 22px;
             display: -webkit-box;
             -webkit-box-orient: vertical;
@@ -347,7 +338,7 @@ onMounted(async () => {
 
             .item-author {
               font-size: 13px;
-              color: #9499a0;
+              color: @text-3;
               display: flex;
               flex-wrap: wrap;
               align-items: center;
@@ -360,7 +351,7 @@ onMounted(async () => {
 
             .item-time {
               font-size: 13px;
-              color: #9499a0;
+              color: @text-3;
             }
           }
         }
@@ -368,13 +359,13 @@ onMounted(async () => {
         .item-delete {
           flex-shrink: 0;
           padding: 8px;
-          color: #9499a0;
+          color: @text-3;
           cursor: pointer;
           opacity: 0;
           transition: opacity 0.2s;
 
           &:hover {
-            color: #fb7299;
+            color: @pink;
           }
         }
 

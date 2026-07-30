@@ -110,6 +110,56 @@ const router = createRouter({
       meta: { requestAuth: true },
     },
     {
+      path: '/message',
+      component: () => import('@/views/message/MessageIndex.vue'),
+      meta: { requestAuth: true, title: '消息中心' },
+    },
+    {
+      path: '/reply',
+      component: () => import('@/views/message/MessageIndex.vue'),
+      meta: { requestAuth: true, title: '回复我的' },
+    },
+    {
+      path: '/at',
+      component: () => import('@/views/message/MessageIndex.vue'),
+      meta: { requestAuth: true, title: '@我的' },
+    },
+    {
+      path: '/like',
+      component: () => import('@/views/message/MessageIndex.vue'),
+      meta: { requestAuth: true, title: '收到的赞' },
+    },
+    {
+      path: '/like/:bizType/:bizId',
+      component: () => import('@/views/message/MessageIndex.vue'),
+      meta: { requestAuth: true, title: '点赞详情' },
+    },
+    {
+      path: '/system',
+      component: () => import('@/views/message/MessageIndex.vue'),
+      meta: { requestAuth: true, title: '系统通知' },
+    },
+    {
+      path: '/config',
+      component: () => import('@/views/message/MessageIndex.vue'),
+      meta: { requestAuth: true, title: '消息设置' },
+    },
+    {
+      path: '/message/unfollow',
+      component: () => import('@/views/message/MessageIndex.vue'),
+      meta: { requestAuth: true, title: '未关注人消息' },
+    },
+    {
+      path: '/message/unfollow/:uid',
+      component: () => import('@/views/message/MessageIndex.vue'),
+      meta: { requestAuth: true, title: '未关注人聊天' },
+    },
+    {
+      path: '/message/:uid',
+      component: () => import('@/views/message/MessageIndex.vue'),
+      meta: { requestAuth: true, title: '聊天' },
+    },
+    {
       path: '/404',
       name: 'NotFound',
       component: () => import('@/views/NotFound.vue'),

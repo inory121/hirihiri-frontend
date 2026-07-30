@@ -33,18 +33,17 @@
             v-for="(videoInfo, index) in recommendStore.feedList.slice(0, 7)"
             :key="index"
           >
-            <router-link :to="`video/${videoInfo.video.vid}`" target="_blank">
+            <a :href="`/video/${videoInfo.video.vid}`" target="_blank">
               <img
                 class="carousel-img"
                 :src="videoInfo.video.coverUrl"
                 alt=""
-                crossorigin="anonymous"
               />
-            </router-link>
+            </a>
           </el-carousel-item>
         </el-carousel>
         <!-- 当前标题 -->
-        <router-link :to="`/video/${recommendStore.feedList[currentIndex]?.video.vid}`" class="carousel-title" :style="titleStyle">{{ currentTitle }}</router-link>
+        <a :href="`/video/${recommendStore.feedList[currentIndex]?.video.vid}`" target="_blank" class="carousel-title" :style="titleStyle"><span class="carousel-title-text">{{ currentTitle }}</span></a>
       </template>
     </el-skeleton>
   </div>
@@ -59,9 +58,19 @@ const recommendStore = useRecommendStore()
 // 定义当前标题和当前索引
 const currentIndex = ref(0)
 const currentTitle = ref('')
+// 将 OSS 下发的十六进制主色（如 #1b1517）转为 rgb 三元组
+const hexToRgb = (hex: string): [number, number, number] => {
+  const m = hex.replace('#', '')
+  return [
+    parseInt(m.substring(0, 2), 16),
+    parseInt(m.substring(2, 4), 16),
+    parseInt(m.substring(4, 6), 16),
+  ]
+}
 // 当前颜色计算
 const currentBgColor = computed(() => {
-  const color = recommendStore.feedList[currentIndex.value]?.video.dominantColor || [255, 255, 255]
+  const hex = recommendStore.feedList[currentIndex.value]?.video.coverColor
+  const color = hex ? hexToRgb(hex) : [0, 0, 0]
   return `rgba(${color.join(',')},0.8)`
 })
 // 样式绑定
@@ -100,13 +109,12 @@ watch(
 
   .carousel-title {
     display: flex;
-    flex-wrap: wrap;
     align-items: flex-end;
-    padding-bottom: 15px;
+    padding-bottom: 4%;
     position: absolute;
     bottom: 80px;
     width: 100%;
-    mask-image: linear-gradient(0, #2f3238 40%, transparent 90%);
+    mask-image: linear-gradient(0, #2f3238 50%, transparent 90%);
     background-blend-mode: multiply;
     backdrop-filter: saturate(180%) blur(30px);
     box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.1);
@@ -114,14 +122,19 @@ watch(
     padding-left: 10px;
     height: 25%;
     font-size: 18px;
-    color: #333;
+    color: #fff;
     transition: color 0.2s linear;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 
     &:hover {
       color: #ff6699 !important;
+    }
+
+    .carousel-title-text {
+      display: block;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 }
@@ -136,8 +149,7 @@ watch(
 }
 
 :deep(.el-carousel__indicators.el-carousel__indicators--horizontal) {
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 5%;
   display: flex;
   flex-wrap: nowrap;
   overflow-x: auto;

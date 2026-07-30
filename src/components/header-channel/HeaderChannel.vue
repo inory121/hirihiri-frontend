@@ -5,7 +5,7 @@
       <a href="#" class="channel-icons__item"
         ><img
           class="icon-img"
-          src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
+          src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
           alt=""
         />
         <span>动态</span></a
@@ -13,7 +13,7 @@
       <a href="#" class="channel-icons__item"
         ><img
           class="icon-img"
-          src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/hot.svg"
+          src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/hot.svg"
           alt=""
         /><span>热门</span></a
       >
@@ -139,7 +139,7 @@ onUnmounted(() => {
     margin-right: 10px;
 
     a {
-      color: #61666d;
+      color: @text-2;
       white-space: nowrap;
       height: 32px;
       line-height: 32px;
@@ -147,7 +147,7 @@ onUnmounted(() => {
       padding: 0 6px;
 
       &:hover {
-        background-color: #e3e5e7 !important;
+        background-color: @border-color !important;
         border-radius: 8px;
       }
     }
@@ -201,14 +201,12 @@ onUnmounted(() => {
       justify-items: center;
       align-items: center;
       padding-right: 30px;
-      border-right: 1px solid #e3e5e7;
+      border-right: 1px solid @border-color;
       letter-spacing: 2px;
 
       .channel-link {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #61666d;
+        .flex-center();
+        color: @text-2;
         background-color: #f6f7f8;
         border-radius: 6px;
         font-size: 13px;
@@ -216,18 +214,18 @@ onUnmounted(() => {
         width: 100%;
 
         a {
-          color: #61666d;
+          color: @text-2;
         }
 
         &:hover {
-          background-color: #e3e5e7;
+          background-color: @border-color;
           transition:
             background-color,
             0.3s color,
             0.3s;
 
           a {
-            color: #18191c;
+            color: @text-1;
           }
         }
       }
@@ -245,10 +243,8 @@ onUnmounted(() => {
 
       .channel-link-right {
         height: 30px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #61666d;
+        .flex-center();
+        color: @text-2;
         font-size: 14px;
         transition: color 0.2s linear;
 

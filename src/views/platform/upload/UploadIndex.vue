@@ -42,7 +42,7 @@
               <el-icon color="#00a1d6">
                 <Refresh />
               </el-icon>
-              <span style="color: #00a1d6">更换视频</span>
+              <span class="replace-video-text">更换视频</span>
             </el-button>
           </div>
           <div v-if="uploadStore.progress != 100" class="file-item-content-status-text">
@@ -77,7 +77,7 @@
     >
       <template #header>
         <div v-if="uploadStore.videoOnServer" style="display: flex; align-items: center">
-          <span style="color: #909399; font-size: 14px"
+          <span class="draft-tip"
             >提示：从草稿恢复的视频文件仅存储在服务器上，本地浏览器内存中已无原始文件，因此无法从视频中截取封面，请使用上传封面功能。</span
           >
         </div>
@@ -904,6 +904,15 @@ onMounted(async () => {
 </script>
 
 <style lang="less" scoped>
+.replace-video-text {
+  color: @blue-deep;
+}
+
+.draft-tip {
+  color: #909399;
+  font-size: 14px;
+}
+
 .content {
   margin: 0 auto;
   max-width: 1100px;
@@ -1008,7 +1017,7 @@ onMounted(async () => {
         &-right {
           .title {
             font-size: 12px;
-            color: #18191c;
+            color: @text-1;
           }
 
           :deep(.vue-preview) {
@@ -1136,7 +1145,7 @@ onMounted(async () => {
 
       .cover-tip {
         margin-top: 10px;
-        color: #9499a0;
+        color: @text-3;
         font-size: 12px;
       }
     }

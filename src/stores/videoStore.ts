@@ -16,10 +16,7 @@ import type {
   FavoriteVideoListApiResponse,
   FavoriteVideoPageApiResponse,
 } from '@/types/api.ts'
-import ColorThief from 'colorthief'
 import { useUserStore } from '@/stores/userStore'
-
-const colorThief = new ColorThief()
 
 export const useVideoStore = defineStore('video', {
   state: () => {
@@ -73,45 +70,6 @@ export const useVideoStore = defineStore('video', {
     },
   },
   actions: {
-    async getRecommendVideo() {
-      await get<VideoApiResponse>(VIDEO_API.GET_RECOMMEND_VIDEO, {
-        params: {
-          pageNum: this.pageNum,
-          pageSize: this.pageSize,
-        },
-      }).then(async (res) => {
-        this.videoList = res.data
-        await this.preloadDominantColors()
-      })
-    },
-    async preloadDominantColors() {
-      await Promise.all(
-        this.videoList.map(
-          (videoInfo) =>
-            new Promise<void>((resolve) => {
-              const img = new Image()
-              img.crossOrigin = 'anonymous'
-              // img.src = `${video.coverUrl}?t=${Date.now()}` // 防止缓存
-              img.src = videoInfo.video.coverUrl
-
-              img.onload = () => {
-                try {
-                  videoInfo.video.dominantColor = colorThief.getColor(img)
-                } catch (e) {
-                  console.error(e)
-                  videoInfo.video.dominantColor = [255, 255, 255]
-                }
-                resolve()
-              }
-
-              img.onerror = () => {
-                videoInfo.video.dominantColor = [255, 255, 255]
-                resolve()
-              }
-            }),
-        ),
-      )
-    },
     async getVideo(vid: number) {
       await get<OneVideoApiResponse>(`${VIDEO_API.GET_BY_ID}/${vid}`).then((res) => {
         if (res.code === 200) {
@@ -385,31 +343,7 @@ export const useVideoStore = defineStore('video', {
         console.error('投币操作失败', e)
       }
     },
-    // 收藏/取消收藏
-    async toggleCollect(vid: number) {
-      const userStore = useUserStore()
-      if (!userStore.isLogin) {
-        ElMessage.warning('请先登录')
-        return
-      }
-      try {
-        const res = await post<{ code: number; data: string }>(
-          `${VIDEO_API.TOGGLE_COLLECT}/${vid}`
-        )
-        if (res.code === 200) {
-          this.favorited = !this.favorited
-          if (this.favorited) {
-            this.videoInfo.stat.favorite += 1
-            ElMessage.success('收藏成功')
-          } else {
-            this.videoInfo.stat.favorite -= 1
-            ElMessage.success('取消收藏')
-          }
-        }
-      } catch (e) {
-        console.error('收藏操作失败', e)
-      }
-    },
+// 收藏/取消收藏
     async getUserFavoriteFolders(vid?: number, targetUid?: number): Promise<FavoriteFolder[]> {
       const res = await get<FavoriteFolderApiResponse>(VIDEO_API.GET_FAVORITE_FOLDERS, {
         params: { vid, uid: targetUid },
@@ -462,13 +396,6 @@ export const useVideoStore = defineStore('video', {
       )
       if (res.code !== 200) throw new Error(res.message)
       return res.data?.records || []
-    },
-    async getRecentFavorites(limit = 10, targetUid?: number): Promise<VideoInfo[]> {
-      const res = await get<FavoriteVideoListApiResponse>('/favorite/recent', {
-        params: { limit, uid: targetUid },
-      })
-      if (res.code !== 200) throw new Error(res.message)
-      return res.data || []
     },
     async getRecentCoinVideos(limit = 10, targetUid?: number): Promise<VideoInfo[]> {
       const res = await get<FavoriteVideoListApiResponse>(VIDEO_API.GET_RECENT_COINS, {

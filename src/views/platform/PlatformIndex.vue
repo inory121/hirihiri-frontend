@@ -2,22 +2,22 @@
   <div class="header">
     <div class="left-block">
       <span class="hiri-logo">HiriHiri创作中心</span>
-      <router-link to="/" target="_blank" class="main-site">
+      <a href="/" class="main-site" target="_blank">
         <el-icon class="hiri-icon">
           <SwitchFilled />
         </el-icon>
         主站
-      </router-link>
+      </a>
     </div>
     <div class="right-block">
       <MyPopover class="avatar-popover-login" v-if="userStore.isLogin">
         <template #content>
           <div class="avatar-popover-container">
-            <router-link v-if="userStore.user.uid" :to="`/space/${userStore.user.uid}`" target="_blank" class="popover-link-item">
+            <a v-if="userStore.user.uid" :href="`/space/${userStore.user.uid}`" target="_blank" class="popover-link-item">
               <div class="link-title">
                 <span>个人中心</span>
               </div>
-            </router-link>
+            </a>
             <router-link to="/platform/upload-manager/article" class="popover-link-item">
               <div class="link-title">
                 <span>投稿管理</span>
@@ -51,7 +51,7 @@
           <a href="#" class="avatar-img">
             <img
               class="hiri-avatar-img"
-              src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
+              src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
               alt=""
             />
           </a>
@@ -71,7 +71,7 @@
   </div>
 
   <el-container style="height: 98vh; padding-top: 60px">
-    <el-aside width="200" style="position: fixed; height: 100%; z-index: 1; background-color: #fff">
+    <el-aside width="200" class="platform-aside">
       <el-menu
         :default-active="$route.path"
         class="el-menu-vertical-demo"
@@ -144,7 +144,7 @@
         </el-sub-menu>
       </el-menu>
     </el-aside>
-    <el-main style="background: #f6f7f8;min-width: 1124px;margin-left: 200px">
+    <el-main class="platform-main">
       <router-view></router-view>
     </el-main>
   </el-container>
@@ -156,11 +156,22 @@ import { useUserStore } from '@/stores/userStore.ts'
 const userStore = useUserStore()
 </script>
 
-<style>
+<style lang="less">
+.platform-aside {
+  position: fixed;
+  height: 100%;
+  z-index: 1;
+  background-color: @white;
+}
+
+.platform-main {
+  background: @bg-page;
+  min-width: 1124px;
+  margin-left: 200px;
+}
+
 .nav-upload-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  .flex-center();
   padding: 24px 32px 17px 32px;
 
   .upload-text {
@@ -186,7 +197,7 @@ const userStore = useUserStore()
 
     .hiri-logo {
       font-size: 22px;
-      color: #00aeec;
+      color: @blue;
     }
 
     .main-site {
@@ -226,7 +237,7 @@ const userStore = useUserStore()
           padding-left: 15px;
 
           &:hover {
-            background-color: #e3e5e7;
+            background-color: @border-color;
           }
         }
 

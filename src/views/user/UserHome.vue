@@ -6,7 +6,7 @@
     <div class="user-home__banner-bg" :style="{
       backgroundImage: userStore.targetUser?.background
         ? `url(${userStore.targetUser.background})`
-        : `url('https://hirihiri.oss-cn-nanjing.aliyuncs.com/background.png')`,
+        : `url('https://hirihiri2.oss-cn-shanghai.aliyuncs.com/background.png')`,
     }"></div>
     <div class="user-home__banner-mask"></div>
   </div>
@@ -15,7 +15,7 @@
     <div class="user-home__info">
       <div class="user-home__avatar-wrap">
         <img class="user-home__avatar"
-             :src="userStore.targetUser.avatar || 'https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg'"/>
+             :src="userStore.targetUser.avatar || 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg'" alt=""/>
       </div>
       <div class="user-home__details">
         <h1 class="user-home__name">
@@ -116,6 +116,13 @@
           >
             {{ userStore.targetFollow.isFollowing ? '已关注' : '+ 关注' }}
           </el-button>
+          <a
+            :href="`/message?target=${userStore.targetUser.uid}`"
+            class="user-home__msg-link"
+            target="_blank"
+          >
+            <el-button :icon="ChatDotRound">发消息</el-button>
+          </a>
         </div>
       </div>
     </div>
@@ -175,17 +182,17 @@
               <div class="user-home__pinned-card">
                 <div class="user-home__pinned-link">
                   <div class="user-home__pinned-cover-wrap">
-                    <router-link :to="`/video/${videoStore.pinnedVideo.video.vid}`" target="_blank">
+                    <a :href="`/video/${videoStore.pinnedVideo.video.vid}`" target="_blank">
                       <img :src="videoStore.pinnedVideo.video.coverUrl" alt="" class="user-home__pinned-cover"/>
                       <span class="user-home__pinned-duration">{{
                         formatDuration(videoStore.pinnedVideo.video.duration)
                       }}</span>
-                    </router-link>
+                    </a>
                   </div>
                   <div class="user-home__pinned-info">
-                    <router-link :to="`/video/${videoStore.pinnedVideo.video.vid}`" target="_blank">
+                    <a :href="`/video/${videoStore.pinnedVideo.video.vid}`" target="_blank">
                       <h4 class="user-home__pinned-title">{{ videoStore.pinnedVideo.video.title }}</h4>
-                    </router-link>
+                    </a>
                     <div class="user-home__pinned-stats">
                       <span class="user-home__pinned-stat">
                         <el-icon><VideoPlay /></el-icon>
@@ -267,17 +274,18 @@
           <div class="user-home__folder-grid">
             <div v-for="folder in displayedHomeFolders" :key="folder.id"
                  class="user-home__folder-item">
-              <router-link :to="`/space/${route.params.uid}?tab=favorites&folder=${folder.id}`"
-                           class="user-home__folder-link">
+              <a :href="`/space/${route.params.uid}?tab=favorites&folder=${folder.id}`"
+                           class="user-home__folder-link"
+                           target="_blank">
                 <div class="user-home__folder-cover">
-                  <img :src="folder.coverUrl || 'https://hirihiri.oss-cn-nanjing.aliyuncs.com/b8eb9637fec90527a6dc9737acdc3577e275c7b5.png'" alt=""
+                  <img :src="folder.coverUrl || 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/b8eb9637fec90527a6dc9737acdc3577e275c7b5.png'" alt=""
                        class="user-home__folder-image"/>
                 </div>
                 <div class="user-home__folder-info">
                   <h4 class="user-home__folder-name">{{ folder.name }}</h4>
                   <span class="user-home__folder-count">{{ folder.videoCount }}个视频</span>
                 </div>
-              </router-link>
+              </a>
             </div>
           </div>
         </section>
@@ -355,7 +363,7 @@
                 <div class="user-home__favorites-cover-wrap">
                   <img
                     class="user-home__favorites-cover"
-                    :src="folder.coverUrl || 'https://hirihiri.oss-cn-nanjing.aliyuncs.com/b8eb9637fec90527a6dc9737acdc3577e275c7b5.png'"
+                    :src="folder.coverUrl || 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/b8eb9637fec90527a6dc9737acdc3577e275c7b5.png'"
                     :alt="folder.name"
                   />
                 </div>
@@ -516,7 +524,7 @@
           <div class="user-home__follow-grid">
             <div v-for="user in userStore.followList" :key="user.uid"
                  class="user-home__follow-item">
-              <router-link :to="`/space/${user.uid}`" target="_blank" class="user-home__follow-item-link">
+              <a :href="`/space/${user.uid}`" target="_blank" class="user-home__follow-item-link">
                 <UserHoverCard
                   :user="user"
                   :is-following="isFollowingInList(user.uid)"
@@ -528,8 +536,8 @@
                 >
                   <img
                     class="user-home__follow-item-avatar"
-                    :src="user.avatar || 'https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg'"
-                  />
+                    :src="user.avatar || 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg'"
+                   alt="avatar"/>
                 </UserHoverCard>
                 <div class="user-home__follow-item-info">
                   <div class="user-home__follow-item-name">{{ user.username }}</div>
@@ -538,7 +546,7 @@
                     }}
                   </div>
                 </div>
-              </router-link>
+              </a>
               <div v-if="shouldShowFollowBtn(user.uid)" class="user-home__follow-item-action">
                 <el-button
                   :type="isFollowingInList(user.uid) ? 'default' : 'primary'"
@@ -1038,14 +1046,6 @@ const handleUserVideoSortChange = (sort: 'date' | 'view' | 'favorite') => {
   const uid = Number(route.params.uid)
   videoStore.getUserVideos(uid, userVideoPageNum.value, userVideoPageSize.value, sort)
 }
-
-const handleUserVideoSizeChange = (pageSize: number) => {
-  userVideoPageSize.value = pageSize
-  userVideoPageNum.value = 1
-  const uid = Number(route.params.uid)
-  videoStore.getUserVideos(uid, userVideoPageNum.value, pageSize)
-}
-
 // 选择收藏夹
 const selectFolder = async (folderId: number) => {
   selectedFolderId.value = folderId
@@ -1334,13 +1334,6 @@ watch(
 </script>
 
 <style scoped lang="less">
-.hiri-header__bar {
-  --text-color: #18191c;
-  --header-shadow: 0 2px 4px #00000014;
-  --bg-color: #fff;
-  --position: fixed;
-}
-
 .user-home__banner {
   position: relative;
   min-height: 200px;
@@ -1438,7 +1431,7 @@ watch(
 
 .user-home__description {
   font-size: 14px;
-  color: #61666d;
+  color: @text-2;
   margin: 0 0 16px;
   line-height: 1.6;
 }
@@ -1451,7 +1444,7 @@ watch(
 
 .user-home__meta-item {
   font-size: 13px;
-  color: #9499a0;
+  color: @text-3;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1497,7 +1490,7 @@ watch(
 
       .user-home__stat-value,
       .user-home__stat-label {
-        color: #fb7299;
+        color: @pink;
       }
     }
   }
@@ -1507,7 +1500,7 @@ watch(
 
     .user-home__stat-value,
     .user-home__stat-label {
-      color: #fb7299;
+      color: @pink;
     }
   }
 }
@@ -1521,13 +1514,20 @@ watch(
 
 .user-home__stat-label {
   font-size: 12px;
-  color: #61666d;
+  color: @text-2;
   margin-top: 4px;
 }
 
 .user-home__follow-btn {
+  display: flex;
+  gap: 12px;
+
   .el-button {
     min-width: 96px;
+  }
+
+  .user-home__msg-link {
+    text-decoration: none;
   }
 }
 
@@ -1547,13 +1547,13 @@ watch(
   gap: 4px;
   padding: 16px 20px;
   font-size: 15px;
-  color: #61666d;
+  color: @text-2;
   cursor: pointer;
   position: relative;
   transition: color 0.2s;
 
   &:hover {
-    color: #fb7299;
+    color: @pink;
   }
 
   &--active {
@@ -1567,7 +1567,7 @@ watch(
       left: 20px;
       right: 20px;
       height: 3px;
-      background: #fb7299;
+      background: @pink;
       border-radius: 2px;
     }
   }
@@ -1580,7 +1580,7 @@ watch(
 
 .user-home__tab-count {
   font-size: 12px;
-  color: #9499a0;
+  color: @text-3;
   margin-left: 2px;
   font-weight: normal;
 }
@@ -1654,19 +1654,19 @@ watch(
   &-item {
     padding: 6px 16px;
     font-size: 13px;
-    color: #61666d;
+    color: @text-2;
     background: #f4f5f7;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
 
     &:hover {
-      color: #fb7299;
+      color: @pink;
     }
 
     &--active {
       color: #fff;
-      background: #fb7299;
+      background: @pink;
 
       &:hover {
         color: #fff;
@@ -1683,12 +1683,12 @@ watch(
 
 .user-home__more-link {
   font-size: 13px;
-  color: #9499a0;
+  color: @text-3;
   text-decoration: none;
   transition: color 0.2s;
 
   &:hover {
-    color: #fb7299;
+    color: @pink;
   }
 }
 
@@ -1749,7 +1749,7 @@ watch(
   .user-home__pinned-title {
     font-size: 18px;
     font-weight: 600;
-    color: #18191c;
+    color: @text-1;
     margin: 0;
     line-height: 1.4;
     display: -webkit-box;
@@ -1767,7 +1767,7 @@ watch(
     align-items: center;
     gap: 16px;
     font-size: 13px;
-    color: #9499a0;
+    color: @text-3;
   }
 
   .user-home__pinned-stat {
@@ -1782,7 +1782,7 @@ watch(
 
   .user-home__pinned-descr {
     font-size: 13px;
-    color: #61666d;
+    color: @text-2;
     line-height: 1.6;
     margin: 0;
     display: -webkit-box;
@@ -1882,9 +1882,7 @@ watch(
   .user-home__folder-placeholder {
     width: 100%;
     height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    .flex-center();
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #fff;
 
@@ -1902,18 +1900,15 @@ watch(
     font-weight: 500;
     color: #222;
     margin: 0 0 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-
+    .ellipsis();
     .user-home__folder-link:hover & {
-      color: #fb7299;
+      color: @pink;
     }
   }
 
   .user-home__folder-count {
     font-size: 12px;
-    color: #9499a0;
+    color: @text-3;
   }
 }
 
@@ -1967,17 +1962,17 @@ watch(
   cursor: pointer;
   transition: background 0.2s;
   font-size: 14px;
-  color: #61666d;
+  color: @text-2;
   position: relative; /* 添加相对定位 */
 
   &:hover {
     background: #f7f8fa;
-    color: #fb7299;
+    color: @pink;
   }
 
   &--active {
     background: #ffe6ef;
-    color: #fb7299;
+    color: @pink;
     font-weight: 500;
   }
 
@@ -1987,9 +1982,7 @@ watch(
     border-radius: 4px;
     overflow: hidden;
     flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    .flex-center();
     background: #f4f5f7;
   }
 
@@ -2001,7 +1994,7 @@ watch(
 
   .user-home__favorites-icon {
     font-size: 16px;
-    color: #9499a0;
+    color: @text-3;
   }
 
   .el-icon {
@@ -2011,7 +2004,7 @@ watch(
   .user-home__favorites-count {
     margin-left: auto;
     font-size: 12px;
-    color: #9499a0;
+    color: @text-3;
     opacity: 1;
     transition: opacity 0.2s;
   }
@@ -2025,13 +2018,11 @@ watch(
     right: 2px;
     width: 28px;
     height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    .flex-center();
     opacity: 0;
     transition: opacity 0.2s;
     cursor: pointer;
-    color: #9499a0;
+    color: @text-3;
     border-radius: 4px;
     &-icon{
       width: 15px;
@@ -2039,7 +2030,7 @@ watch(
     }
 
     &:hover {
-      color: #61666d;
+      color: @text-2;
       background: #f4f5f7;
     }
   }
@@ -2064,7 +2055,7 @@ watch(
   .user-home__favorites-menu-item {
     padding: 10px 16px;
     font-size: 15px;
-    color: #61666d;
+    color: @text-2;
     cursor: pointer;
     text-align: center;
     white-space: nowrap;
@@ -2072,7 +2063,7 @@ watch(
 
     &:hover {
       background: #f7f8fa;
-      color: #18191c;
+      color: @text-1;
     }
   }
 
@@ -2178,16 +2169,14 @@ watch(
   color: #222;
 
   .user-home__follow-item-link:hover & {
-    color: #fb7299;
+    color: @pink;
   }
 }
 
 .user-home__follow-item-desc {
   font-size: 12px;
-  color: #9499a0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: @text-3;
+  .ellipsis();
 }
 
 .user-home__follow-item-action {
@@ -2231,11 +2220,9 @@ watch(
     height: 96px;
     background: #f4f5f7;
     border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    .flex-center();
     font-size: 32px;
-    color: #9499a0;
+    color: @text-3;
   }
 
   &__form-item {
@@ -2246,7 +2233,7 @@ watch(
     display: flex;
     align-items: center;
     font-size: 14px;
-    color: #18191c;
+    color: @text-1;
     margin-bottom: 8px;
   }
 
@@ -2261,7 +2248,7 @@ watch(
 
   &__input-suffix {
     font-size: 12px;
-    color: #9499a0;
+    color: @text-3;
   }
 
   &__textarea {
@@ -2273,7 +2260,7 @@ watch(
     display: block;
     text-align: right;
     font-size: 12px;
-    color: #9499a0;
+    color: @text-3;
     margin-top: 4px;
   }
 
@@ -2330,7 +2317,7 @@ watch(
     &-label {
       font-size: 14px;
       font-weight: 600;
-      color: #18191c;
+      color: @text-1;
     }
 
     &-select {
@@ -2369,9 +2356,7 @@ watch(
     border: 2px solid #dcdfe6;
     border-radius: 50%;
     flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    .flex-center();
     transition: all 0.2s;
     margin-right: 12px;
   }
@@ -2405,11 +2390,9 @@ watch(
 
   .pinned-dialog__item-title {
     font-size: 14px;
-    color: #18191c;
+    color: @text-1;
     font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    .ellipsis();
   }
 
   .pinned-dialog__item-meta {
@@ -2417,7 +2400,7 @@ watch(
     align-items: center;
     gap: 16px;
     font-size: 12px;
-    color: #9499a0;
+    color: @text-3;
   }
 
   .pinned-dialog__item-stat {

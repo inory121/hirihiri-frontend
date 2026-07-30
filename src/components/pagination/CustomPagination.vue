@@ -142,9 +142,7 @@ const handleJump = () => {
 
 <style scoped lang="less">
 .custom-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  .flex-center();
   gap: 30px;
   padding: 20px 0;
   margin-top: 20px;
@@ -160,32 +158,29 @@ const handleJump = () => {
     align-items: center;
     gap: 8px;
     font-size: 13px;
-    color: #61666d;
+    color: @text-2;
   }
 
   .page-btn {
     width: 32px;
     height: 32px;
-    border: 1px solid #e3e5e7;
+    border: 1px solid @border-color;
     border-radius: 4px;
     background: #fff;
-    color: #18191c;
+    color: @text-1;
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
+    .flex-center();
     &:hover:not(:disabled) {
-      border-color: #00aeec;
-      color: #00aeec;
+      border-color: @blue;
+      color: @blue;
     }
 
     &:disabled {
       cursor: not-allowed;
       opacity: 0.5;
-      color: #9499a0;
+      color: @text-3;
     }
 
     &.prev-btn {
@@ -199,8 +194,8 @@ const handleJump = () => {
 
     &.page-number {
       &.active {
-        background: #00aeec;
-        border-color: #00aeec;
+        background: @blue;
+        border-color: @blue;
         color: #fff;
 
         &:hover {
@@ -212,23 +207,23 @@ const handleJump = () => {
   }
 
   .page-ellipsis {
-    color: #9499a0;
+    color: @text-3;
     font-size: 13px;
     margin: 0 2px;
   }
 
   .page-info {
-    color: #9499a0;
+    color: @text-3;
   }
 
   .jump-text {
-    color: #61666d;
+    color: @text-2;
   }
 
   .jump-input {
     width: 64px;
     height: 32px;
-    border: 1px solid #e3e5e7;
+    border: 1px solid @border-color;
     border-radius: 4px;
     padding: 0 8px;
     font-size: 13px;
@@ -237,24 +232,24 @@ const handleJump = () => {
     box-sizing: border-box;
 
     &:focus {
-      border-color: #00aeec;
+      border-color: @blue;
     }
   }
 
   .jump-btn {
     width: 44px;
     height: 28px;
-    border: 1px solid #e3e5e7;
+    border: 1px solid @border-color;
     border-radius: 4px;
     background: #fff;
-    color: #61666d;
+    color: @text-2;
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s;
 
     &:hover {
-      border-color: #00aeec;
-      color: #00aeec;
+      border-color: @blue;
+      color: @blue;
     }
   }
 }

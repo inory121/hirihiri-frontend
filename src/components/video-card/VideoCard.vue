@@ -22,8 +22,8 @@
         <!-- 真实数据内容 -->
         <div class="video-card">
           <div class="video-card__wrapper">
-            <router-link
-              :to="`/video/${videoInfo.video.vid}`"
+            <a
+              :href="`/video/${videoInfo.video.vid}`"
               target="_blank"
               class="video-card__link"
               @click="handleClick(videoInfo, index)"
@@ -50,31 +50,65 @@
                   }}</span>
                 </div>
               </div>
-            </router-link>
+            </a>
             <div class="video-card__content">
               <h3 class="video-card__title">
-                <router-link
-                  :to="`/video/${videoInfo.video.vid}`"
-                  target="_blank"
-                  class="video-card__title-link"
-                  :title="videoInfo.video.title"
-                  @click="handleClick(videoInfo, index)"
-                >{{
+              <a
+                :href="`/video/${videoInfo.video.vid}`"
+                target="_blank"
+                class="video-card__title-link"
+                :title="videoInfo.video.title"
+                @click="handleClick(videoInfo, index)"
+              >{{
                   videoInfo.video.title }}
-                </router-link>
+                </a>
+                <!-- 更多操作：hover 标题区域时显示，hover 三个点时弹出菜单 -->
+                <el-popover
+                  v-model:visible="moreVisibleMap[index]"
+                  trigger="hover"
+                  placement="bottom-end"
+                  :width="160"
+                  :offset="4"
+                  popper-class="video-card__more-popover"
+                >
+                  <template #reference>
+                    <button
+                      class="video-card__more-btn"
+                      :class="{ 'is-active': moreVisibleMap[index] }"
+                      @click.stop
+                      aria-label="更多操作"
+                    >
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                        <circle cx="12" cy="5" r="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <circle cx="12" cy="19" r="2"/>
+                      </svg>
+                    </button>
+                  </template>
+                  <div class="video-card__more-menu">
+                    <div
+                      class="video-card__more-item"
+                      @click.stop="handleNotInterested(videoInfo)"
+                    >内容不感兴趣</div>
+                    <div
+                      class="video-card__more-item"
+                      @click.stop="handleBlockAuthor(videoInfo)"
+                    >不想看此UP主</div>
+                  </div>
+                </el-popover>
               </h3>
               <div class="video-card__meta">
                 <template v-if="!props.hideAuthor">
-                  <router-link :to="`/space/${videoInfo.video.uid}`" target="_blank" class="video-card__author"
+                  <a :href="`/space/${videoInfo.video.uid}`" target="_blank" class="video-card__author"
                     style="display: flex; align-items: center">
-                    <img src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg" class="video-card__avatar" />
+                    <img src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg" class="video-card__avatar" />
                     <span class="video-card__username" style="margin-left: 3px">{{
                       videoInfo.user.username
                     }}</span>
                     <span v-if="!props.hideTime" class="video-card__time" style="margin-left: 10px">{{
                       formatTime(videoInfo.video.createDate)
                     }}</span>
-                  </router-link>
+                  </a>
                 </template>
                 <template v-else>
                   <span v-if="!props.hideTime" class="video-card__time">{{
@@ -91,9 +125,17 @@
 </template>
 
 <script setup lang="ts">
+import { reactive } from 'vue'
 import { VideoPlay, ChatDotRound } from '@element-plus/icons-vue'
 import { formatTime, formatDuration, formatNumber } from '@/utils/utils.ts'
 import type { VideoInfo } from '@/types/api'
+import { useRecommendStore } from '@/stores/recommendStore'
+
+const recommendStore = useRecommendStore()
+// 控制"更多"弹窗显隐；弹窗打开（含鼠标在弹窗上）时三个点保持可见。
+// 注意：v-for 写在组件内部，单个组件实例渲染多张卡片，必须用 index 区分，
+// 否则 hover 一张卡片会让所有卡片的弹窗一起弹出。
+const moreVisibleMap = reactive<Record<number, boolean>>({})
 
 const props = withDefaults(
   defineProps<{
@@ -115,6 +157,14 @@ const emit = defineEmits<{
 
 const handleClick = (videoInfo: VideoInfo, index: number) => {
   emit('card-click', videoInfo, index)
+}
+
+const handleNotInterested = async (videoInfo: VideoInfo) => {
+  await recommendStore.notInterested(videoInfo.video.vid)
+}
+
+const handleBlockAuthor = async (videoInfo: VideoInfo) => {
+  await recommendStore.blockAuthor(videoInfo.video.uid)
 }
 </script>
 
@@ -176,8 +226,11 @@ const handleClick = (videoInfo: VideoInfo, index: number) => {
   }
 
   &__title {
-    height: 44px;
+    height: 54px;
     line-height: 22px;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
   }
 
   &__title-link {
@@ -193,15 +246,54 @@ const handleClick = (videoInfo: VideoInfo, index: number) => {
     -webkit-box-orient: vertical;
     overflow: hidden;
     margin-top: 7px;
+    flex: 1;
+    min-width: 0;
 
     &:hover {
       color: #ff6699 !important;
+      // hover 标题时显示更多按钮
+      + .el-popover__reference-wrapper,
+      ~ .el-popover__reference-wrapper {
+        .video-card__more-btn {
+          opacity: 1;
+        }
+      }
     }
+  }
+
+  // 更多操作按钮（三个竖点）
+  &__more-btn {
+    flex-shrink: 0;
+    opacity: 0;
+    margin-top: 7px;
+    padding: 4px;
+    border: none;
+    background: transparent;
+    color: @text-3;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: opacity 0.2s, color 0.2s, background-color 0.2s;
+    line-height: 1;
+
+    &:hover {
+      color: @text-1;
+      background-color: rgba(0, 0, 0, 0.06);
+    }
+  }
+
+  // hover 整个卡片标题区域时也显示按钮
+  &__title:hover &__more-btn {
+    opacity: 1;
+  }
+
+  // 弹窗打开时（含鼠标在弹窗上）保持三个点可见
+  &__more-btn.is-active {
+    opacity: 1;
   }
 
   &__author {
     font-size: 13px;
-    color: #9499a0;
+    color: @text-3;
     transition: color 0.2s linear;
 
     &:hover {
@@ -211,6 +303,34 @@ const handleClick = (videoInfo: VideoInfo, index: number) => {
 
   &__time {
     font-size: 13px;
+  }
+}
+</style>
+
+<!-- 弹窗菜单样式：el-popover 渲染到 body，不能用 scoped -->
+<style lang="less">
+.video-card__more-popover {
+  padding: 6px 0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+
+  .video-card__more-menu {
+    .video-card__more-item {
+      padding: 10px 14px;
+      font-size: 14px;
+      color: @text-1;
+      cursor: pointer;
+      transition: background-color 0.15s;
+
+      &:hover {
+        background-color: #f5f6f7;
+        color: #ff6699;
+      }
+
+      &:active {
+        background-color: #e8e9eb;
+      }
+    }
   }
 }
 </style>

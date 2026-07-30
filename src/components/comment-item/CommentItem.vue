@@ -3,7 +3,12 @@
     <!-- 评论主体 -->
     <div class="comment-main">
       <!-- 用户头像 -->
-      <div class="user-avatar" :class="isSubComment ? 'sub' : ''">
+      <div
+        class="user-avatar"
+        :class="isSubComment ? 'sub' : ''"
+        @mouseenter="emitAvatarHover(comment.user)"
+        @mouseleave="emitAvatarLeave(comment.user)"
+      >
         <UserHoverCard
           v-if="comment.user"
           :user="comment.user"
@@ -12,25 +17,27 @@
           :is-following="userStore.followStatusMap[comment.user.uid] === true"
           @follow="handleFollowUser"
         >
-          <router-link :to="`/space/${comment.user?.uid}`">
+          <a :href="`/space/${comment.user?.uid}`" target="_blank">
             <img :src="comment.user?.avatar" alt=""/>
-          </router-link>
+          </a>
         </UserHoverCard>
-        <router-link v-else :to="`/space/${comment.user?.uid}`">
+        <a v-else :href="`/space/${comment.user?.uid}`" target="_blank">
           <img :src="comment.user?.avatar" alt=""/>
-        </router-link>
+        </a>
       </div>
       <div class="header-and-content" :class="isSubComment ? 'second' : ''">
         <!-- 用户名 + 等级等 -->
         <div class="comment-header">
           <div class="user-name">
-            <router-link :to="`/space/${comment.user?.uid}`">{{ comment.user?.username }}</router-link>
+            <a :href="`/space/${comment.user?.uid}`" target="_blank">{{
+                comment.user?.username
+              }}</a>
           </div>
           <div class="user-level">
             <img
               width="30"
               height="30"
-              src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/level_6.svg"
+              src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/level_6.svg"
               alt=""
             />
           </div>
@@ -38,8 +45,8 @@
             <img
               width="24"
               height="24"
-              src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/up_pb.svg"
-            />
+              src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg"
+              alt=""/>
           </div>
         </div>
 
@@ -48,12 +55,33 @@
           <p>
             <template v-if="isSecondSubComment">
               回复
-              <router-link :to="`/space/${comment.toUser?.uid}`" class="at-user" target="_blank"
-              >@{{ comment.toUser?.username }}</router-link
+              <UserHoverCard
+                v-if="comment.toUser"
+                :user="comment.toUser"
+                placement="right-top"
+                :auto-adjust="true"
+                :is-following="userStore.followStatusMap[comment.toUser.uid] === true"
+                :like-count="comment.toUser.like ?? 0"
+                @follow="handleFollowUser"
+                class="at-user-wrapper"
+              >
+                <a
+                  :href="`/space/${comment.toUser.uid}`"
+                  class="at-user"
+                  target="_blank"
+                >@{{ comment.toUser.username }}</a
+                >
+              </UserHoverCard>
+              <a
+                v-else
+                :href="`/space/${comment.toUser?.uid}`"
+                class="at-user"
+                target="_blank"
+              >@{{ comment.toUser?.username }}</a
               >
               :
             </template>
-            {{ comment.content }}
+            <MentionContent :content="comment.content" :mention-users="comment.mentionUsers"/>
           </p>
         </div>
       </div>
@@ -63,14 +91,33 @@
         <div class="createDate">
           {{ formatCommentTime(comment.createDate) }}
         </div>
-        <div class="like" :class="{ active: comment.liked }" @click="handleLike">
+        <div class="like" :class="{ active: comment.liked }" @mousedown.prevent @click="handleLike">
           <i class="iconfont" :class="comment.liked ? 'icon-dianzan_kuai' : 'icon-good'"></i>
           <span class="count" style="margin-left: 5px">{{ comment.like }}</span>
         </div>
-        <div class="dislike" :class="{ active: comment.disliked }" @click="handleDislike">
+        <div class="dislike" :class="{ active: comment.disliked }" @mousedown.prevent
+             @click="handleDislike">
           <i class="iconfont" :class="comment.disliked ? 'icon-diancai-mian' : 'icon-diancai'"></i>
         </div>
-        <div class="reply" @click="toggleReply">回复</div>
+        <div class="reply" @mousedown.prevent @click="toggleReply">回复</div>
+        <!-- 更多操作：hover .comment 时显示，移出按钮/弹窗区域延迟关闭 -->
+        <div class="more-actions" @click.stop.prevent="toggleMoreMenu" @mouseenter="cancelClose"
+             @mouseleave="scheduleClose">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+            <circle cx="12" cy="5" r="2"/>
+            <circle cx="12" cy="12" r="2"/>
+            <circle cx="12" cy="19" r="2"/>
+          </svg>
+          <!-- 弹窗：复制链接 + 置顶（仅UP主对根评论） + 删除 -->
+          <div v-if="showMoreMenu" class="more-menu" @click.stop @mouseenter="cancelClose"
+               @mouseleave="scheduleClose">
+            <div class="more-menu-item" @click="copyCommentLink">复制评论链接</div>
+            <div v-if="canPin" class="more-menu-item" @click="handleToggleTop">
+              {{ isPinned ? '取消置顶' : '置顶' }}
+            </div>
+            <div v-if="canDelete" class="more-menu-item danger" @click="handleDelete">删除</div>
+          </div>
+        </div>
       </div>
 
       <!-- UP主觉得很赞 -->
@@ -78,34 +125,16 @@
         UP主觉得很赞
       </div>
 
-      <!-- 回复输入框 -->
-      <div class="commentbox" v-if="showReplyBox">
-        <div class="sub-user-avatar">
-          <img v-if="userStore.isLogin" :src="user.avatar" alt=""/>
-          <img v-else src="https://hirihiri.oss-cn-nanjing.aliyuncs.com/noface.jpg" alt=""/>
-        </div>
-        <div class="editor edit" v-if="userStore.isLogin">
-          <el-input
-            v-model="subComment"
-            style="height: 50px"
-            :placeholder="`回复 @${comment.user?.username} :`"
-            border="6"
-          ></el-input>
-          <el-button type="primary" @click="sendSubComment" style="margin-left: 10px" size="large">
-            发送
-          </el-button>
-        </div>
-        <div class="edit" v-else>
-          <span>请先</span>
-          <el-button type="primary" size="small" @click="userStore.showLoginWindow = true"
-          >登录
-          </el-button>
-          <span>后发表评论 (・ω・)</span>
-        </div>
+      <!-- 置顶标识 -->
+      <div class="pinned-tag" v-if="isPinned && !isSubComment">
+        <svg viewBox="0 0 1024 1024" width="12" height="12" fill="currentColor">
+          <path
+            d="M832 64H192a32 32 0 0 0-32 32v128a32 32 0 0 0 32 32h128v256l-128 128v64h320v128a32 32 0 0 0 64 0v-128h320v-64l-128-128V256h128a32 32 0 0 0 32-32V96a32 32 0 0 0-32-32z"/>
+        </svg>
+        置顶
       </div>
     </div>
   </div>
-  <!--  <el-divider style="margin: 20px 0" />-->
 </template>
 
 <script setup lang="ts">
@@ -115,7 +144,9 @@ import {useCommentStore} from '@/stores/commentStore'
 import {storeToRefs} from 'pinia'
 import {formatCommentTime} from '@/utils/utils'
 import {useVideoStore} from '@/stores/videoStore'
+import {ElMessage, ElMessageBox} from 'element-plus'
 import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
+import MentionContent from '@/components/mention-content/MentionContent.vue'
 
 const videoStore = useVideoStore()
 const {videoInfo} = storeToRefs(videoStore)
@@ -132,20 +163,15 @@ const {activeReplyCommentId} = storeToRefs(commentStore)
 const {setActiveReplyCommentId} = commentStore
 const {user} = storeToRefs(userStore)
 
-// 判断当前评论是否需要显示回复框
-const showReplyBox = computed(() => {
-  return activeReplyCommentId.value === props.comment.id
-})
-const subComment = ref('')
-
 // 判断是否是子评论
 const isSubComment = ref(props.comment.rootId !== 0 || props.comment.parentId !== 0)
 const isSecondSubComment = ref(props.comment.rootId !== props.comment.parentId)
+
 // 切换回复框显示（单例模式）
 const toggleReply = () => {
   if (userStore.isLogin) {
     // 如果当前已显示，则关闭
-    if (showReplyBox.value) {
+    if (activeReplyCommentId.value === props.comment.id) {
       setActiveReplyCommentId(null)
     } else {
       setActiveReplyCommentId(props.comment.id)
@@ -187,25 +213,115 @@ const handleFollowUser = async (uid: number) => {
   await userStore.toggleFollow(uid)
 }
 
-// 发送子评论
-const sendSubComment = async () => {
-  if (!props.comment.vid || !subComment.value.trim()) return
-  console.log(props.comment)
-  const newComment = await commentStore.sendComment({
-    vid: props.comment.vid,
-    uid: user.value.uid,
-    content: subComment.value,
-    rootId: props.comment.rootId === 0 ? props.comment.id : props.comment.rootId,
-    parentId: props.comment.id,
-    toUserId: props.comment.user?.uid,
-  })
-  console.log(newComment)
-  if (newComment) {
-    await commentStore.getComment(props.comment.vid)
-    subComment.value = ''
-    setActiveReplyCommentId(null)
+const emit = defineEmits<{
+  (e: 'avatar-hover', user: any): void
+  (e: 'avatar-leave', user: any): void
+}>()
+
+const emitAvatarHover = (user: any) => {
+  if (!user) return
+  emit('avatar-hover', user)
+}
+
+const emitAvatarLeave = (user: any) => {
+  if (!user) return
+  emit('avatar-leave', user)
+}
+
+// ====== 更多操作菜单 ======
+const showMoreMenu = ref(false)
+let closeTimer: ReturnType<typeof setTimeout> | null = null
+
+// 可删除：评论作者本人，或当前视频的投稿者（UP主）
+const canDelete = computed(() => {
+  if (!user.value) return false
+  if (props.comment.user && user.value.uid === props.comment.user.uid) return true
+  const videoOwnerUid = videoStore.videoInfo?.video?.uid
+  return videoOwnerUid != null && videoOwnerUid === user.value.uid
+})
+
+// 可置顶：仅视频投稿者（UP主）且为根评论
+const canPin = computed(() => {
+  if (!user.value) return false
+  const videoOwnerUid = videoStore.videoInfo?.video?.uid
+  const isVideoOwner = videoOwnerUid != null && videoOwnerUid === user.value.uid
+  const isRoot = props.comment.rootId === 0
+  return isVideoOwner && isRoot
+})
+
+const isPinned = computed(() => props.comment.isTop === 1)
+
+const cancelClose = () => {
+  if (closeTimer) {
+    clearTimeout(closeTimer)
+    closeTimer = null
   }
 }
+
+// 离开按钮/菜单后延迟关闭，留出移动到菜单的时间，避免弹窗瞬间消失
+const scheduleClose = () => {
+  cancelClose()
+  closeTimer = setTimeout(() => {
+    showMoreMenu.value = false
+    closeTimer = null
+  }, 200)
+}
+
+const toggleMoreMenu = () => {
+  cancelClose()
+  showMoreMenu.value = !showMoreMenu.value
+}
+
+const copyCommentLink = async () => {
+  const url = `${window.location.origin}/video/${videoStore.videoInfo?.video?.vid}?commentId=${props.comment.id}`
+  try {
+    await navigator.clipboard.writeText(url)
+    ElMessage.success('链接已复制')
+  } catch {
+    const ta = document.createElement('textarea')
+    ta.value = url
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+    ElMessage.success('链接已复制')
+  }
+  cancelClose()
+  showMoreMenu.value = false
+}
+
+const handleDelete = async () => {
+  try {
+    await ElMessageBox.confirm('删除评论后，评论下所有回复都会被删除，是否继续？', '删除评论', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+  const ok = await commentStore.deleteComment(props.comment.id!)
+  if (ok) {
+    cancelClose()
+    showMoreMenu.value = false
+    ElMessage.success('删除成功')
+  } else {
+    ElMessage.error('删除失败，请重试')
+  }
+}
+
+const handleToggleTop = async () => {
+  const next = !isPinned.value
+  const ok = await commentStore.toggleCommentTop(props.comment.id!, next)
+  if (ok) {
+    cancelClose()
+    showMoreMenu.value = false
+    ElMessage.success(next ? '置顶成功' : '已取消置顶')
+  } else {
+    ElMessage.error('操作失败，请重试')
+  }
+}
+
 </script>
 
 <style scoped lang="less">
@@ -214,9 +330,26 @@ const sendSubComment = async () => {
   padding: 8px 0 8px 68px;
   position: relative;
 
-  //&:not(.sub) {
-  //  padding-top: 0;
-  //}
+  // hover 时显示更多操作按钮
+  .more-actions {
+    opacity: 0;
+    transition: opacity 0.2s;
+    margin-left: auto;
+    padding: 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    color: @text-3;
+    position: relative;
+
+    &:hover {
+      background-color: @bg-gray;
+      color: @text-2;
+    }
+  }
+
+  &:hover .more-actions {
+    opacity: 1;
+  }
 
   &.sub {
     padding-left: 100px;
@@ -241,16 +374,38 @@ const sendSubComment = async () => {
         height: 24px;
       }
 
+      // 非 UserHoverCard 分支（user 为空）
       img {
         width: 100%;
         height: 100%;
         border-radius: 50%;
+        object-fit: cover;
+        display: block;
+      }
+
+      // 穿透 UserHoverCard 包裹层，让头像正确填充容器且不变形
+      // 注意：只针对 reference 内的头像，不要影响悬浮弹窗里的大头像（.user-hover-card__avatar）
+      :deep(.user-hover-card-wrapper),
+      :deep(.user-hover-card-reference) {
+        display: block;
+        width: 100%;
+        height: 100%;
+        line-height: 0;
+      }
+
+      :deep(.user-hover-card-reference) img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        display: block;
       }
     }
 
     .header-and-content {
       display: flex;
       flex-direction: column;
+      align-items: flex-start;
 
       &.second {
         flex-direction: row;
@@ -265,7 +420,7 @@ const sendSubComment = async () => {
           font-weight: 500;
 
           a {
-            color: #61666d;
+            color: @text-2;
           }
         }
 
@@ -286,9 +441,15 @@ const sendSubComment = async () => {
         margin-top: 4px;
         line-height: 28px;
         word-break: break-word;
+        overflow-wrap: break-word;
+        white-space: pre-wrap;
 
         &.second {
           margin: 0 0 0 5px;
+        }
+
+        .at-user-wrapper {
+          display: inline-block;
         }
 
         .at-user {
@@ -305,7 +466,7 @@ const sendSubComment = async () => {
     .comment-footer {
       display: flex;
       align-items: center;
-      color: #9499a0;
+      color: @text-3;
       font-size: 13px;
       margin-top: 5px;
 
@@ -320,18 +481,49 @@ const sendSubComment = async () => {
         transition: color 0.3s;
         display: flex;
         align-items: center;
-        color: #61666d;
+        color: @text-2;
 
         &:hover {
-          color: #00aeec;
+          color: @blue;
         }
 
         &.active {
-          color: #00aeec;
+          color: @blue;
         }
 
         .active-icon {
-          color: #00aeec;
+          color: @blue;
+        }
+      }
+
+      .more-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        z-index: 10;
+        background: #fff;
+        border: 1px solid @border-color;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 4px 0;
+        min-width: 120px;
+
+        .more-menu-item {
+          padding: 8px 16px;
+          font-size: 13px;
+          color: @text-2;
+          cursor: pointer;
+          transition: background-color 0.15s;
+
+          &:hover {
+            background-color: @bg-gray;
+            color: @blue;
+          }
+
+          &.danger:hover {
+            color: #ff4d4f;
+            background-color: #fff2f0;
+          }
         }
       }
     }
@@ -346,36 +538,17 @@ const sendSubComment = async () => {
       border-radius: 4px;
     }
 
-    .commentbox {
-      display: flex;
+    .pinned-tag {
+      display: inline-flex;
       align-items: center;
-      margin-top: 20px;
-      height: 50px;
-
-      .sub-user-avatar {
-        img {
-          width: 48px;
-          height: 48px;
-          margin-right: 20px;
-          border-radius: 50%;
-        }
-      }
-
-      .edit {
-        flex: 1 1 0;
-        height: 100%;
-        border-radius: 6px;
-        font-size: 12px;
-        color: #9499a0;
-        background-color: #f1f2f3;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .editor {
-        background-color: #fff;
-      }
+      gap: 2px;
+      margin-top: 8px;
+      margin-left: 8px;
+      padding: 2px 8px;
+      font-size: 12px;
+      color: @blue;
+      background-color: #e5f7ff;
+      border-radius: 4px;
     }
   }
 }

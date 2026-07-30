@@ -10,6 +10,7 @@ import {
   RECOMMEND_API,
 } from '@/api/recommend'
 import type { RecommendEvent, VideoInfo } from '@/types/api'
+import { preloadCoverColors } from '@/utils/coverColor'
 
 const MAX_PENDING_EVENTS = 30
 const FLUSH_INTERVAL_MS = 5000
@@ -79,9 +80,10 @@ export const useRecommendStore = defineStore('recommend', {
         this.feedNextCursor = nextCursor
         this.feedHasMore = !!nextCursor && items.length > 0
         this.feedError = false
-        const newItems = refresh ? items : items?.slice(-limit)
-        if (newItems && newItems.length > 0) {
-          this.preloadDominantColors(newItems)
+        // 注意：必须传入 store 内的响应式数组（this.feedList），
+        // 直接传原始 items 写 coverColor 不会触发响应式更新
+        if (this.feedList.length > 0) {
+          this.preloadCoverColors(this.feedList)
         }
       } catch (e) {
         console.error('获取推荐流失败:', e)
@@ -92,30 +94,8 @@ export const useRecommendStore = defineStore('recommend', {
       }
     },
 
-    async preloadDominantColors(list: VideoInfo[]) {
-      const ColorThief = (await import('colorthief')).default
-      await Promise.all(
-        list.map(
-          (videoInfo) =>
-            new Promise<void>((resolve) => {
-              const img = new Image()
-              img.crossOrigin = 'anonymous'
-              img.src = videoInfo.video.coverUrl
-              img.onload = () => {
-                try {
-                  videoInfo.video.dominantColor = new ColorThief().getColor(img)
-                } catch (e) {
-                  videoInfo.video.dominantColor = [255, 255, 255]
-                }
-                resolve()
-              }
-              img.onerror = () => {
-                videoInfo.video.dominantColor = [255, 255, 255]
-                resolve()
-              }
-            }),
-        ),
-      )
+    async preloadCoverColors(list: VideoInfo[]) {
+      preloadCoverColors(list)
     },
 
     enqueueEvent(event: RecommendEvent) {
@@ -288,7 +268,6 @@ export const useRecommendStore = defineStore('recommend', {
         const res = await getRelatedVideos(vid, limit)
         if (res.code === 200) {
           this.relatedList = res.data || []
-          await this.preloadDominantColors(this.relatedList)
         } else {
           this.relatedList = []
         }
