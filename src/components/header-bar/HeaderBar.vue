@@ -222,14 +222,71 @@
         </a>
       </li>
       <li>
-        <a href="/message" class="right-default-entry v-popover-wrap" target="_blank" @click="handleRightEntryClick">
-          <el-badge :value="totalUnreadCount" :hidden="totalUnreadCount === 0" :max="99" class="message-badge">
-            <el-icon class="right-icon">
-              <Message />
-            </el-icon>
-          </el-badge>
-          <span class="right-entry-text">消息</span>
-        </a>
+        <el-popover
+          placement="bottom"
+          trigger="hover"
+          :show-arrow="false"
+          popper-class="message-popover"
+          :offset="8"
+        >
+          <template #reference>
+            <a href="/message" class="right-default-entry v-popover-wrap" target="_blank" @click="handleRightEntryClick">
+              <el-badge :value="totalUnreadCount" :hidden="totalUnreadCount === 0" :max="99" class="message-badge">
+                <el-icon class="right-icon">
+                  <Message />
+                </el-icon>
+              </el-badge>
+              <span class="right-entry-text">消息</span>
+            </a>
+          </template>
+          <div class="message-popover-menu">
+            <a :href="resolvePath('/message')" target="_blank" class="message-popover-item">
+              <span class="message-popover-item__label">我的消息</span>
+              <el-badge
+                :value="messageUnread.privateUnread + messageUnread.strangerUnread"
+                :hidden="messageUnread.privateUnread + messageUnread.strangerUnread === 0"
+                :max="99"
+                class="message-popover-item__badge"
+              />
+            </a>
+            <a :href="resolvePath('/reply')" target="_blank" class="message-popover-item">
+              <span class="message-popover-item__label">回复我的</span>
+              <el-badge
+                :value="messageUnread.replyUnread"
+                :hidden="messageUnread.replyUnread === 0"
+                :max="99"
+                class="message-popover-item__badge"
+              />
+            </a>
+            <a :href="resolvePath('/at')" target="_blank" class="message-popover-item">
+              <span class="message-popover-item__label">@我的</span>
+              <el-badge
+                :value="messageUnread.atUnread"
+                :hidden="messageUnread.atUnread === 0"
+                :max="99"
+                class="message-popover-item__badge"
+              />
+            </a>
+            <a :href="resolvePath('/like')" target="_blank" class="message-popover-item">
+              <span class="message-popover-item__label">收到的赞</span>
+              <el-badge
+                :value="messageUnread.likeUnread"
+                :hidden="messageUnread.likeUnread === 0"
+                :max="99"
+                class="message-popover-item__badge"
+              />
+            </a>
+            <a :href="resolvePath('/system')" target="_blank" class="message-popover-item">
+              <span class="message-popover-item__label">系统消息</span>
+              <el-badge
+                :value="messageUnread.systemUnread"
+                :hidden="messageUnread.systemUnread === 0"
+                :max="99"
+                class="message-popover-item__badge"
+              />
+            </a>
+          </div>
+        </el-popover>
       </li>
       <li @click="handleRightEntryClick">
         <a href="#" class="right-default-entry v-popover-wrap">
@@ -240,20 +297,183 @@
         </a>
       </li>
       <li @click="handleRightEntryClick">
-        <a :href="`/space/${userStore.user.uid}?tab=favorites`" class="right-default-entry v-popover-wrap" target="_blank">
-          <el-icon class="right-icon">
-            <Star />
-          </el-icon>
-          <span class="right-entry-text">收藏</span>
-        </a>
+        <el-popover
+          placement="bottom"
+          trigger="hover"
+          :show-arrow="false"
+          popper-class="favorite-popover"
+          :offset="8"
+          @show="fetchFavoritePreview"
+        >
+          <template #reference>
+            <a :href="resolvePath(`/space/${userStore.user.uid}?tab=favorites`)" target="_blank" class="right-default-entry v-popover-wrap" @click.stop>
+              <el-icon class="right-icon">
+                <Star />
+              </el-icon>
+              <span class="right-entry-text">收藏</span>
+            </a>
+          </template>
+          <div class="favorite-popover-wrap">
+            <div v-if="favoriteLoading && favoriteFolderList.length === 0" class="favorite-popover-empty">
+              <div class="history-popover-spinner"></div>
+              <span>加载中...</span>
+            </div>
+            <div v-else-if="favoriteFolderList.length === 0" class="favorite-popover-empty">
+              暂无收藏夹
+            </div>
+            <template v-else>
+              <div class="favorite-popover-main">
+                <div class="favorite-popover-sidebar">
+                  <div
+                    v-for="folder in favoriteFolderList"
+                    :key="folder.id"
+                    class="favorite-popover-folder-item"
+                    :class="{ 'is-active': activeFolderId === folder.id }"
+                    @click="selectFavoriteFolder(folder.id)"
+                  >
+                    <span class="favorite-popover-folder-name" :title="folder.name">{{
+                      folder.name
+                    }}</span>
+                    <span class="favorite-popover-folder-count">{{ folder.videoCount }}</span>
+                  </div>
+                </div>
+                <div class="favorite-popover-content">
+                  <div class="favorite-popover-content-scroll">
+                    <div v-if="folderVideoLoading && folderVideoList.length === 0" class="favorite-popover-empty favorite-popover-empty--inner">
+                      <div class="history-popover-spinner"></div>
+                      <span>加载中...</span>
+                    </div>
+                    <div v-else-if="folderVideoList.length === 0" class="favorite-popover-empty favorite-popover-empty--inner">
+                      这个文件夹还是空的～
+                    </div>
+                    <template v-else>
+                      <a
+                        v-for="video in folderVideoList"
+                        :key="video.video.vid"
+                        :href="resolvePath(`/video/${video.video.vid}`)"
+                        target="_blank"
+                        class="favorite-popover-item"
+                      >
+                        <div class="favorite-popover-cover">
+                          <img :src="video.video.coverUrl" :alt="video.video.title" />
+                          <span class="favorite-popover-duration">{{
+                            formatDuration(video.video.duration)
+                          }}</span>
+                        </div>
+                        <div class="favorite-popover-info">
+                          <h3 class="favorite-popover-title" :title="video.video.title">
+                            {{ video.video.title }}
+                          </h3>
+                          <a
+                            class="favorite-popover-up"
+                            :href="resolvePath(`/space/${video.video.uid}`)"
+                            target="_blank"
+                            @click.stop
+                          >
+                            <img
+                              src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg"
+                              class="favorite-popover-up-icon"
+                              alt=""
+                            />
+                            <span>{{ video.user.username }}</span>
+                          </a>
+                        </div>
+                      </a>
+                    </template>
+                  </div>
+                  <!-- 始终固定在右栏（favorite-popover-content）底部：有视频才显示 -->
+                  <div v-if="folderVideoList.length > 0" class="favorite-popover-footer">
+                    <a
+                      :href="activeFolderId ? resolvePath(`/space/${userStore.user.uid}?tab=favorites&folder=${activeFolderId}`) : resolvePath(`/space/${userStore.user.uid}?tab=favorites`)"
+                      target="_blank"
+                      class="favorite-popover-btn"
+                    >
+                      查看全部
+                    </a>
+                    <a
+                      :href="activeFolderId ? resolvePath(`/space/${userStore.user.uid}?tab=favorites&folder=${activeFolderId}`) : resolvePath(`/space/${userStore.user.uid}?tab=favorites`)"
+                      target="_blank"
+                      class="favorite-popover-btn favorite-popover-btn--primary"
+                    >
+                      <el-icon class="favorite-popover-play-icon">
+                        <VideoPlay />
+                      </el-icon>
+                      <span>播放全部</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </el-popover>
       </li>
       <li @click="handleRightEntryClick">
-        <a href="/history" class="right-default-entry v-popover-wrap" target="_blank">
-          <el-icon class="right-icon">
-            <Clock />
-          </el-icon>
-          <span class="right-entry-text">历史</span>
-        </a>
+        <el-popover
+          placement="bottom"
+          trigger="hover"
+          :show-arrow="false"
+          popper-class="history-popover"
+          :offset="8"
+          @show="fetchHistoryPreview"
+        >
+          <template #reference>
+            <a href="/history" class="right-default-entry v-popover-wrap" target="_blank">
+              <el-icon class="right-icon">
+                <Clock />
+              </el-icon>
+              <span class="right-entry-text">历史</span>
+            </a>
+          </template>
+          <div class="history-popover-wrap">
+            <div v-if="historyStore.loading && groupedHistoryPreview.length === 0" class="history-popover-empty">
+              <div class="history-popover-spinner"></div>
+              <span>加载中...</span>
+            </div>
+            <div v-else-if="groupedHistoryPreview.length === 0" class="history-popover-empty">
+              暂无浏览历史
+            </div>
+            <div v-else class="history-popover-list">
+              <template v-for="group in groupedHistoryPreview" :key="group.label">
+                <div class="history-popover-group-label">{{ group.label }}</div>
+                <a
+                  v-for="item in group.items"
+                  :key="item.id"
+                  :href="resolvePath(`/video/${item.vid}`)"
+                  target="_blank"
+                  class="history-popover-item"
+                >
+                  <div class="history-popover-cover">
+                    <img :src="item.coverUrl" :alt="item.title" />
+                    <div class="history-popover-cover__bottom">
+                      <span class="history-popover-progress">{{ formatDuration(item.progress) }}/{{ formatDuration(item.duration) }}</span>
+                      <div
+                        class="history-popover-progressbar"
+                        :style="{ width: (item.progress / item.duration) * 100 + '%' }"
+                      ></div>
+                    </div>
+                  </div>
+                  <div class="history-popover-info">
+                    <div class="history-popover-title" :title="item.title">{{ item.title }}</div>
+                    <div class="history-popover-time">{{ formatBrowseTime(item.browseTime) }}</div>
+                    <div class="history-popover-author">
+                      <img
+                        src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg"
+                        class="history-popover-up-icon"
+                        alt=""
+                      />
+                      {{ item.authorUsername }}
+                    </div>
+                  </div>
+                </a>
+              </template>
+            </div>
+            <div class="history-popover-footer">
+              <a :href="resolvePath('/history')" target="_blank" class="history-popover-btn">
+                查看全部
+              </a>
+            </div>
+          </div>
+        </el-popover>
       </li>
       <li @click="handleRightEntryClick">
         <router-link to="/platform/home" class="right-default-entry v-popover-wrap">
@@ -278,19 +498,124 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import MyPopover from '@/components/my-popover/MyPopover.vue'
 import SearchBox from '@/components/search/SearchBox.vue'
 import { useUserStore } from '@/stores/userStore.ts'
 import { useMessageStore } from '@/stores/messageStore.ts'
+import { useHistoryStore } from '@/stores/historyStore.ts'
+import { useVideoStore } from '@/stores/videoStore.ts'
 import { useRouter } from 'vue-router'
-import { formatNumber, getLevelByExp, getLevelIconUrl } from '@/utils/utils'
+import type { FavoriteFolder, HistoryVideoDTO, VideoInfo } from '@/types/api.ts'
+import { formatNumber, formatDuration, getLevelByExp, getLevelIconUrl } from '@/utils/utils'
+import { VideoPlay } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const messageStore = useMessageStore()
+const historyStore = useHistoryStore()
+const videoStore = useVideoStore()
 
 const totalUnreadCount = computed(() => messageStore.unread.totalUnread)
+const messageUnread = computed(() => messageStore.unread)
+const resolvePath = (path: string, query?: Record<string, string | number | null | undefined>) => {
+  let realPath = path
+  const realQuery: Record<string, any> = {}
+  // 支持 path 中带 "?a=1&b=2" 的写法，自动拆分出来单独传给 query
+  if (realPath.includes('?')) {
+    const [p, qs] = realPath.split('?')
+    realPath = p
+    if (qs) {
+      new URLSearchParams(qs).forEach((v, k) => {
+        realQuery[k] = v
+      })
+    }
+  }
+  if (query) {
+    for (const [k, v] of Object.entries(query)) {
+      if (v !== undefined && v !== null) realQuery[k] = String(v)
+    }
+  }
+  return Object.keys(realQuery).length > 0
+    ? router.resolve({ path: realPath, query: realQuery }).href
+    : router.resolve({ path: realPath }).href
+}
+
+// ===== 收藏夹弹窗 =====
+const favoriteLoading = ref(false)
+const folderVideoLoading = ref(false)
+const favoriteFolderList = ref<FavoriteFolder[]>([])
+const activeFolderId = ref<number | null>(null)
+const folderVideoList = ref<VideoInfo[]>([])
+
+const fetchFavoritePreview = async () => {
+  if (!userStore.isLogin) return
+  favoriteLoading.value = true
+  try {
+    const list = await videoStore.getUserFavoriteFolders()
+    favoriteFolderList.value = list
+    if (list.length > 0) {
+      const defaultFolder = list.find((f) => f.isDefault) || list[0]
+      await selectFavoriteFolder(defaultFolder.id)
+    }
+  } catch (e) {
+    console.error('加载收藏夹列表失败', e)
+    favoriteFolderList.value = []
+  } finally {
+    favoriteLoading.value = false
+  }
+}
+
+const selectFavoriteFolder = async (folderId: number) => {
+  activeFolderId.value = folderId
+  folderVideoLoading.value = true
+  try {
+    const list = await videoStore.getFolderVideos(folderId, 1, 20)
+    folderVideoList.value = list
+  } catch (e) {
+    console.error('加载收藏夹视频失败', e)
+    folderVideoList.value = []
+  } finally {
+    folderVideoLoading.value = false
+  }
+}
+
+// ===== 历史弹窗 =====
+const fetchHistoryPreview = async () => {
+  await historyStore.getHistoryList(1, 20)
+}
+
+const groupedHistoryPreview = computed(() => {
+  const groups: { label: string; items: HistoryVideoDTO[] }[] = [
+    { label: '今天', items: [] },
+    { label: '昨天', items: [] },
+    { label: '更早', items: [] },
+  ]
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const yesterday = today - 24 * 60 * 60 * 1000
+  historyStore.historyList.slice(0, 20).forEach((item) => {
+    const browseTime = new Date(item.browseTime).getTime()
+    if (browseTime >= today) groups[0].items.push(item)
+    else if (browseTime >= yesterday) groups[1].items.push(item)
+    else groups[2].items.push(item)
+  })
+  return groups.filter((g) => g.items.length > 0)
+})
+
+const formatBrowseTime = (time: string): string => {
+  const date = new Date(time)
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diff = date.getTime() - today.getTime()
+  if (diff >= 0) {
+    return `今天${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+  }
+  if (diff >= -24 * 60 * 60 * 1000) {
+    return `昨天${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+  }
+  return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+}
 
 const goMySpace = (tab: string) => {
   if (!userStore.user.uid) return
@@ -1077,6 +1402,539 @@ const handleRightEntryClick = (event: Event) => {
 @media (max-width: 1279.9px) {
   .hiri-header__bar .right-entry .right-entry-text {
     display: none !important;
+  }
+}
+</style>
+
+<style lang="less">
+// 消息弹窗 el-popover 样式（popper 渲染到 body，需非 scoped）
+.message-popover {
+  padding: 0 !important;
+  min-width: 160px;
+  border-radius: 8px !important;
+  box-shadow: 0 0 30px rgba(0, 0, 0, .1) !important;
+  border: 1px solid @border-color;
+
+  .message-popover-menu {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+  }
+
+  .message-popover-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+    height: 40px;
+    padding: 0 20px;
+    font-size: 14px;
+    color: @text-2;
+    text-decoration: none;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: @border-color;
+      color: @text-1;
+    }
+
+    &__badge {
+      .el-badge__content {
+        font-size: 10px;
+        height: 16px;
+        line-height: 16px;
+        padding: 0 4px;
+      }
+    }
+  }
+}
+
+// 历史弹窗 el-popover 样式（popper 渲染到 body，需非 scoped）
+.history-popover {
+  padding: 0 !important;
+  width: 370px !important;
+  max-width: 370px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 0 30px rgba(0, 0, 0, .1) !important;
+  border: 1px solid @border-color;
+
+  .history-popover-wrap {
+    display: flex;
+    flex-direction: column;
+    max-height: 540px;
+    min-height: 0;
+  }
+
+  .history-popover-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 16px;
+    color: @text-3;
+    font-size: 14px;
+  }
+
+  .history-popover-spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid @pink;
+    border-radius: 50%;
+    animation: hiri-spin 1s linear infinite;
+    margin-bottom: 12px;
+  }
+
+  @keyframes hiri-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .history-popover-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 8px 0;
+    overscroll-behavior: none;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(0, 0, 0, 0.35);
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  }
+
+  .history-popover-group-label {
+    padding: 8px 14px 4px;
+    font-size: 12px;
+    color: @text-3;
+    font-weight: 500;
+  }
+
+  .history-popover-item {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 14px;
+    text-decoration: none;
+    color: @text-2;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: @border-color;
+    }
+  }
+
+  .history-popover-cover {
+    position: relative;
+    width: 140px;
+    height: 80px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    &__bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+      padding: 12px 6px 4px;
+    }
+  }
+
+  .history-popover-progress {
+    display: flex;
+    justify-content: flex-end;
+    color: #fff;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .history-popover-progressbar {
+    margin-top: 4px;
+    height: 2px;
+    background-color: @pink;
+    border-radius: 1px;
+  }
+
+  .history-popover-info {
+    flex: 1;
+    min-width: 0;
+    margin-left: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 2px 0;
+  }
+
+  .history-popover-title {
+    font-size: 13px;
+    color: @text-1;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-all;
+  }
+
+  .history-popover-time {
+    font-size: 11px;
+    color: @text-3;
+    line-height: 1.4;
+  }
+
+  .history-popover-author {
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    color: @text-3;
+    line-height: 1.4;
+    text-decoration: none;
+    transition: color 0.2s;
+
+    &:hover {
+      color: @blue;
+    }
+  }
+
+  .history-popover-up-icon {
+    width: 12px;
+    height: 12px;
+    vertical-align: middle;
+    margin-right: 2px;
+  }
+
+  .history-popover-footer {
+    flex-shrink: 0;
+    border-top: 1px solid @border-color;
+    padding: 8px 12px;
+  }
+
+  .history-popover-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 32px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: @text-2;
+    background-color: @border-color;
+    text-decoration: none;
+    transition: color 0.2s;
+
+    &:hover {
+      color: @blue;
+    }
+  }
+}
+
+// 收藏夹弹窗 el-popover 样式（popper 渲染到 body，需非 scoped）
+.favorite-popover {
+  padding: 0 !important;
+  width: 520px !important;
+  max-width: 520px !important;
+  height: 540px !important;
+  max-height: 540px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 0 30px rgba(0, 0, 0, .1) !important;
+  border: 1px solid @border-color;
+
+  .favorite-popover-wrap {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 540px;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+
+  .favorite-popover-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 16px;
+    color: @text-3;
+    font-size: 14px;
+
+    &--inner {
+      padding: 40px 12px;
+    }
+  }
+
+  .favorite-popover-main {
+    display: flex;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .favorite-popover-sidebar {
+    width: 150px;
+    flex-shrink: 0;
+    border-right: 1px solid @border-color;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 6px 0;
+    overscroll-behavior: none;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(0, 0, 0, 0.35);
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  }
+
+  .favorite-popover-folder-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    height: 40px;
+    font-size: 13px;
+    color: @text-2;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+      background-color: @border-color;
+    }
+
+    &.is-active {
+      background-color: @blue;
+      color: #fff;
+
+      .favorite-popover-folder-count {
+        color: rgba(255, 255, 255, 0.85);
+      }
+    }
+  }
+
+  .favorite-popover-folder-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 8px;
+  }
+
+  .favorite-popover-folder-count {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: @blue;
+    font-weight: 500;
+  }
+
+  .favorite-popover-content {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    padding: 0;
+  }
+
+  .favorite-popover-content-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 8px 0;
+    overscroll-behavior: none;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(0, 0, 0, 0.35);
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  }
+
+  .favorite-popover-item {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 14px;
+    text-decoration: none;
+    color: @text-2;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: @border-color;
+
+      .favorite-popover-title {
+        color: @blue;
+      }
+    }
+  }
+
+  .favorite-popover-cover {
+    position: relative;
+    width: 120px;
+    height: 68px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  .favorite-popover-duration {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    padding: 1px 5px;
+    background-color: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    font-size: 11px;
+    line-height: 1.4;
+    border-radius: 2px;
+  }
+
+  .favorite-popover-info {
+    flex: 1;
+    min-width: 0;
+    margin-left: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 2px 0;
+  }
+
+  .favorite-popover-title {
+    margin: 0;
+    font-size: 13px;
+    color: @text-1;
+    line-height: 1.4;
+    font-weight: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-all;
+    transition: color 0.2s;
+  }
+
+  .favorite-popover-up {
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    color: @text-3;
+    text-decoration: none;
+    margin-top: 4px;
+    transition: color 0.2s;
+
+    &:hover {
+      color: @blue;
+    }
+  }
+
+  .favorite-popover-up-icon {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    margin-right: 3px;
+  }
+
+  .favorite-popover-footer {
+    flex-shrink: 0;
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid @border-color;
+    padding: 8px 14px;
+    background-color: #fff;
+  }
+
+  .favorite-popover-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: @text-2;
+    text-decoration: none;
+    background-color: @border-color;
+    transition: all 0.2s;
+
+    &:hover {
+      background-color: #e1e3e6;
+      color: @blue;
+    }
+
+    &--primary {
+      background-color: @blue;
+      color: #fff;
+
+      &:hover {
+        background-color: #1b85d8;
+        color: #fff;
+      }
+    }
+  }
+
+  .favorite-popover-play-icon {
+    font-size: 14px;
+    margin-right: 4px;
   }
 }
 </style>

@@ -136,7 +136,7 @@ async function toggleFollow(item: { notice: MessageNotice; followed: boolean }) 
   const uid = item.notice.actorUser?.uid
   if (!uid) return
   try {
-    await post(FOLLOW_API.TOGGLE, null, { params: { targetUid: uid } })
+    await post(`${FOLLOW_API.TOGGLE}/${uid}`)
     item.followed = !item.followed
     followStatusMap.value[uid] = item.followed
   } catch {
@@ -148,9 +148,7 @@ async function checkFollowStatus(uids: number[]) {
   for (const uid of uids) {
     if (uid === userStore.user?.uid) continue
     try {
-      const res = await get<{ code: number; data: boolean }>(FOLLOW_API.STATUS, {
-        params: { targetUid: uid },
-      })
+      const res = await get<{ code: number; data: boolean }>(`${FOLLOW_API.STATUS}/${uid}`)
       if (res.code === 200) {
         followStatusMap.value[uid] = res.data
       }

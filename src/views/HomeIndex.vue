@@ -22,6 +22,7 @@
                 : []
           "
           :loading="recommendStore.feedLoading && recommendStore.feedList.length === 0"
+          :show-more-menu="true"
           @card-click="handleCardClick"
         />
       </div>

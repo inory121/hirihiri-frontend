@@ -1293,17 +1293,7 @@ const loadFavoritesData = async (targetUid: number) => {
 }
 
 onMounted(() => {
-  const uid = Number(route.params.uid)
-  if (uid) {
-    userStore.getTargetUserInfo(uid)
-    userStore.getTargetFollowInfo(uid)
-    videoStore.getUserVideoStats(uid)
-    // 先加载视频列表，再初始化 tab（home tab 的 loadHomeData 依赖视频列表）
-    videoStore.getUserVideos(uid).then(() => {
-      initTabFromQuery()
-    })
-    loadFolderCount(uid)
-  }
+  // onMounted 不再重复调用逻辑 —— watch(uid, { immediate: true }) 已在组件实例化时同步执行一次 initTabFromQuery
   document.body.style.backgroundColor = '#f4f5f7'
 })
 
@@ -1316,12 +1306,17 @@ watch(
       userStore.getTargetFollowInfo(parsedUid)
       videoStore.getUserVideoStats(parsedUid)
       selectedFolderId.value = 0
-      videoStore.getUserVideos(parsedUid).then(() => {
-        initTabFromQuery()
-      })
+      // 同步先解析 query 设置 tab，不等 getUserVideos 返回 —— 保证打开带 query 的 URL 立即切 tab
+      initTabFromQuery()
+      // home tab 的 loadHomeData 依赖 userVideoList；其他 tab 让 getUserVideos 在后台跑即可
+      const userVideosPromise = videoStore.getUserVideos(parsedUid)
+      if (activeTab.value === 'home') {
+        userVideosPromise.then(() => loadHomeData(parsedUid))
+      }
       loadFolderCount(parsedUid)
     }
-  }
+  },
+  { immediate: true },
 )
 
 // 监听 URL query.tab 变化，例如从头像悬浮窗点击"关注/粉丝"时切换内容
@@ -1477,6 +1472,7 @@ watch(
 .user-home__stat-item {
   text-align: center;
   min-width: 60px;
+  padding: 4px 8px;
 
   &--link {
     text-decoration: none;

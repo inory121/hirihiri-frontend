@@ -64,6 +64,7 @@
                 </a>
                 <!-- 更多操作：hover 标题区域时显示，hover 三个点时弹出菜单 -->
                 <el-popover
+                  v-if="props.showMoreMenu"
                   v-model:visible="moreVisibleMap[index]"
                   trigger="hover"
                   placement="bottom-end"
@@ -86,14 +87,20 @@
                     </button>
                   </template>
                   <div class="video-card__more-menu">
-                    <div
-                      class="video-card__more-item"
-                      @click.stop="handleNotInterested(videoInfo)"
-                    >内容不感兴趣</div>
-                    <div
-                      class="video-card__more-item"
-                      @click.stop="handleBlockAuthor(videoInfo)"
-                    >不想看此UP主</div>
+                    <template v-for="item in props.moreMenuItems" :key="item.key">
+                      <div
+                        v-if="item.divider"
+                        class="video-card__more-divider"
+                      ></div>
+                      <div
+                        class="video-card__more-item"
+                        :class="{
+                          'is-danger': item.danger,
+                          'is-disabled': item.disabled,
+                        }"
+                        @click.stop="item.disabled || handleMoreMenuSelect(item.key, videoInfo, index)"
+                      >{{ item.label }}</div>
+                    </template>
                   </div>
                 </el-popover>
               </h3>
@@ -137,34 +144,51 @@ const recommendStore = useRecommendStore()
 // 否则 hover 一张卡片会让所有卡片的弹窗一起弹出。
 const moreVisibleMap = reactive<Record<number, boolean>>({})
 
+interface MoreMenuItem {
+  key: string
+  label: string
+  danger?: boolean
+  disabled?: boolean
+  divider?: boolean
+}
+
 const props = withDefaults(
   defineProps<{
     data: VideoInfo[]
     loading?: boolean
     hideAuthor?: boolean
     hideTime?: boolean
+    showMoreMenu?: boolean
+    moreMenuItems?: MoreMenuItem[]
   }>(),
   {
     loading: false,
     hideAuthor: false,
     hideTime: false,
+    showMoreMenu: false,
+    moreMenuItems: () => [
+      { key: 'notInterested', label: '内容不感兴趣' },
+      { key: 'blockAuthor', label: '不想看此UP主' },
+    ],
   },
 )
 
 const emit = defineEmits<{
   (e: 'card-click', videoInfo: VideoInfo, index: number): void
+  (e: 'more-select', key: string, videoInfo: VideoInfo, index: number): void
 }>()
 
 const handleClick = (videoInfo: VideoInfo, index: number) => {
   emit('card-click', videoInfo, index)
 }
 
-const handleNotInterested = async (videoInfo: VideoInfo) => {
-  await recommendStore.notInterested(videoInfo.video.vid)
-}
-
-const handleBlockAuthor = async (videoInfo: VideoInfo) => {
-  await recommendStore.blockAuthor(videoInfo.video.uid)
+const handleMoreMenuSelect = async (key: string, videoInfo: VideoInfo, index: number) => {
+  if (key === 'notInterested') {
+    await recommendStore.notInterested(videoInfo.video.vid)
+  } else if (key === 'blockAuthor') {
+    await recommendStore.blockAuthor(videoInfo.video.uid)
+  }
+  emit('more-select', key, videoInfo, index)
 }
 </script>
 
@@ -315,6 +339,12 @@ const handleBlockAuthor = async (videoInfo: VideoInfo) => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
 
   .video-card__more-menu {
+    .video-card__more-divider {
+      height: 1px;
+      background-color: #ebecef;
+      margin: 4px 0;
+    }
+
     .video-card__more-item {
       padding: 10px 14px;
       font-size: 14px;
@@ -329,6 +359,21 @@ const handleBlockAuthor = async (videoInfo: VideoInfo) => {
 
       &:active {
         background-color: #e8e9eb;
+      }
+
+      &.is-danger {
+        color: #f53f3f;
+
+        &:hover {
+          background-color: #ffece8;
+          color: #f53f3f;
+        }
+      }
+
+      &.is-disabled {
+        color: #c9cdd4;
+        cursor: not-allowed;
+        pointer-events: none;
       }
     }
   }

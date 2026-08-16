@@ -100,7 +100,8 @@
               <button class="ses-delete-btn" title="删除会话" @click.stop="deleteSession(session)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                      stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </button>
               <img class="ses-avatar" :src="session.peerUser?.avatar || defaultAvatar" alt=""/>
@@ -152,7 +153,8 @@
               <button class="ses-delete-btn" title="删除会话" @click.stop="deleteSession(session)">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                      stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </button>
               <img class="ses-avatar" :src="session.peerUser?.avatar || defaultAvatar" alt=""/>
@@ -249,13 +251,15 @@
                     v-if="msg.senderUid !== myUid && msg.senderUser"
                     :href="`/space/${msg.senderUser.uid}`" class="msg-avatar-link"
                     target="_blank"
-                  ><img :src="msg.senderUser.avatar || defaultAvatar" class="msg-avatar" alt=""/></a>
-                  <img v-else-if="msg.senderUid !== myUid" :src="msg.senderUser?.avatar || defaultAvatar"
+                  ><img :src="msg.senderUser.avatar || defaultAvatar" class="msg-avatar"
+                        alt=""/></a>
+                  <img v-else-if="msg.senderUid !== myUid"
+                       :src="msg.senderUser?.avatar || defaultAvatar"
                        class="msg-avatar" alt=""/>
                   <div class="msg-bubble" :class="{ 'msg-failed': msg.status === 'failed' }"
                        @click="msg.status === 'failed' && retrySend(msg)">
                     <span v-if="msg.status === 'sending'" class="msg-sending-dot"></span>
-                    <span class="msg-text"><MentionContent :content="msg.content" /></span>
+                    <span class="msg-text"><MentionContent :content="msg.content"/></span>
                     <span v-if="msg.status === 'failed'"
                           class="msg-failed-label">发送失败，点击重试</span>
                   </div>
@@ -438,12 +442,16 @@
               @click="goLikeDetail(group.bizType, group.bizId)"
             >
               <!-- 左侧：最多显示两个头像交错 -->
-              <div class="like-avatars" @click.stop>
+              <div
+                class="like-avatars"
+                :class="{ 'like-avatars--two': group.topUsers.length >= 2 }"
+                @click.stop
+              >
                 <span
                   v-for="(user, idx) in group.topUsers"
                   :key="user.uid"
                   class="like-avatar-wrap"
-                  :style="{ zIndex: 2 - idx, left: idx * 18 + 'px' }"
+                  :data-idx="idx"
                   @click.stop="goUserSpace(user.uid)"
                 >
                   <img class="like-avatar-img" :src="user.avatar || defaultAvatar" alt=""/>
@@ -453,35 +461,56 @@
               <!-- 中间：用户名 + 统计文案 -->
               <div class="like-body">
                 <p class="like-title">
-                  <template v-for="(user, idx) in group.topUsers" :key="user.uid">
-                    <span
-                      class="like-name"
-                      @click.stop="goUserSpace(user.uid)"
-                    >{{ user.username }}</span><template v-if="idx < group.topUsers.length - 1">、</template>
+                  <template v-if="group.count > 1">
+                    <template v-for="(user, idx) in group.topUsers" :key="user.uid">
+                      <span
+                        class="like-name"
+                        @click.stop="goUserSpace(user.uid)"
+                      >{{ user.username }}</span>
+                      <template v-if="idx < group.topUsers.length - 1">、</template>
+                    </template>
+                    <span class="like-summary">等总计{{ group.count }}人赞了我的{{
+                        group.targetLabel
+                      }}</span>
                   </template>
-                  <span class="like-summary">等总计{{ group.count }}人赞了我的{{ group.targetLabel }}</span>
+                  <template v-else>
+                    <template v-for="(user, idx) in group.topUsers" :key="user.uid">
+                      <span
+                        class="like-name"
+                        @click.stop="goUserSpace(user.uid)"
+                      >{{ user.username }}</span>
+                    </template>
+                    <span class="like-summary">赞了我的{{ group.targetLabel }}</span>
+                  </template>
                 </p>
                 <div class="like-foot">
                   <span class="like-time">{{ formatTime(group.latestTime) }}</span>
-                  <button class="like-act" title="删除该通知" @click.stop="deleteLikeGroup(group)">删除该通知</button>
-                  <button class="like-act" title="不再通知" @click.stop="muteLikeGroup(group)">不再通知</button>
+                  <button class="like-act" title="删除该通知" @click.stop="deleteLikeGroup(group)">
+                    删除该通知
+                  </button>
+                  <button class="like-act" title="不再通知" @click.stop="muteLikeGroup(group)">
+                    不再通知
+                  </button>
                 </div>
               </div>
 
               <!-- 右侧：视频封面 或 评论内容摘要 -->
               <div class="like-right" @click.stop>
                 <template v-if="group.bizType === 'video' && group.videoCover">
-                  <img class="like-cover" :src="group.videoCover" alt="" @click="goNoticeTarget(group.notices[0])"/>
+                  <img class="like-cover" :src="group.videoCover" alt=""
+                       @click="goNoticeTarget(group.notices[0])"/>
                 </template>
                 <template v-else-if="group.bizType === 'comment' && group.contentPreview">
-                  <span class="like-comment-preview" @click="goNoticeTarget(group.notices[0])">{{ group.contentPreview }}</span>
+                  <span class="like-comment-preview"
+                        @click="goNoticeTarget(group.notices[0])">{{ group.contentPreview }}</span>
                 </template>
                 <template v-else-if="group.bizType === 'video'">
                   <span class="like-cover-placeholder" @click="goNoticeTarget(group.notices[0])">查看视频</span>
                 </template>
               </div>
 
-              <span v-if="group.notices.some((n: MessageNotice) => n.isRead === 0)" class="ntc-dot"></span>
+              <span v-if="group.notices.some((n: MessageNotice) => n.isRead === 0)"
+                    class="ntc-dot"></span>
             </div>
           </template>
 
@@ -498,7 +527,8 @@
                 v-if="notice.actorUser"
                 class="ntc-avatar-link"
                 @click.stop="goUserSpace(notice.actorUser.uid)"
-              ><img class="ntc-avatar" :src="notice.actorUser.avatar || defaultAvatar" alt=""/></span>
+              ><img class="ntc-avatar" :src="notice.actorUser.avatar || defaultAvatar"
+                    alt=""/></span>
               <img v-else class="ntc-avatar" :src="defaultAvatar" alt=""/>
               <div class="ntc-main">
                 <p class="ntc-line">
@@ -512,33 +542,49 @@
                 </p>
                 <!-- 回复内容：回复 @被回复者：回复内容 -->
                 <p v-if="notice.contentSummary" class="ntc-reply-line">
-                  <template v-if="notice.bizType === 'comment'">回复 @{{ noticeExt(notice).originUsername || userStore.user?.username }}：<MentionContent :content="notice.contentSummary" :mention-users="noticeExt(notice).mentionUsers" /></template>
-                  <template v-else>「<MentionContent :content="notice.contentSummary" :mention-users="noticeExt(notice).mentionUsers" />」</template>
+                  <template v-if="notice.bizType === 'comment'">回复
+                    @{{ noticeExt(notice).originUsername || userStore.user?.username }}：
+                    <MentionContent :content="notice.contentSummary"
+                                    :mention-users="noticeExt(notice).mentionUsers"/>
+                  </template>
+                  <template v-else>「
+                    <MentionContent :content="notice.contentSummary"
+                                    :mention-users="noticeExt(notice).mentionUsers"/>
+                    」
+                  </template>
                 </p>
                 <!-- 被回复的原评论内容：被回复者：评论内容 -->
-                <p v-if="notice.bizType === 'comment' && noticeExt(notice).originContent" class="ntc-quote">
-                  {{ noticeExt(notice).originUsername || userStore.user?.username }}：<MentionContent :content="noticeExt(notice).originContent" :mention-users="noticeExt(notice).originMentionUsers || noticeExt(notice).mentionUsers" />
+                <p v-if="notice.bizType === 'comment' && noticeExt(notice).originContent"
+                   class="ntc-quote">
+                  {{ noticeExt(notice).originUsername || userStore.user?.username }}：
+                  <MentionContent :content="noticeExt(notice).originContent"
+                                  :mention-users="noticeExt(notice).originMentionUsers || noticeExt(notice).mentionUsers"/>
                 </p>
                 <div class="ntc-foot">
                   <span class="ntc-time">{{ formatTime(notice.createTime) }}</span>
                   <button class="ntc-act" title="点赞" @click.stop="likeNoticeComment(notice)">
-                    <svg viewBox="0 0 24 24" :fill="noticeLikedMap[notice.id] ? '#00a1d6' : 'none'" stroke="currentColor"
+                    <svg viewBox="0 0 24 24" :fill="noticeLikedMap[notice.id] ? '#00a1d6' : 'none'"
+                         stroke="currentColor"
                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+                      <path
+                        d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
                     </svg>
                     点赞
                   </button>
                   <button class="ntc-act" title="删除该通知" @click.stop="deleteNotice(notice)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                          stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path
+                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                     </svg>
                     删除该通知
                   </button>
                   <button class="ntc-act" title="回复" @click.stop="toggleNoticeReply(notice)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                          stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M9 17l-5-5 5-5"/><path d="M4 12h11a4 4 0 0 1 4 4v2"/>
+                      <path d="M9 17l-5-5 5-5"/>
+                      <path d="M4 12h11a4 4 0 0 1 4 4v2"/>
                     </svg>
                     回复
                   </button>
@@ -557,7 +603,8 @@
                       @keydown.enter.exact.prevent="sendNoticeReply(notice)"
                     ></textarea>
                     <div class="ntc-reply-actions">
-                      <el-button size="small" @click.stop="activeReplyNoticeId = null">取消</el-button>
+                      <el-button size="small" @click.stop="activeReplyNoticeId = null">取消
+                      </el-button>
                       <el-button type="primary" size="small" :disabled="!noticeReplyContent.trim()"
                                  @click.stop="sendNoticeReply(notice)">发表评论
                       </el-button>
@@ -569,13 +616,15 @@
                 v-if="noticeExt(notice).isReply && noticeExt(notice).rootCommentContent"
                 class="ntc-thumb ntc-thumb--text"
                 @click.stop="goNoticeTarget(notice)"
-              ><MentionContent :content="noticeExt(notice).rootCommentContent" :mention-users="noticeExt(notice).rootMentionUsers || noticeExt(notice).mentionUsers" /></span>
+              ><MentionContent :content="noticeExt(notice).rootCommentContent"
+                               :mention-users="noticeExt(notice).rootMentionUsers || noticeExt(notice).mentionUsers"/></span>
               <span
                 v-else-if="noticeExt(notice).videoId"
                 class="ntc-thumb"
                 @click.stop="goNoticeTarget(notice)"
               >
-                <img v-if="noticeExt(notice).videoCover" :src="noticeExt(notice).videoCover" alt=""/>
+                <img v-if="noticeExt(notice).videoCover" :src="noticeExt(notice).videoCover"
+                     alt=""/>
                 <span v-else class="ntc-thumb-text">查看视频</span>
               </span>
               <span
@@ -599,7 +648,8 @@
                 v-if="notice.actorUser"
                 class="ntc-avatar-link"
                 @click.stop="goUserSpace(notice.actorUser.uid)"
-              ><img class="ntc-avatar" :src="notice.actorUser.avatar || defaultAvatar" alt=""/></span>
+              ><img class="ntc-avatar" :src="notice.actorUser.avatar || defaultAvatar"
+                    alt=""/></span>
               <img v-else class="ntc-avatar" :src="defaultAvatar" alt=""/>
               <div class="ntc-main">
                 <p class="ntc-line">
@@ -612,29 +662,42 @@
                   <span class="ntc-action">在评论中@了我</span>
                 </p>
                 <p v-if="notice.contentSummary" class="ntc-reply-line">
-                  <template v-if="noticeExt(notice).isReply">回复 @{{ noticeExt(notice).originUsername || userStore.user?.username }}：<MentionContent :content="notice.contentSummary" :mention-users="noticeExt(notice).mentionUsers" /></template>
-                  <template v-else>「<MentionContent :content="notice.contentSummary" :mention-users="noticeExt(notice).mentionUsers" />」</template>
+                  <template v-if="noticeExt(notice).isReply">回复
+                    @{{ noticeExt(notice).originUsername || userStore.user?.username }}：
+                    <MentionContent :content="notice.contentSummary"
+                                    :mention-users="noticeExt(notice).mentionUsers"/>
+                  </template>
+                  <template v-else>「
+                    <MentionContent :content="notice.contentSummary"
+                                    :mention-users="noticeExt(notice).mentionUsers"/>
+                    」
+                  </template>
                 </p>
                 <div class="ntc-foot">
                   <span class="ntc-time">{{ formatTime(notice.createTime) }}</span>
                   <button class="ntc-act" title="点赞" @click.stop="likeNoticeComment(notice)">
-                    <svg viewBox="0 0 24 24" :fill="noticeLikedMap[notice.id] ? '#00a1d6' : 'none'" stroke="currentColor"
+                    <svg viewBox="0 0 24 24" :fill="noticeLikedMap[notice.id] ? '#00a1d6' : 'none'"
+                         stroke="currentColor"
                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+                      <path
+                        d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
                     </svg>
                     点赞
                   </button>
                   <button class="ntc-act" title="删除该通知" @click.stop="deleteNotice(notice)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                          stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path
+                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                     </svg>
                     删除该通知
                   </button>
                   <button class="ntc-act" title="回复" @click.stop="toggleNoticeReply(notice)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                          stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M9 17l-5-5 5-5"/><path d="M4 12h11a4 4 0 0 1 4 4v2"/>
+                      <path d="M9 17l-5-5 5-5"/>
+                      <path d="M4 12h11a4 4 0 0 1 4 4v2"/>
                     </svg>
                     回复
                   </button>
@@ -652,7 +715,8 @@
                       @keydown.enter.exact.prevent="sendNoticeReply(notice)"
                     ></textarea>
                     <div class="ntc-reply-actions">
-                      <el-button size="small" @click.stop="activeReplyNoticeId = null">取消</el-button>
+                      <el-button size="small" @click.stop="activeReplyNoticeId = null">取消
+                      </el-button>
                       <el-button type="primary" size="small" :disabled="!noticeReplyContent.trim()"
                                  @click.stop="sendNoticeReply(notice)">发表评论
                       </el-button>
@@ -664,13 +728,15 @@
                 v-if="noticeExt(notice).isReply && noticeExt(notice).rootCommentContent"
                 class="ntc-thumb ntc-thumb--text"
                 @click.stop="goNoticeTarget(notice)"
-              ><MentionContent :content="noticeExt(notice).rootCommentContent" :mention-users="noticeExt(notice).rootMentionUsers || noticeExt(notice).mentionUsers" /></span>
+              ><MentionContent :content="noticeExt(notice).rootCommentContent"
+                               :mention-users="noticeExt(notice).rootMentionUsers || noticeExt(notice).mentionUsers"/></span>
               <span
                 v-else-if="noticeExt(notice).videoId"
                 class="ntc-thumb"
                 @click.stop="goNoticeTarget(notice)"
               >
-                <img v-if="noticeExt(notice).videoCover" :src="noticeExt(notice).videoCover" alt=""/>
+                <img v-if="noticeExt(notice).videoCover" :src="noticeExt(notice).videoCover"
+                     alt=""/>
                 <span v-else class="ntc-thumb-text">查看视频</span>
               </span>
               <span v-if="notice.isRead === 0" class="ntc-dot"></span>
@@ -698,7 +764,10 @@
                   <b v-if="notice.actorUser" class="ntc-actor">{{ notice.actorUser.username }}</b>
                   {{ notice.title }}
                 </p>
-                <p v-if="notice.contentSummary" class="ntc-summary"><MentionContent :content="notice.contentSummary" :mention-users="noticeExt(notice).mentionUsers" /></p>
+                <p v-if="notice.contentSummary" class="ntc-summary">
+                  <MentionContent :content="notice.contentSummary"
+                                  :mention-users="noticeExt(notice).mentionUsers"/>
+                </p>
                 <span class="ntc-time">{{ formatTime(notice.createTime) }}</span>
               </div>
               <span v-if="notice.isRead === 0" class="ntc-dot"></span>
@@ -760,7 +829,7 @@ const noticeReplyTextareaRef = ref<HTMLTextAreaElement | null>(null)
 const likeDetailBiz = computed(() => {
   const m = route.path.match(/^\/like\/([^/]+)\/(\d+)$/)
   if (!m) return null
-  return { bizType: m[1], bizId: Number(m[2]) }
+  return {bizType: m[1], bizId: Number(m[2])}
 })
 
 // 合并关注 + 陌生人会话，按最后消息时间倒序
@@ -865,7 +934,11 @@ const groupedLikes = computed<LikeGroup[]>(() => {
     const userMap = new Map<number, { uid: number; username: string; avatar?: string }>()
     for (const n of list) {
       if (n.actorUser && !userMap.has(n.actorUser.uid)) {
-        userMap.set(n.actorUser.uid, { uid: n.actorUser.uid, username: n.actorUser.username, avatar: n.actorUser.avatar })
+        userMap.set(n.actorUser.uid, {
+          uid: n.actorUser.uid,
+          username: n.actorUser.username,
+          avatar: n.actorUser.avatar
+        })
         if (userMap.size >= 2) break
       }
     }
@@ -1084,6 +1157,7 @@ function onChatScroll() {
 
 // 自动加载更早消息：保持当前阅读位置（加载后补偿顶部新增高度），避免跳动与无限循环
 let autoLoading = false
+
 async function autoLoadMore() {
   if (autoLoading || !chatMessagesRef.value) return
   autoLoading = true
@@ -1173,6 +1247,7 @@ async function retrySend(failedMsg: MessagePrivateMessage) {
 
 // 解析通知扩展字段（后端可能在 extJson 中塞入 videoTitle / videoCover / originContent / originUsername 等）
 type MentionUser = { uid: number; username: string; nickname?: string; avatar?: string }
+
 function noticeExt(notice: MessageNotice): {
   videoId?: number
   videoTitle?: string
@@ -1207,7 +1282,14 @@ function noticeReplyLabel(notice: MessageNotice): string {
   if (notice.bizType === 'comment') {
     return '回复了我的评论'
   }
-  const count = notice.extJson ? (() => { try { const ext = JSON.parse(notice.extJson!); return ext.count || 1; } catch { return 1; } })() : 1
+  const count = notice.extJson ? (() => {
+    try {
+      const ext = JSON.parse(notice.extJson!);
+      return ext.count || 1;
+    } catch {
+      return 1;
+    }
+  })() : 1
   if (count > 1) {
     return `等${count}人对我的视频发表了${count}条评论`
   }
@@ -1281,11 +1363,12 @@ function goNoticeTarget(notice: MessageNotice) {
   if (notice.bizId && (notice.noticeType === 'reply' || notice.noticeType === 'at' || notice.noticeType === 'like')) {
     query.commentId = String(notice.bizId)
   }
-  const href = router.resolve({ path: `/video/${videoId}`, query }).href
+  const href = router.resolve({path: `/video/${videoId}`, query}).href
   window.open(href, '_blank')
   // 标记已读（不阻塞新页面打开，失败忽略）
   if (notice.isRead === 0) {
-    messageStore.markNoticeRead(notice.id).catch(() => {})
+    messageStore.markNoticeRead(notice.id).catch(() => {
+    })
   }
 }
 
@@ -1293,6 +1376,7 @@ function goNoticeTarget(notice: MessageNotice) {
 function actorName(notice: MessageNotice): string {
   return notice.actorUser?.username ?? ''
 }
+
 function actorUid(notice: MessageNotice): number {
   return notice.actorUser?.uid ?? 0
 }
@@ -1300,7 +1384,7 @@ function actorUid(notice: MessageNotice): number {
 // 点击头像/用户名：新开标签页跳转到用户空间
 function goUserSpace(uid: number) {
   if (!uid) return
-  const href = router.resolve({ path: `/space/${uid}` }).href
+  const href = router.resolve({path: `/space/${uid}`}).href
   window.open(href, '_blank')
 }
 
@@ -1583,6 +1667,7 @@ watch(() => route.fullPath, () => {
       color: #1d2129;
     }
   }
+
   border-right: 1px solid @border;
   background: #fff;
 
@@ -1840,6 +1925,7 @@ watch(() => route.fullPath, () => {
     color: @text-1;
     line-height: 1.5;
     .ellipsis();
+
     .ntc-actor {
       color: @blue;
       margin-right: 4px;
@@ -2036,9 +2122,8 @@ watch(() => route.fullPath, () => {
 
     // 文字缩略图：评论区回复 @我 时展示根评论内容
     &--text {
-      width: 160px;
-      min-width: 160px;
-      height: 56px;
+      width: 84px;
+      height: 60px;
       align-items: flex-start;
       justify-content: flex-start;
       padding: 6px 8px;
@@ -2073,7 +2158,7 @@ watch(() => route.fullPath, () => {
     margin-top: 12px;
     padding-top: 12px;
     border-top: 1px solid #eef1f3;
-    flex: 0 0 100%;  // 关键修复：在 flex 父容器中占满整行宽度
+    flex: 0 0 100%; // 关键修复：在 flex 父容器中占满整行宽度
     animation: ntc-reply-slide-in 0.2s ease-out;
 
     .ntc-reply-avatar {
@@ -2158,6 +2243,24 @@ watch(() => route.fullPath, () => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-sizing: border-box;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.35);
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 // 聊天框
@@ -2274,6 +2377,25 @@ watch(() => route.fullPath, () => {
   flex-direction: column;
   gap: 16px;
   background: #f5f6f7;
+  min-height: 0;
+  box-sizing: border-box;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.35);
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 .chat-load-top {
@@ -2608,25 +2730,51 @@ watch(() => route.fullPath, () => {
 
 .like-avatars {
   position: relative;
-  width: 52px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   flex-shrink: 0;
 }
 
 .like-avatar-wrap {
   position: absolute;
   top: 0;
-  width: 36px;
-  height: 36px;
+  left: 0;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   border: 2px solid #fff;
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.15s;
+  background-color: #fff;
+  box-sizing: border-box;
 
   &:hover {
     transform: scale(1.08);
     z-index: 10 !important;
+  }
+}
+
+/* 有两个头像时：左大（36x36 左上）、右小（32x32 右下，层级更高） */
+.like-avatars--two {
+  .like-avatar-wrap:nth-child(1) {
+    width: 36px;
+    height: 36px;
+    top: 0;
+    left: 0;
+    right: auto;
+    bottom: auto;
+    z-index: 1;
+  }
+
+  .like-avatar-wrap:nth-child(2) {
+    width: 32px;
+    height: 32px;
+    top: auto;
+    left: auto;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
   }
 }
 
@@ -2658,6 +2806,7 @@ watch(() => route.fullPath, () => {
   }
 
   .like-summary {
+    margin-left: 8px;
     color: @text-1;
   }
 }
@@ -2695,7 +2844,7 @@ watch(() => route.fullPath, () => {
 .like-right {
   flex-shrink: 0;
   width: 84px;
-  height: 56px;
+  height: 62px;
   border-radius: 6px;
   overflow: hidden;
 }
