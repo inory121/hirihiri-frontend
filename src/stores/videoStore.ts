@@ -60,7 +60,7 @@ export const useVideoStore = defineStore('video', {
       // 视频互动状态
       liked: false,
       disliked: false,
-      coined: false,
+      coinCount: 0, // 当前用户对当前视频已投币数（0/1/2）
       favorited: false,
     }
   },
@@ -254,18 +254,19 @@ export const useVideoStore = defineStore('video', {
       const userStore = useUserStore()
       if (!userStore.isLogin) {
         this.liked = false
-        this.coined = false
+        this.disliked = false
+        this.coinCount = 0
         this.favorited = false
         return
       }
       try {
-        const res = await get<{ code: number; data: [boolean, boolean, boolean, boolean] }>(
+        const res = await get<{ code: number; data: [boolean, boolean, number, boolean] }>(
           `${VIDEO_API.GET_INTERACTION_STATUS}/${vid}`
         )
         if (res.code === 200) {
           this.liked = res.data[0]
           this.disliked = res.data[1]
-          this.coined = res.data[2]
+          this.coinCount = res.data[2] || 0
           this.favorited = res.data[3]
         }
       } catch (e) {
@@ -319,7 +320,7 @@ export const useVideoStore = defineStore('video', {
         console.error('涓嶅枩娆㈡搷浣滃け璐?', e)
       }
     },
-    async toggleCoin(vid: number) {
+    async toggleCoin(vid: number, count = 1) {
       const userStore = useUserStore()
       if (!userStore.isLogin) {
         ElMessage.warning('请先登录')
@@ -327,20 +328,25 @@ export const useVideoStore = defineStore('video', {
       }
       try {
         const res = await post<{ code: number; data: string }>(
-          `${VIDEO_API.TOGGLE_COIN}/${vid}`
+          `${VIDEO_API.TOGGLE_COIN}/${vid}?count=${count}`
         )
         if (res.code === 200) {
-          this.coined = !this.coined
-          if (this.coined) {
-            this.videoInfo.stat.coin += 1
-            ElMessage.success('投币成功')
-          } else {
-            this.videoInfo.stat.coin -= 1
-            ElMessage.success('取消投币')
+          // 每次成功投币固定 +1（后端规则：单用户单视频最多 2 币，可分次投）
+          this.coinCount += 1
+          this.videoInfo.stat.coin += 1
+          // 同步当前登录用户的硬币余额（前端本地扣减，保持一致）
+          if (userStore.user && userStore.user.coin !== undefined) {
+            userStore.user.coin = (userStore.user.coin as number) - 1
           }
+          ElMessage.success('投币成功')
+        } else {
+          // 失败（自己投自己/硬币不足/投满2币等）提示后端消息
+          ElMessage.warning(res.message || '投币失败')
+          throw new Error(res.message || '投币失败')
         }
       } catch (e) {
         console.error('投币操作失败', e)
+        throw e
       }
     },
 // 收藏/取消收藏

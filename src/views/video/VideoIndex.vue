@@ -168,9 +168,9 @@
                  :class="{ 'active-icon': videoStore.disliked }"></i>
               <span>不喜欢</span>
             </div>
-            <div class="toolbar-left-item" :class="{ active: videoStore.coined }"
+            <div class="toolbar-left-item" :class="{ active: videoStore.coinCount > 0 }"
                  @click="handleCoin">
-              <i class="iconfont icon-toubix" :class="{ 'active-icon': videoStore.coined }"></i>
+              <i class="iconfont icon-toubix" :class="{ 'active-icon': videoStore.coinCount > 0 }"></i>
               <span>{{ videoInfo.stat.coin }}</span>
             </div>
             <div class="toolbar-left-item" :class="{ active: videoStore.favorited }"
@@ -693,6 +693,67 @@
       </div>
     </template>
   </el-dialog>
+
+  <!-- 投币对话框 -->
+  <el-dialog
+    v-model="showCoinDialog"
+    title=""
+    width="420px"
+    :close-on-click-modal="false"
+    align-center
+    class="coin-dialog"
+  >
+    <div class="coin-dialog-content">
+      <div class="coin-dialog-title">
+        给UP主投上 <span class="coin-count">{{ selectedCoinCount }}</span> 枚硬币
+      </div>
+      <div class="coin-options">
+        <div
+          v-if="remainingCoinCount >= 1"
+          class="coin-option"
+          :class="{ active: selectedCoinCount === 1 }"
+          @click="selectedCoinCount = 1"
+        >
+          <div class="coin-option-label">1硬币</div>
+          <div class="coin-option-icon">
+            <svg viewBox="0 0 48 48" width="64" height="64">
+              <circle cx="24" cy="24" r="20" fill="#e3e4e6" stroke="#c0c2c8" stroke-width="2"/>
+              <text x="24" y="28" text-anchor="middle" font-size="16" fill="#8a8b8f">币</text>
+            </svg>
+          </div>
+        </div>
+        <div
+          v-if="remainingCoinCount >= 2"
+          class="coin-option"
+          :class="{ active: selectedCoinCount === 2 }"
+          @click="selectedCoinCount = 2"
+        >
+          <div class="coin-option-label">2硬币</div>
+          <div class="coin-option-icon coin-option-icon-double">
+            <svg viewBox="0 0 48 48" width="64" height="64">
+              <circle cx="20" cy="24" r="18" fill="#e3e4e6" stroke="#c0c2c8" stroke-width="2"/>
+              <text x="20" y="28" text-anchor="middle" font-size="14" fill="#8a8b8f">币</text>
+            </svg>
+            <svg viewBox="0 0 48 48" width="64" height="64">
+              <circle cx="20" cy="24" r="18" fill="#e3e4e6" stroke="#c0c2c8" stroke-width="2"/>
+              <text x="20" y="28" text-anchor="middle" font-size="14" fill="#8a8b8f">币</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="coin-with-like">
+        <el-checkbox v-model="coinWithLike">同时点赞内容</el-checkbox>
+      </div>
+    </div>
+    <template #footer>
+      <div class="coin-dialog-footer">
+        <div class="coin-exp-tip">经验值+{{ selectedCoinCount * 10 }}（每日上限50）</div>
+        <div class="coin-dialog-actions">
+          <el-button type="primary" @click="confirmCoin">确定</el-button>
+        </div>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 <script setup lang="ts">
 import {computed, nextTick, onMounted, onUnmounted, ref, watch} from 'vue'
@@ -1160,6 +1221,13 @@ const selectedFolderIds = ref<number[]>([])
 const showCreateFolderForm = ref(false)
 const newFolderName = ref('')
 
+// 投币弹窗状态
+const showCoinDialog = ref(false)
+const selectedCoinCount = ref(1)
+const coinWithLike = ref(true)
+// 剩余可投币数：单个用户对单个视频最多 2 币
+const remainingCoinCount = computed(() => Math.max(0, 2 - videoStore.coinCount))
+
 const COLLAPSED_REPLY_COUNT = 2
 const REPLY_PAGE_SIZE = 10
 
@@ -1608,8 +1676,31 @@ const handleDislike = async () => {
 }
 // 投币
 const handleCoin = () => {
-  if (videoInfo.value.video.vid) {
-    videoStore.toggleCoin(videoInfo.value.video.vid)
+  const vid = videoInfo.value.video.vid
+  if (!vid) return
+  if (videoStore.coinCount >= 2) {
+    // 已投满 2 币（仿B站：不可再投）
+    ElMessage.warning('对本稿件的投币枚数已用完')
+    return
+  }
+  selectedCoinCount.value = 1
+  coinWithLike.value = true
+  showCoinDialog.value = true
+}
+
+// 确认投币
+const confirmCoin = async () => {
+  const vid = videoInfo.value.video.vid
+  const count = selectedCoinCount.value
+  if (!vid) return
+  try {
+    await videoStore.toggleCoin(vid, count)
+    if (coinWithLike.value && !videoStore.liked) {
+      await videoStore.toggleLike(vid)
+    }
+    showCoinDialog.value = false
+  } catch (e) {
+    console.error('投币失败:', e)
   }
 }
 // 收藏
@@ -3316,6 +3407,110 @@ onUnmounted(() => {
   height: 32px;
   padding: 0;
   margin: 0;
+}
+
+// 投币弹窗样式
+.coin-dialog {
+  :deep(.el-dialog__header) {
+    display: none;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 24px 24px 12px;
+  }
+
+  .coin-dialog-content {
+    .coin-dialog-title {
+      font-size: 16px;
+      font-weight: 500;
+      text-align: center;
+      color: @text-1;
+      margin-bottom: 20px;
+
+      .coin-count {
+        color: #00a1d6;
+        font-weight: 600;
+      }
+    }
+
+    .coin-options {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 16px;
+
+      .coin-option {
+        width: 130px;
+        border: 2px solid #e5e9ef;
+        border-radius: 8px;
+        padding: 16px 0;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.2s;
+
+        &:hover {
+          border-color: #c8d4e3;
+        }
+
+        &.active {
+          border-color: #00a1d6;
+          background-color: #f0faff;
+        }
+
+        .coin-option-label {
+          font-size: 15px;
+          font-weight: 500;
+          color: @text-1;
+          margin-bottom: 10px;
+        }
+
+        .coin-option-icon {
+          height: 64px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &.coin-option-icon-double svg {
+            margin-left: -18px;
+
+            &:first-child {
+              margin-left: 0;
+            }
+          }
+        }
+      }
+    }
+
+    .coin-with-like {
+      text-align: center;
+      margin-bottom: 4px;
+
+      :deep(.el-checkbox__label) {
+        font-size: 13px;
+        color: @text-2;
+      }
+    }
+  }
+
+  .coin-dialog-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0 4px;
+
+    .coin-exp-tip {
+      font-size: 12px;
+      color: @text-3;
+    }
+
+    .coin-dialog-actions {
+      :deep(.el-button) {
+        width: 90px;
+        height: 36px;
+        border-radius: 4px;
+      }
+    }
+  }
 }
 </style>
 

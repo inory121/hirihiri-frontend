@@ -79,4 +79,18 @@ onBeforeUnmount(() => {
   --position: fixed;
   --search-display: block;
 }
+
+/* 中文标点开头排版对齐（不区分标签与系统） */
+[title^=「], [title^=『], [title^=【] {
+  text-indent: -.6em;
+}
+[title^=～] {
+  text-indent: -.25em;
+}
+[title^=《] {
+  text-indent: -.5em;
+}
+[title^=“] {
+  text-indent: -.1em;
+}
 </style>

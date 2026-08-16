@@ -104,7 +104,7 @@
 </template>
 
 <script lang="ts" setup>
-import {defineProps, nextTick, onMounted, onUnmounted, ref, watch} from 'vue'
+import {nextTick, onMounted, onUnmounted, ref, watch} from 'vue'
 import {useVideoStore} from '@/stores/videoStore.ts'
 import {useRouter} from 'vue-router'
 import {storeToRefs} from 'pinia'
@@ -112,6 +112,8 @@ import {storeToRefs} from 'pinia'
 const props = defineProps<{
   placeholder?: string
   defaultValue?: string
+  // 是否在新标签页打开搜索结果；默认 true（全局导航），搜索页内传 false 保持当前页
+  openInNewTab?: boolean
 }>()
 
 const router = useRouter()
@@ -244,13 +246,37 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
 }
 
+// 搜索页内使用（openInNewTab=false）：保持当前视频/用户搜索 tab；否则默认视频搜索
+const getSearchPath = () => {
+  if (!props.openInNewTab) {
+    return router.currentRoute.value.path === '/search/user' ? '/search/user' : '/search/video'
+  }
+  return '/search/video'
+}
+
+// 执行跳转：搜索页内当前页打开，其他页面新标签页打开
+const doSearch = (keyword: string) => {
+  const target = { path: getSearchPath(), query: { keyword } }
+  if (!props.openInNewTab) {
+    router.push(target)
+  } else {
+    const { href } = router.resolve(target)
+    // 用 <a> 模拟点击代替 window.open，避免浏览器弹窗拦截
+    const a = document.createElement('a')
+    a.href = href
+    a.target = '_blank'
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
+}
+
 const searchByKeyword = (keyword: string) => {
   input.value = keyword
   addHistory(keyword)
   showSearchPanel.value = false
-  // 新标签页打开搜索结果页
-  const { href } = router.resolve({ path: '/search/video', query: { keyword } })
-  window.open(href, '_blank')
+  doSearch(keyword)
 }
 
 const handleSearch = () => {
@@ -258,9 +284,7 @@ const handleSearch = () => {
   if (!keyword) return
   addHistory(keyword)
   showSearchPanel.value = false
-  // 新标签页打开搜索结果页（去掉手动 encodeURIComponent，避免与 router 编码重复）
-  const { href } = router.resolve({ path: '/search/video', query: { keyword } })
-  window.open(href, '_blank')
+  doSearch(keyword)
 }
 
 onMounted(() => {
@@ -479,7 +503,7 @@ onUnmounted(() => {
     }
 
     .search-history-item__text {
-      max-width: 130px;
+      max-width: 96px;
       .ellipsis();
     }
 

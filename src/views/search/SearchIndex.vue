@@ -4,7 +4,7 @@
   </div>
   <div class="search-header" :style="isInputSticky ? { paddingTop: inputPlaceholderHeight + 'px' } : {}">
     <div class="search-input" ref="searchInputRef" :class="{ 'is-sticky': isInputSticky }">
-      <SearchBox class="search-input__box" :placeholder="keyword || '输入关键词搜索'" :default-value="keyword" />
+      <SearchBox class="search-input__box" :placeholder="keyword || '输入关键词搜索'" :default-value="keyword" :open-in-new-tab="false" />
     </div>
     <div class="search-category-tabs">
       <div class="search-category-tabs-inner">
@@ -124,12 +124,12 @@
       </div>
       <div class="user-list">
         <div class="user-card" v-for="item in searchUserList" :key="item.uid">
-          <a :href="`/space/${item.uid}`" target="_blank" class="avatar-wrap">
+          <router-link :to="`/space/${item.uid}`" class="avatar-wrap">
             <img :src="item.avatar" alt="" class="avatar" />
-          </a>
+          </router-link>
           <div class="user-info">
             <div class="user-name-row">
-              <a :href="`/space/${item.uid}`" target="_blank" class="username">{{ item.username }}</a>
+              <router-link :to="`/space/${item.uid}`" class="username">{{ item.username }}</router-link>
               <img
                 class="level-icon"
                 :src="getLevelIconUrl(item.level)"
@@ -157,7 +157,7 @@
         </div>
       </div>
       <CustomPagination
-        v-if="activeCategory === 'user' && searchUserTotal > 0"
+        v-if="activeCategory === 'user' && searchUserTotal > userPageSize"
         :current-page="userPageNum"
         :page-size="userPageSize"
         :total="searchUserTotal"
@@ -165,7 +165,7 @@
       />
     </div>
     <CustomPagination
-      v-if="activeCategory === 'video' && searchVideoTotal > 0"
+      v-if="activeCategory === 'video' && searchVideoTotal > videoPageSize"
       :current-page="videoPageNum"
       :page-size="videoPageSize"
       :total="searchVideoTotal"

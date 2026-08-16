@@ -111,7 +111,7 @@
     </ul>
     <!-- 头部中间搜索框 -->
     <div class="center-search-container">
-      <SearchBox placeholder="请输入内容" />
+      <SearchBox placeholder="请输入内容" :open-in-new-tab="true" />
     </div>
     <!-- 头部右边 -->
     <ul class="right-entry">
