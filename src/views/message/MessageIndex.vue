@@ -474,7 +474,7 @@
                       }}</span>
                   </template>
                   <template v-else>
-                    <template v-for="(user, idx) in group.topUsers" :key="user.uid">
+                    <template v-for="(user) in group.topUsers" :key="user.uid">
                       <span
                         class="like-name"
                         @click.stop="goUserSpace(user.uid)"
@@ -659,7 +659,9 @@
                 @click.stop="goUserSpace(actorUid(notice))"
               >{{ actorName(notice) }}</span>
                   <b v-else class="ntc-actor">{{ actorName(notice) }}</b>
-                  <span class="ntc-action">在评论中@了我</span>
+                  <span class="ntc-action">{{
+                      notice.bizType === 'dynamic' ? '在动态中@了我' : '在评论中@了我'
+                    }}</span>
                 </p>
                 <p v-if="notice.contentSummary" class="ntc-reply-line">
                   <template v-if="noticeExt(notice).isReply">回复
@@ -1356,6 +1358,18 @@ async function deleteNotice(notice: MessageNotice) {
 // 携带 commentId 参数以便视频页自动滚动到目标评论并高亮
 // 注意：window.open 必须在点击同步栈内执行，故先开新页，再异步标记已读（避免 await 后弹窗被拦截）
 function goNoticeTarget(notice: MessageNotice) {
+  // 动态 @ 通知：跳转到动态列表页（动态暂无独立详情页，bizId 为动态 id）
+  if (notice.bizType === 'dynamic') {
+    const query: Record<string, string> = {}
+    if (notice.bizId) query.dynamicId = String(notice.bizId)
+    const href = router.resolve({path: '/dynamic', query}).href
+    window.open(href, '_blank')
+    if (notice.isRead === 0) {
+      messageStore.markNoticeRead(notice.id).catch(() => {
+      })
+    }
+    return
+  }
   const videoId = noticeExt(notice).videoId
   if (!videoId) return
   const query: Record<string, string> = {}

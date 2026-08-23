@@ -22,7 +22,7 @@
             <span class="text">{{ formatNumber(videoInfo.stat.danmaku) }}</span>
           </div>
           <div class="createDate-item item">
-            {{ formatDateTime(videoInfo.video.createDate) }}
+            {{ formatDateTime(videoInfo.video.createTime) }}
           </div>
           <div class="copyright-item item">
             <el-icon>
@@ -168,9 +168,9 @@
                  :class="{ 'active-icon': videoStore.disliked }"></i>
               <span>不喜欢</span>
             </div>
-            <div class="toolbar-left-item" :class="{ active: videoStore.coinCount > 0 }"
+            <div class="toolbar-left-item" :class="{ active: videoStore.coined }"
                  @click="handleCoin">
-              <i class="iconfont icon-toubix" :class="{ 'active-icon': videoStore.coinCount > 0 }"></i>
+              <i class="iconfont icon-toubix" :class="{ 'active-icon': videoStore.coined }"></i>
               <span>{{ videoInfo.stat.coin }}</span>
             </div>
             <div class="toolbar-left-item" :class="{ active: videoStore.favorited }"
@@ -202,295 +202,16 @@
         </el-tag>
       </div>
       <el-divider style="margin: 10px"/>
-      <div class="comment-wrap">
-        <div class="header">
-          <div class="navbar">
-            <div class="title">
-              <h2>评论</h2>
-              <span class="count">{{ commentStore.total }}</span>
-            </div>
-            <div class="sort-actions">
-              <el-button
-                link
-                class="sort"
-                :class="{ active: commentStore.sort === 'hot' }"
-                @click="changeSort('hot')"
-              >最热
-              </el-button
-              >
-              <el-divider direction="vertical"/>
-              <el-button
-                link
-                class="sort"
-                :class="{ active: commentStore.sort === 'new' }"
-                @click="changeSort('new')"
-              >最新
-              </el-button
-              >
-            </div>
-          </div>
-          <div class="commentbox">
-            <div class="user-avatar">
-              <img v-if="userStore.isLogin" :src="user.avatar" alt=""/>
-              <img v-else src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/noface.jpg" alt=""/>
-            </div>
-            <div class="editor edit" v-if="userStore.isLogin" @focusout="onEditorFocusOut">
-              <div class="at-input-wrap">
-                <MentionInput
-                  ref="rootMentionInput"
-                  v-model="comment"
-                  :active="isRootFocused || comment.trim().length > 0 || syncToDynamic"
-                  placeholder="wifi连接中......检测到粉丝评论输出电波......"
-                  @atTrigger="onRootAtTrigger"
-                  @focus="onRootCommentFocus"
-                />
-                <div
-                  v-if="showRootAtPanel"
-                  class="at-panel"
-                  :class="{ 'is-above': rootAtPanelPlacement === 'above' }"
-                  @mousedown.prevent
-                >
-                  <div class="at-panel-header">选择或输入你想@的人</div>
-                  <div class="at-section">
-                    <div class="at-section-title">我的关注</div>
-                    <div v-if="rootFollowings.length === 0" class="at-empty">暂无关注</div>
-                    <div
-                      v-for="u in filteredRootFollowings"
-                      :key="u.uid"
-                      class="at-user-item"
-                      @click="selectAtUser(u)"
-                    >
-                      <img :src="u.avatar || defaultAvatar" class="at-avatar" alt=""/>
-                      <div class="at-info">
-                        <span class="at-name">{{ u.username }}</span>
-                        <span class="at-fans">{{ u.fanCount || 0 }}粉丝</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-if="rootAtSearchKeyword" class="at-section">
-                    <div class="at-section-title">其他</div>
-                    <div v-if="rootSearchUsers.length === 0" class="at-empty">未找到用户</div>
-                    <div
-                      v-for="u in rootSearchUsers"
-                      :key="u.uid"
-                      class="at-user-item"
-                      @click="selectAtUser(u)"
-                    >
-                      <img :src="u.avatar || defaultAvatar" class="at-avatar" alt=""/>
-                      <div class="at-info">
-                        <span class="at-name">{{ u.username }}</span>
-                        <span class="at-fans">{{ u.fanCount || 0 }}粉丝</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="editor-actions" v-show="isRootFocused || comment.trim().length > 0 || syncToDynamic" @mousedown.prevent>
-                <div class="toolbar-icons">
-                  <span class="tool-icon at-trigger" title="@用户" @click.stop="onAtButtonClick">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                         stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-                      <circle cx="12" cy="12" r="4"/>
-                      <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/>
-                    </svg>
-                  </span>
-                  <el-checkbox v-model="syncToDynamic" label="同时转发到我的动态" style="margin-left: 12px"/>
-                </div>
-                <el-button type="primary" class="publish-btn" @click="sendComment">
-                  发布
-                </el-button>
-              </div>
-            </div>
-            <div class="edit" v-else>
-              <span>请先</span>
-              <el-button
-                type="primary"
-                size="small"
-                style="margin: 0 5px"
-                @click="userStore.showLoginWindow = !userStore.showLoginWindow"
-              >登录
-              </el-button>
-              <span>后发表评论 (・ω・)</span>
-            </div>
-          </div>
-        </div>
-        <div class="contents">
-          <div class="feed" :class="{ 'comment-feed--guest': !userStore.isLogin && displayedCommentThreads.length >= 2 }">
-            <template v-for="(thread, index) in displayedCommentThreads" :key="thread.rootId">
-              <div class="comment-thread" :class="{ 'comment-item-wrapper': !userStore.isLogin && index === 1 }">
-                <CommentItem
-                  :comment="thread.rootComment"
-                  @avatar-hover="onCommentAvatarHover"
-                  @avatar-leave="onCommentAvatarLeave"
-                />
-                <CommentItem
-                  v-for="reply in thread.visibleReplies"
-                  :key="reply.id"
-                  :comment="reply"
-                  @avatar-hover="onCommentAvatarHover"
-                  @avatar-leave="onCommentAvatarLeave"
-                />
-                <div v-if="thread.totalReplies > COLLAPSED_REPLY_COUNT && (!thread.expanded || thread.totalPages > 1)" class="reply-control">
-                  <span v-if="!thread.expanded">共{{ thread.totalReplies }}条回复，</span>
-                  <button
-                    v-if="!thread.expanded"
-                    type="button"
-                    class="reply-text-btn expand"
-                    @click="expandReplyList(thread.rootId)"
-                  >
-                    点击查看
-                  </button>
-                  <div v-else class="reply-pagination">
-                    <template v-if="thread.totalPages > 1">
-                      <span class="reply-page-total">共{{ thread.totalPages }}页</span>
-                      <button
-                        v-if="thread.currentPage > 1"
-                        type="button"
-                        class="reply-text-btn"
-                        @click="goPrevReplyPage(thread.rootId, thread.currentPage, thread.totalPages)"
-                      >
-                        上一页
-                      </button>
-                      <button
-                        v-for="pageItem in thread.pageItems"
-                        :key="getReplyPageItemKey(pageItem)"
-                        type="button"
-                        class="reply-page-btn"
-                        :class="{
-                          active: pageItem.type === 'page' && pageItem.page === thread.currentPage,
-                          ellipsis: pageItem.type === 'ellipsis',
-                        }"
-                        :disabled="pageItem.type === 'ellipsis'"
-                        @click="handleReplyPageItemClick(thread.rootId, pageItem, thread.totalPages)"
-                      >
-                        {{ getReplyPageItemLabel(pageItem) }}
-                      </button>
-                      <button
-                        v-if="thread.currentPage < thread.totalPages"
-                        type="button"
-                        class="reply-text-btn"
-                        @click="goNextReplyPage(thread.rootId, thread.currentPage, thread.totalPages)"
-                      >
-                        下一页
-                      </button>
-                    </template>
-                    <button
-                      v-if="thread.totalPages > 1"
-                      type="button"
-                      class="reply-text-btn"
-                      @click="collapseReplyList(thread.rootId)"
-                    >
-                      收起
-                    </button>
-                  </div>
-                </div>
-                <!-- 回复输入框：放在 reply-control 之下（回复列表/分页控件下方） -->
-                <div
-                  v-if="userStore.isLogin && isReplyActiveInThread(thread)"
-                  class="thread-reply-box"
-                  @focusout="onReplyEditorFocusOut"
-                >
-                  <div class="thread-reply-avatar">
-                    <img :src="user.avatar" alt=""/>
-                  </div>
-                  <div class="thread-reply-editor">
-                    <div class="at-input-wrap">
-                      <MentionInput
-                        ref="replyMentionInput"
-                        v-model="replyContent"
-                        :no-bg-change="true"
-                        :placeholder="`回复 @${getReplyTargetName(activeReplyCommentId)}`"
-                        @atTrigger="onReplyAtTrigger"
-                        @focus="onReplyFocus"
-                      />
-                      <div
-                        v-if="showReplyAtPanel"
-                        class="at-panel"
-                        :class="{ 'is-above': replyAtPanelPlacement === 'above' }"
-                        @mousedown.prevent
-                      >
-                        <div class="at-panel-header">选择或输入你想@的人</div>
-                        <div class="at-section">
-                          <div class="at-section-title">我的关注</div>
-                          <div v-if="replyFollowings.length === 0" class="at-empty">暂无关注</div>
-                          <div
-                            v-for="u in filteredReplyFollowings"
-                            :key="u.uid"
-                            class="at-user-item"
-                            @click="selectReplyAtUser(u)"
-                          >
-                            <img :src="u.avatar || defaultAvatar" class="at-avatar" alt=""/>
-                            <div class="at-info">
-                              <span class="at-name">{{ u.username }}</span>
-                              <span class="at-fans">{{ u.fanCount || 0 }}粉丝</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div v-if="replyAtSearchKeyword" class="at-section">
-                          <div class="at-section-title">其他</div>
-                          <div v-if="replySearchUsers.length === 0" class="at-empty">未找到用户</div>
-                          <div
-                            v-for="u in replySearchUsers"
-                            :key="u.uid"
-                            class="at-user-item"
-                            @click="selectReplyAtUser(u)"
-                          >
-                            <img :src="u.avatar || defaultAvatar" class="at-avatar" alt=""/>
-                            <div class="at-info">
-                              <span class="at-name">{{ u.username }}</span>
-                              <span class="at-fans">{{ u.fanCount || 0 }}粉丝</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="editor-actions" v-show="isReplyFocused || replyContent.trim().length > 0" @mousedown.prevent>
-                      <div class="toolbar-icons">
-                        <span class="tool-icon at-trigger" title="@用户" @click.stop="onReplyAtButtonClick">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                               stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-                            <circle cx="12" cy="12" r="4"/>
-                            <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/>
-                          </svg>
-                        </span>
-                      </div>
-                      <div class="reply-actions-right">
-                        <el-button type="primary" class="publish-btn" @click="sendReply(thread)">发布</el-button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div v-if="!userStore.isLogin && index === 1 && commentStore.total > 2" class="comment-fade-mask"></div>
-              </div>
-            </template>
-          </div>
-          <!-- 未登录登录提示条 -->
-          <div
-            v-if="!userStore.isLogin && commentStore.total > 0"
-            class="login-comment-tip"
-            @click="userStore.showLoginWindow = true"
-          >
-            登录后查看 {{ commentStore.total }}+ 条评论
-          </div>
-          <!-- 懒加载哨兵元素 (仅登录用户显示) -->
-          <div v-if="userStore.isLogin" ref="commentSentinelRef" class="comment-sentinel"></div>
-          <!-- 加载中提示 -->
-          <div v-if="commentStore.loading && userStore.isLogin" class="comment-loading">
-            <el-icon class="is-loading">
-              <Loading/>
-            </el-icon>
-            <span>加载中...</span>
-          </div>
-        </div>
-        <div class="end" v-if="userStore.isLogin">
-          <div v-if="!commentStore.hasMore && commentList.length > 0" class="bottombar">
-            没有更多评论
-          </div>
-          <div v-else-if="!commentStore.loading && commentList.length === 0" class="bottombar">
-            暂无评论，快来抢沙发吧~
-          </div>
-        </div>
-      </div>
+      <CommentArea
+        biz-type="video"
+        :biz-id="videoInfo.video.vid"
+        :highlight-comment-id="highlightCommentId"
+        :bottom-padding="100"
+        show-sync-to-dynamic
+        guest-mask
+        @avatar-hover="onCommentAvatarHover"
+        @avatar-leave="onCommentAvatarLeave"
+      />
     </div>
     <div class="right-container">
       <div class="right-container-inner">
@@ -660,13 +381,18 @@
         >
           <span class="folder-name">{{ folder.name }}</span>
         </el-checkbox>
-        <span class="folder-count" @click.stop>{{ folder.isDefault ? folder.videoCount : `${folder.videoCount}/1000` }}</span>
+        <span class="folder-count" @click.stop>{{
+            folder.isDefault ? folder.videoCount : `${folder.videoCount}/1000`
+          }}</span>
       </div>
 
       <!-- 新建收藏夹 -->
       <div class="create-folder-section">
-        <div v-if="!showCreateFolderForm" class="create-folder-btn" @click="showCreateFolderForm = true">
-          <el-icon class="create-folder-icon"><Plus /></el-icon>
+        <div v-if="!showCreateFolderForm" class="create-folder-btn"
+             @click="showCreateFolderForm = true">
+          <el-icon class="create-folder-icon">
+            <Plus/>
+          </el-icon>
           <span>新建收藏夹</span>
         </div>
         <div v-else class="create-folder-form">
@@ -688,7 +414,7 @@
         <div class="dialog-footer-divider"></div>
         <div class="dialog-footer-actions">
           <el-button @click="showFavoriteDialog = false">取消</el-button>
-          <el-button type="primary"  @click="confirmFavorite">确定</el-button>
+          <el-button type="primary" @click="confirmFavorite">确定</el-button>
         </div>
       </div>
     </template>
@@ -760,439 +486,46 @@ import {computed, nextTick, onMounted, onUnmounted, ref, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import {formatDateTime, formatDuration, formatNumber} from '@/utils/utils'
 // 引入Plyr播放器
-// @ts-ignore plyr 以 CommonJS `export =` 导出，verbatimModuleSyntax 下默认导入无类型声明，运行时由 Vite 互操作正常
 import Plyr from 'plyr'
 import 'plyr/dist/plyr.css'
 // 引入弹幕组件
 import Danmaku from 'danmaku'
-import type {Comment, Danmu, FavoriteFolder, User} from '@/types/api.ts'
-import {CoffeeCup, Loading, Plus} from '@element-plus/icons-vue'
+import type {Danmu, FavoriteFolder, User} from '@/types/api.ts'
+import {CoffeeCup, Plus} from '@element-plus/icons-vue'
 import {ElMessage} from 'element-plus'
 import {storeToRefs} from 'pinia'
 import {useVideoStore} from '@/stores/videoStore'
 import {useDanmakuStore} from '@/stores/danmakuStore.ts'
-import {useCommentStore} from '@/stores/commentStore.ts'
 import {useUserStore} from '@/stores/userStore.ts'
 import {useHistoryStore} from '@/stores/historyStore.ts'
 import {useRecommendStore} from '@/stores/recommendStore.ts'
-import CommentItem from '@/components/comment-item/CommentItem.vue'
+import CommentArea from '@/components/comment-area/CommentArea.vue'
 import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
-import MentionInput from '@/components/mention-input/MentionInput.vue'
 
 const route = useRoute()
 const videoStore = useVideoStore()
 const danmakuStore = useDanmakuStore()
-const commentStore = useCommentStore()
 const userStore = useUserStore()
 const historyStore = useHistoryStore()
 const recommendStore = useRecommendStore()
 const {videoInfo, isShow, onlineCount} = storeToRefs(videoStore)
 const {relatedList} = storeToRefs(recommendStore)
-const {commentList} = storeToRefs(commentStore)
 const {danmakuList} = storeToRefs(danmakuStore)
 const {user} = storeToRefs(userStore)
 const danmuList = ref([])
 const rcmTags = ref<string[] | undefined>()
 const danmaku = ref('')
-const comment = ref('')
-const defaultAvatar = 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/noface.jpg'
 
-// ======================== 根评论 @ 功能 ========================
-const showRootAtPanel = ref(false)
-const isRootFocused = ref(false)
-const rootFollowings = ref<User[]>([])
-const rootAtSearchKeyword = ref('')
-const rootSearchUsers = ref<User[]>([])
-const syncToDynamic = ref(false)
-const rootMentionInput = ref<InstanceType<typeof MentionInput> | null>(null)
-type AtPanelPlacement = 'above' | 'below'
-const rootAtPanelPlacement = ref<AtPanelPlacement>('below')
-const replyAtPanelPlacement = ref<AtPanelPlacement>('below')
-let rootAtSearchTimer: ReturnType<typeof setTimeout> | null = null
-
-// 首次打开面板时加载关注列表
-const ensureRootFollowings = async () => {
-  if (rootFollowings.value.length === 0 && userStore.isLogin) {
-    await userStore.getFollowings(user.value.uid)
-    rootFollowings.value = [...userStore.followList]
-  }
-}
-
-// MentionInput 检测到 @ 及其后的搜索关键词时触发
-const onRootAtTrigger = async (keyword: string | null) => {
-  if (rootAtSearchTimer) {
-    clearTimeout(rootAtSearchTimer)
-    rootAtSearchTimer = null
-  }
-
-  if (keyword === null) {
-    showRootAtPanel.value = false
-    rootAtSearchKeyword.value = ''
-    rootSearchUsers.value = []
-    return
-  }
-
-  showRootAtPanel.value = true
-  rootAtSearchKeyword.value = keyword
-  await ensureRootFollowings()
-
-  const searchKeyword = keyword.trim()
-  if (!searchKeyword) {
-    rootSearchUsers.value = []
-    return
-  }
-
-  rootAtSearchTimer = setTimeout(async () => {
-    await userStore.getSearchUsers(searchKeyword, 'default', 1, 10)
-    if (rootAtSearchKeyword.value === searchKeyword && showRootAtPanel.value) {
-      rootSearchUsers.value = [...userStore.searchUserList]
-    }
-  }, 300)
-}
-
-// 点击 @ 按钮：在 MentionInput 中插入 @ 字符并弹出面板
-const onAtButtonClick = async () => {
-  showRootAtPanel.value = true
-  await ensureRootFollowings()
-  await nextTick()
-  // 手动向编辑器插入 @
-  const editor = rootMentionInput.value?.$el?.querySelector('.mention-editor') as HTMLElement | null
-  if (editor) {
-    editor.focus()
-    document.execCommand('insertText', false, '@')
-  }
-}
-
-// 输入框获得焦点：显示工具栏
-const onRootCommentFocus = () => {
-  isRootFocused.value = true
-}
-
-// 焦点离开整个编辑器区域时：若焦点仍落在编辑器内部，不隐藏工具栏
-const onEditorFocusOut = (e: FocusEvent) => {
-  const related = e.relatedTarget as HTMLElement | null
-  if (related && related.closest('.editor.edit')) return
-  isRootFocused.value = false
-  showRootAtPanel.value = false
-}
-
-// 过滤后的关注列表（按搜索关键词）
-const filteredRootFollowings = computed(() => {
-  if (!rootAtSearchKeyword.value) return rootFollowings.value
-  const kw = rootAtSearchKeyword.value.toLowerCase()
-  return rootFollowings.value.filter(u => u.username?.toLowerCase().includes(kw))
+// URL 携带 commentId 时跳转到指定评论（由 CommentArea 负责定位高亮）
+const highlightCommentId = computed<number | undefined>(() => {
+  const id = route.query.commentId
+  return id ? Number(id) : undefined
 })
 
-// 选中一个用户：通过 MentionInput 插入 @username mention
-const selectAtUser = (u: User) => {
-  rootMentionInput.value?.insertMention(u.username!, u.uid!)
-  showRootAtPanel.value = false
-  rootAtSearchKeyword.value = ''
-}
 
-// ======================== 回复框逻辑 ========================
-const { activeReplyCommentId } = storeToRefs(commentStore)
-const { setActiveReplyCommentId } = commentStore
-
-const replyContent = ref('')
-const isReplyFocused = ref(false)
-const showReplyAtPanel = ref(false)
-const replyFollowings = ref<User[]>([])
-const replyAtSearchKeyword = ref('')
-const replySearchUsers = ref<User[]>([])
-// v-for 内的 ref 会自动变成数组，取第 0 个即当前唯一激活的回复框
-const replyMentionInput = ref<InstanceType<typeof MentionInput>[]>([])
-let replyAtSearchTimer: ReturnType<typeof setTimeout> | null = null
-
-// 便捷访问器：当前活跃的回复 MentionInput 实例
-const activeReplyInput = () => replyMentionInput.value[0] ?? null
-
-type AtPanelTarget = 'root' | 'reply'
-const atPanelPlacementRaf: Record<AtPanelTarget, number | null> = {
-  root: null,
-  reply: null,
-}
-
-// 根据输入框上下方的可视空间决定候选弹窗方向
-const updateAtPanelPlacement = (target: AtPanelTarget) => {
-  nextTick(() => {
-    const pendingRaf = atPanelPlacementRaf[target]
-    if (pendingRaf !== null) cancelAnimationFrame(pendingRaf)
-
-    atPanelPlacementRaf[target] = requestAnimationFrame(() => {
-      atPanelPlacementRaf[target] = null
-      const input = target === 'root' ? rootMentionInput.value : activeReplyInput()
-      const inputElement = input?.$el as HTMLElement | undefined
-      const panel = inputElement?.parentElement?.querySelector<HTMLElement>('.at-panel')
-      if (!inputElement || !panel) return
-
-      const inputRect = inputElement.getBoundingClientRect()
-      const panelHeight = Math.min(panel.scrollHeight, 260)
-      const gap = 8
-      const spaceAbove = Math.max(0, inputRect.top - gap)
-      const spaceBelow = Math.max(0, window.innerHeight - inputRect.bottom - gap)
-      const placement: AtPanelPlacement =
-        spaceBelow >= panelHeight || spaceBelow >= spaceAbove ? 'below' : 'above'
-
-      if (target === 'root') {
-        rootAtPanelPlacement.value = placement
-      } else {
-        replyAtPanelPlacement.value = placement
-      }
-    })
-  })
-}
-
-watch(
-  [showRootAtPanel, rootAtSearchKeyword, () => rootFollowings.value.length, () => rootSearchUsers.value.length],
-  ([visible]) => {
-    if (visible) updateAtPanelPlacement('root')
-  },
-  {flush: 'post'}
-)
-
-watch(
-  [showReplyAtPanel, replyAtSearchKeyword, () => replyFollowings.value.length, () => replySearchUsers.value.length],
-  ([visible]) => {
-    if (visible) updateAtPanelPlacement('reply')
-  },
-  {flush: 'post'}
-)
-
-const handleAtPanelViewportChange = () => {
-  if (showRootAtPanel.value) updateAtPanelPlacement('root')
-  if (showReplyAtPanel.value) updateAtPanelPlacement('reply')
-}
-
-onMounted(() => {
-  window.addEventListener('resize', handleAtPanelViewportChange)
-  window.addEventListener('scroll', handleAtPanelViewportChange, true)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', handleAtPanelViewportChange)
-  window.removeEventListener('scroll', handleAtPanelViewportChange, true)
-  Object.values(atPanelPlacementRaf).forEach((rafId) => {
-    if (rafId !== null) cancelAnimationFrame(rafId)
-  })
-})
-
-// 判断该 thread 是否有激活的回复框
-const isReplyActiveInThread = (thread: CommentThreadView): boolean => {
-  if (activeReplyCommentId.value === null) return false
-  // 根评论本身
-  if (thread.rootComment.id === activeReplyCommentId.value) return true
-  // 任意子评论
-  const allReplies = flattenComments(thread.rootComment.replies ?? [], 1)
-  return allReplies.some(r => r.id === activeReplyCommentId.value)
-}
-
-// 获取回复目标用户名
-const getReplyTargetName = (commentId: number | null): string => {
-  if (commentId === null) return ''
-  // 在所有评论中查找
-  const findInList = (list: Comment[]): Comment | null => {
-    for (const c of list) {
-      if (c.id === commentId) return c
-      if (c.replies?.length) {
-        const found = findInList(c.replies)
-        if (found) return found
-      }
-    }
-    return null
-  }
-  const target = findInList(commentStore.commentList)
-  return target?.user?.username ?? ''
-}
-
-// 关注列表确保加载
-const ensureReplyFollowings = async () => {
-  if (replyFollowings.value.length === 0 && userStore.isLogin) {
-    await userStore.getFollowings(user.value.uid)
-    replyFollowings.value = [...userStore.followList]
-  }
-}
-
-// MentionInput 在回复框中检测到 @ 及其后的搜索关键词时触发
-const onReplyAtTrigger = async (keyword: string | null) => {
-  if (replyAtSearchTimer) {
-    clearTimeout(replyAtSearchTimer)
-    replyAtSearchTimer = null
-  }
-
-  if (keyword === null) {
-    showReplyAtPanel.value = false
-    replyAtSearchKeyword.value = ''
-    replySearchUsers.value = []
-    return
-  }
-
-  showReplyAtPanel.value = true
-  replyAtSearchKeyword.value = keyword
-  await ensureReplyFollowings()
-
-  const searchKeyword = keyword.trim()
-  if (!searchKeyword) {
-    replySearchUsers.value = []
-    return
-  }
-
-  replyAtSearchTimer = setTimeout(async () => {
-    await userStore.getSearchUsers(searchKeyword, 'default', 1, 10)
-    if (replyAtSearchKeyword.value === searchKeyword && showReplyAtPanel.value) {
-      replySearchUsers.value = [...userStore.searchUserList]
-    }
-  }, 300)
-}
-
-// 点击回复框 @ 按钮
-const onReplyAtButtonClick = async () => {
-  showReplyAtPanel.value = true
-  await ensureReplyFollowings()
-  await nextTick()
-  const editor = activeReplyInput()?.$el?.querySelector('.mention-editor') as HTMLElement | null
-  if (editor) {
-    editor.focus()
-    document.execCommand('insertText', false, '@')
-  }
-}
-
-const onReplyFocus = () => {
-  isReplyFocused.value = true
-}
-
-// 点击“回复”打开回复框时自动聚焦输入框，从而自动显示工具栏（@用户等功能）
-watch(activeReplyCommentId, async (id) => {
-  if (id == null) return
-  await nextTick()
-  const editor = activeReplyInput()?.$el?.querySelector('.mention-editor') as HTMLElement | null
-  if (editor) editor.focus()
-})
-
-const onReplyEditorFocusOut = (e: FocusEvent) => {
-  // 失焦不再隐藏工具栏和 @ 面板
-  // 只有点击对应的回复按钮（触发 cancelReply / setActiveReplyCommentId(null)）时才关闭
-  const related = e.relatedTarget as HTMLElement | null
-  if (related && related.closest('.thread-reply-box')) return
-  // 仅关闭 @ 面板，保留工具栏显示
-  showReplyAtPanel.value = false
-}
-
-const filteredReplyFollowings = computed(() => {
-  if (!replyAtSearchKeyword.value) return replyFollowings.value
-  const kw = replyAtSearchKeyword.value.toLowerCase()
-  return replyFollowings.value.filter(u => u.username?.toLowerCase().includes(kw))
-})
-
-const selectReplyAtUser = (u: User) => {
-  activeReplyInput()?.insertMention(u.username!, u.uid!)
-  showReplyAtPanel.value = false
-  replyAtSearchKeyword.value = ''
-}
-
-// 查找评论并返回其 rootId 和 toUserId
-const findCommentInfo = (commentId: number): { rootId: number; toUserId: number; parentId: number } | null => {
-  const findInList = (list: Comment[], rootId: number): { rootId: number; toUserId: number; parentId: number } | null => {
-    for (const c of list) {
-      if (c.id === commentId) {
-        return { rootId: rootId || c.id!, toUserId: c.user!.uid, parentId: c.id! }
-      }
-      if (c.replies?.length) {
-        const found = findInList(c.replies, c.id!)
-        if (found) return found
-      }
-    }
-    return null
-  }
-  return findInList(commentStore.commentList, 0)
-}
-
-const sendReply = async (thread: CommentThreadView) => {
-  if (!replyContent.value.trim() || !activeReplyCommentId.value) return
-  const vid = videoInfo.value.video.vid
-  if (!vid) return
-
-  const info = findCommentInfo(activeReplyCommentId.value)
-  if (!info) return
-
-  const targetComment = (() => {
-    const findInList = (list: Comment[]): Comment | null => {
-      for (const c of list) {
-        if (c.id === activeReplyCommentId.value) return c
-        if (c.replies?.length) { const f = findInList(c.replies); if (f) return f }
-      }
-      return null
-    }
-    return findInList(commentStore.commentList)
-  })()
-
-  // 提交时把 mention span 替换为 @<uid> 数字形式，后端按 @\d+ 解析生成 at 通知
-  const submitContent = activeReplyInput()?.getSubmitContent?.() ?? replyContent.value
-
-  const newComment = await commentStore.sendComment({
-    vid,
-    uid: user.value.uid,
-    content: submitContent,
-    isTop: 0,
-    rootId: info.rootId,
-    parentId: info.parentId,
-    toUserId: targetComment?.user?.uid ?? info.toUserId,
-  })
-
-  if (newComment) {
-    // 本地插入回复到评论树，避免整页 getComment 刷新把临时置顶/置顶楼层冲掉
-    const inserted = insertReplyToTree(newComment as Comment)
-    if (!inserted) {
-      // 父评论不在本地列表（如处于分页之外），退化为整页刷新
-      await commentStore.getComment(vid)
-    }
-    replyContent.value = ''
-    activeReplyInput()?.clear()
-    setActiveReplyCommentId(null)
-    // 展开并翻到最后一页，确保新回复可见
-    setReplyListState(info.rootId || (newComment.id as number), true, Number.MAX_SAFE_INTEGER)
-  }
-}
-
-// 将新回复插入本地评论树，返回是否找到父节点
-const insertReplyToTree = (reply: Comment): boolean => {
-  const walk = (list: Comment[]): boolean => {
-    for (const c of list) {
-      if (c.id === reply.parentId) {
-        if (!c.replies) c.replies = []
-        c.replies.push(reply)
-        return true
-      }
-      if (c.replies?.length && walk(c.replies)) return true
-    }
-    return false
-  }
-  return walk(commentStore.commentList)
-}
-
-// 将新根评论本地插入为列表最前（临时评论第一，置顶第二），
-// 避免整页 getComment 刷新把已有的临时评论/置顶楼层冲掉。
-const insertRootCommentLocally = (root: Comment): void => {
-  const normalized: Comment = {
-    ...root,
-    replies: root.replies ?? [],
-    liked: root.liked ?? false,
-    disliked: root.disliked ?? false,
-    like: root.like ?? 0,
-    dislike: root.dislike ?? 0,
-    isTop: root.isTop ?? 0,
-    user: root.user ?? ({ uid: user.value.uid, username: user.value.username, avatar: user.value.avatar } as User),
-  }
-  // 新评论直接插到最前；若存在置顶评论，则置顶顺延到第二位
-  const rest = commentStore.commentList.filter((c) => c.id !== normalized.id)
-  rest.unshift(normalized)
-  commentStore.commentList = rest
-}
 const danmakuContainer = ref<HTMLElement>()
 const plyrPlayer = ref<HTMLVideoElement>()
 const playerPlaceholder = ref<HTMLElement>()
-const commentSentinelRef = ref<HTMLElement>()
-let commentObserver: IntersectionObserver | null = null
 const isExpanded = ref(false) // 视频信息收起状态
 const descText = ref<HTMLElement | null>(null)
 const showToggleBtn = ref(false)
@@ -1225,30 +558,8 @@ const newFolderName = ref('')
 const showCoinDialog = ref(false)
 const selectedCoinCount = ref(1)
 const coinWithLike = ref(true)
-// 剩余可投币数：单个用户对单个视频最多 2 币
-const remainingCoinCount = computed(() => Math.max(0, 2 - videoStore.coinCount))
-
-const COLLAPSED_REPLY_COUNT = 2
-const REPLY_PAGE_SIZE = 10
-
-type CommentWithLevel = Comment & { level: number }
-type ReplyDisplayState = {
-  expanded: boolean
-  page: number
-}
-type ReplyPageItem = { type: 'page'; page: number } | { type: 'ellipsis'; key: string }
-type CommentThreadView = {
-  rootComment: Comment
-  rootId: number
-  visibleReplies: CommentWithLevel[]
-  totalReplies: number
-  expanded: boolean
-  currentPage: number
-  totalPages: number
-  pageItems: ReplyPageItem[]
-}
-
-const replyDisplayState = ref<Record<number, ReplyDisplayState>>({})
+// 剩余可投币数：单个用户对单个视频最多 2 币（已投过则还可补投 1 币）
+const remainingCoinCount = computed(() => (videoStore.coined ? 1 : 2))
 
 // 加载当前视频 UP主的关注状态和粉丝数
 const loadUpFollowInfo = async () => {
@@ -1303,10 +614,10 @@ const handleUpFollow = async () => {
 
 // 右上角联动卡片：随评论区头像 hover 显示对应用户信息
 const cornerCardRef = ref<InstanceType<typeof UserHoverCard> | null>(null)
-const hoveredCommentUser = ref<any | null>(null)
+const hoveredCommentUser = ref<User | null>(null)
 let cornerHideTimer: ReturnType<typeof setTimeout> | null = null
 
-const onCommentAvatarHover = (user: any) => {
+const onCommentAvatarHover = (user: User) => {
   if (cornerHideTimer) {
     clearTimeout(cornerHideTimer)
     cornerHideTimer = null
@@ -1374,136 +685,8 @@ const getViewerId = (): string => {
   return viewerId
 }
 
-function flattenComments(comments: Comment[], level: number = 0): CommentWithLevel[] {
-  let result: CommentWithLevel[] = []
-
-  for (const comment of comments) {
-    // 添加当前层级信息
-    const commentWithLevel = {...comment, level}
-
-    // 如果存在子评论，递归处理
-    if (comment.replies && comment.replies.length > 0) {
-      result = [...result, commentWithLevel, ...flattenComments(comment.replies, level + 1)]
-    } else {
-      result = [...result, commentWithLevel]
-    }
-  }
-
-  return result
-}
-
-// 扁平化评论列表（自动响应 commentList 变化）
-const clampReplyPage = (page: number, totalPages: number) => {
-  return Math.min(Math.max(page, 1), Math.max(totalPages, 1))
-}
-
-const getReplyPageItems = (currentPage: number, totalPages: number): ReplyPageItem[] => {
-  if (totalPages <= 7) {
-    return Array.from({length: totalPages}, (_, index) => ({type: 'page', page: index + 1}))
-  }
-
-  if (currentPage <= 4) {
-    return [
-      ...Array.from({length: 5}, (_, index) => ({type: 'page' as const, page: index + 1})),
-      {type: 'ellipsis', key: 'ellipsis-end'},
-      {type: 'page', page: totalPages},
-    ]
-  }
-
-  if (currentPage >= totalPages - 3) {
-    return [
-      {type: 'page', page: 1},
-      {type: 'ellipsis', key: 'ellipsis-start'},
-      ...Array.from({length: 5}, (_, index) => ({
-        type: 'page' as const,
-        page: totalPages - 4 + index,
-      })),
-    ]
-  }
-
-  return [
-    {type: 'page', page: 1},
-    {type: 'ellipsis', key: 'ellipsis-start'},
-    {type: 'page', page: currentPage - 1},
-    {type: 'page', page: currentPage},
-    {type: 'page', page: currentPage + 1},
-    {type: 'ellipsis', key: 'ellipsis-end'},
-    {type: 'page', page: totalPages},
-  ]
-}
-
-const getReplyPageItemKey = (pageItem: ReplyPageItem) => {
-  return pageItem.type === 'page' ? `page-${pageItem.page}` : pageItem.key
-}
-
-const getReplyPageItemLabel = (pageItem: ReplyPageItem) => {
-  return pageItem.type === 'page' ? String(pageItem.page) : '...'
-}
-
-const setReplyListState = (rootId: number, expanded: boolean, page: number = 1) => {
-  replyDisplayState.value[rootId] = {expanded, page}
-}
-
-const expandReplyList = (rootId: number) => {
-  setReplyListState(rootId, true)
-}
-
-const collapseReplyList = (rootId: number) => {
-  setReplyListState(rootId, false)
-}
-
-const setReplyPage = (rootId: number, page: number, totalPages: number) => {
-  setReplyListState(rootId, true, clampReplyPage(page, totalPages))
-}
-
-const goNextReplyPage = (rootId: number, currentPage: number, totalPages: number) => {
-  setReplyPage(rootId, currentPage + 1, totalPages)
-}
-
-const goPrevReplyPage = (rootId: number, currentPage: number, totalPages: number) => {
-  setReplyPage(rootId, currentPage - 1, totalPages)
-}
-
-const handleReplyPageItemClick = (rootId: number, pageItem: ReplyPageItem, totalPages: number) => {
-  if (pageItem.type === 'page') {
-    setReplyPage(rootId, pageItem.page, totalPages)
-  }
-}
-
-const commentThreads = computed<CommentThreadView[]>(() => {
-  return commentList.value.map((rootComment) => {
-    const rootId = rootComment.id ?? 0
-    const replies = flattenComments(rootComment.replies ?? [], 1)
-    const totalReplies = replies.length
-    const totalPages = Math.max(1, Math.ceil(totalReplies / REPLY_PAGE_SIZE))
-    const state = replyDisplayState.value[rootId] ?? {expanded: false, page: 1}
-    const currentPage = clampReplyPage(state.page, totalPages)
-    const visibleReplies = state.expanded
-      ? replies.slice((currentPage - 1) * REPLY_PAGE_SIZE, currentPage * REPLY_PAGE_SIZE)
-      : replies.slice(0, COLLAPSED_REPLY_COUNT)
-
-    return {
-      rootComment,
-      rootId,
-      visibleReplies,
-      totalReplies,
-      expanded: state.expanded,
-      currentPage,
-      totalPages,
-      pageItems: getReplyPageItems(currentPage, totalPages),
-    }
-  })
-})
-
-const displayedCommentThreads = computed<CommentThreadView[]>(() => {
-  if (userStore.isLogin) {
-    return commentThreads.value
-  }
-  return commentThreads.value.slice(0, 2)
-})
-
 const createDateFormatter = (row: Danmu) => {
-  return formatDateTime(row.createDate, 'MM-DD HH:mm')
+  return formatDateTime(row.createTime, 'MM-DD HH:mm')
 }
 const timeFormatter = (row: Danmu) => {
   return formatDuration(row.time)
@@ -1543,118 +726,6 @@ const savePlayProgressImmediate = () => {
   }
 }
 
-const sendComment = async () => {
-  if (!videoInfo.value.video.vid || !comment.value.trim()) return
-  // 提交时把 mention span 替换为 @<uid> 数字形式，后端按 @\d+ 解析生成 at 通知
-  const submitContent = rootMentionInput.value?.getSubmitContent?.() ?? comment.value
-  const newComment = await commentStore.sendComment({
-    vid: videoInfo.value.video.vid,
-    uid: user.value.uid,
-    content: submitContent,
-    isTop: 0,
-    rootId: 0,
-    parentId: 0,
-    toUserId: videoInfo.value.user.uid,
-  })
-  if (newComment) {
-    // 本地插入为除置顶外的第一条评论，避免整页刷新冲掉已有的临时评论（含回复）
-    insertRootCommentLocally(newComment as Comment)
-    comment.value = ''
-    rootMentionInput.value?.clear()
-    isRootFocused.value = false
-  }
-}
-// 切换评论排序
-const changeSort = async (sort: 'hot' | 'new') => {
-  if (commentStore.sort === sort) return
-  commentStore.setSort(sort)
-  if (videoInfo.value.video.vid) {
-    await commentStore.getComment(videoInfo.value.video.vid)
-  }
-}
-
-// 滚动到目标评论并高亮（从通知页跳转时使用）
-// 方案：按评论ID拉取所属评论树并临时置顶渲染（有置顶评论则排其后），
-// 不依赖排序方式和分页位置，保持当前"最热"排序不变。
-const scrollToAndHighlightComment = async (commentId: number) => {
-  // 1. 拉取目标评论树并置顶插入 commentList
-  const thread = await commentStore.pinCommentThread(commentId)
-  if (!thread) return
-
-  // 2. 如果目标是子评论，展开该楼层回复列表并翻到目标所在页
-  const isRootTarget = thread.id === commentId
-  if (!isRootTarget) {
-    const replies = thread.replies ?? []
-    const replyIndex = replies.findIndex((r) => r.id === commentId)
-    if (replyIndex === -1) return // 目标子评论已被删除
-    const page = Math.floor(replyIndex / REPLY_PAGE_SIZE) + 1
-    setReplyListState(thread.id!, true, page)
-  }
-
-  // 3. 等 Vue 渲染后在 DOM 中定位元素并滚动高亮
-  await nextTick()
-  await new Promise((resolve) => setTimeout(resolve, 100))
-
-  const threadIndex = displayedCommentThreads.value.findIndex((t) => t.rootId === thread.id)
-  if (threadIndex === -1) return
-  const threadEl = document.querySelectorAll('.comment-thread')[threadIndex] as HTMLElement | undefined
-  if (!threadEl) return
-
-  let targetEl: HTMLElement | null
-  if (isRootTarget) {
-    targetEl = threadEl.querySelector(':scope > .comment:not(.sub)')
-  } else {
-    // 子评论：按当前页内的相对索引定位
-    const replies = thread.replies ?? []
-    const replyIndex = replies.findIndex((r) => r.id === commentId)
-    const pageIndex = replyIndex % REPLY_PAGE_SIZE
-    const subEls = threadEl.querySelectorAll(':scope > .comment.sub')
-    targetEl = (subEls[pageIndex] as HTMLElement) || null
-  }
-
-  if (targetEl) {
-    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    targetEl.classList.add('comment--highlighted')
-    setTimeout(() => {
-      targetEl.classList.remove('comment--highlighted')
-    }, 4000)
-  }
-}
-
-// 初始化评论懒加载观察器
-const initCommentObserver = () => {
-  if (commentObserver) {
-    commentObserver.disconnect()
-    commentObserver = null
-  }
-  if (!commentSentinelRef.value) return
-  const loadMoreIfNeeded = () => {
-    if (commentStore.hasMore && !commentStore.loading) {
-      const vid = videoInfo.value?.video?.vid
-      if (vid) {
-        commentStore.loadMoreComments(vid)
-      }
-    }
-  }
-  commentObserver = new IntersectionObserver(
-    (entries) => {
-      if (entries[0].isIntersecting) {
-        loadMoreIfNeeded()
-      }
-    },
-    {rootMargin: '200px'}
-  )
-  commentObserver.observe(commentSentinelRef.value)
-  setTimeout(() => {
-    if (commentSentinelRef.value) {
-      const rect = commentSentinelRef.value.getBoundingClientRect()
-      const isVisible = rect.top < window.innerHeight + 200 && rect.bottom > 0
-      if (isVisible) {
-        loadMoreIfNeeded()
-      }
-    }
-  }, 100)
-}
 // 点赞
 const handleLike = () => {
   if (videoInfo.value.video.vid) {
@@ -1678,9 +749,9 @@ const handleDislike = async () => {
 const handleCoin = () => {
   const vid = videoInfo.value.video.vid
   if (!vid) return
-  if (videoStore.coinCount >= 2) {
-    // 已投满 2 币（仿B站：不可再投）
-    ElMessage.warning('对本稿件的投币枚数已用完')
+  if (videoStore.coined) {
+    // 已投过币（仿B站：点击可取消投币）
+    ElMessage.warning('已对本稿件投过币')
     return
   }
   selectedCoinCount.value = 1
@@ -1940,10 +1011,10 @@ const initPlayer = async () => {
       // 上报推荐观看进度：5秒、25%、50%、75%
       if (duration > 0) {
         const marks = [
-          { label: '5s', threshold: 5, ratio: Math.min(5 / duration, 1) },
-          { label: '25%', threshold: duration * 0.25, ratio: 0.25 },
-          { label: '50%', threshold: duration * 0.5, ratio: 0.5 },
-          { label: '75%', threshold: duration * 0.75, ratio: 0.75 },
+          {label: '5s', threshold: 5, ratio: Math.min(5 / duration, 1)},
+          {label: '25%', threshold: duration * 0.25, ratio: 0.25},
+          {label: '50%', threshold: duration * 0.5, ratio: 0.5},
+          {label: '75%', threshold: duration * 0.75, ratio: 0.75},
         ]
         marks.forEach((mark) => {
           if (currentTime >= mark.threshold && !reportedProgressMarks.value.has(mark.label)) {
@@ -2062,7 +1133,6 @@ watch([() => route.params.vid], async ([newVid], [oldVid]) => {
     await recommendStore.getRelated(Number(newVid), 10)
     await videoStore.getVideo(Number(newVid))
     await videoStore.getInteractionStatus(Number(newVid))
-    await commentStore.getComment(Number(newVid))
     await loadUpFollowInfo()
     await loadUserFavoriteFolders(Number(newVid))
 
@@ -2075,10 +1145,7 @@ watch([() => route.params.vid], async ([newVid], [oldVid]) => {
     // 6. 初始化弹幕（initDanmaku 内部会等待视频元数据加载完成）
     await initDanmaku(Number(newVid))
 
-    // 7. 重新初始化评论懒加载
-    initCommentObserver()
-
-    // 8. 更新其他状态
+    // 7. 更新其他状态
     rcmTags.value = videoInfo.value.video?.tags?.split('\n')
     if (descText.value) {
       const height = descText.value.scrollHeight
@@ -2089,15 +1156,6 @@ watch([() => route.params.vid], async ([newVid], [oldVid]) => {
   }
 })
 
-watch(
-  () => userStore.isLogin,
-  async (newIsLogin, oldIsLogin) => {
-    if (newIsLogin && !oldIsLogin) {
-      await nextTick()
-      initCommentObserver()
-    }
-  }
-)
 const initDanmaku = async (vid: number) => {
   console.log('开始创建弹幕实例')
   if (danmakuContainer.value && plyrPlayer.value) {
@@ -2164,7 +1222,6 @@ onMounted(async () => {
     await recommendStore.getRelated(vid, 10)
     await videoStore.getVideo(vid)
     await videoStore.getInteractionStatus(vid)
-    await commentStore.getComment(vid)
     await loadUpFollowInfo()
     // 加载用户收藏夹列表
     await loadUserFavoriteFolders()
@@ -2176,17 +1233,7 @@ onMounted(async () => {
     const height = descText.value.scrollHeight
     showToggleBtn.value = height > 84
   }
-
-  // 初始化评论懒加载
-  await nextTick()
-  initCommentObserver()
   isMounted = true
-
-  // 如果 URL 携带 commentId，自动滚动到目标评论并高亮
-  const targetCommentId = route.query.commentId ? Number(route.query.commentId) : null
-  if (targetCommentId) {
-    await scrollToAndHighlightComment(targetCommentId)
-  }
 
   // 启动在线人数心跳 (每30秒一次)
   const viewerId = getViewerId()
@@ -2223,9 +1270,6 @@ onUnmounted(() => {
   resizeObserver?.disconnect() // 清理监听
   danmakuInstance?.destroy()
   disposePlayer()
-  // 清理评论懒加载观察器
-  commentObserver?.disconnect()
-  commentObserver = null
   // 清理心跳定时器
   if (heartbeatTimer) {
     clearInterval(heartbeatTimer)
@@ -2761,7 +1805,9 @@ onUnmounted(() => {
             cursor: pointer;
             transition: background 0.12s;
 
-            &:hover { background: @bg-gray; }
+            &:hover {
+              background: @bg-gray;
+            }
 
             .at-avatar {
               width: 32px;
@@ -2792,13 +1838,25 @@ onUnmounted(() => {
       }
 
       @keyframes atPanelInBelow {
-        from { opacity: 0; transform: translateY(-6px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+          opacity: 0;
+          transform: translateY(-6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       @keyframes atPanelInAbove {
-        from { opacity: 0; transform: translateY(6px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .header {
@@ -2879,7 +1937,9 @@ onUnmounted(() => {
             flex: 1;
             min-width: 0;
 
-            .el-input { width: 100%; }
+            .el-input {
+              width: 100%;
+            }
           }
 
           // 焦点显示的工具栏（@按钮/复选框/发布）
@@ -3557,9 +2617,18 @@ onUnmounted(() => {
   }
 
   @keyframes comment-highlight-pulse {
-    0% { background-color: #b3e5fc; box-shadow: 0 0 12px rgba(0, 161, 214, 0.35); }
-    30% { background-color: #e8f4fd; box-shadow: none; }
-    100% { background-color: transparent; box-shadow: none; }
+    0% {
+      background-color: #b3e5fc;
+      box-shadow: 0 0 12px rgba(0, 161, 214, 0.35);
+    }
+    30% {
+      background-color: #e8f4fd;
+      box-shadow: none;
+    }
+    100% {
+      background-color: transparent;
+      box-shadow: none;
+    }
   }
 }
 </style>

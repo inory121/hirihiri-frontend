@@ -85,7 +85,7 @@
               <a :href="`/space/${list.user.uid}`" target="_blank">
                 <img src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg" class="video-card__avatar"  alt=""/>
                 <span class="name" style="margin-left: 3px">{{ list.user.username }}</span>
-                <span class="create_date"> · {{ formatTime(list.video.createDate) }}</span>
+                <span class="create_date"> · {{ formatTime(list.video.createTime) }}</span>
               </a>
             </div>
           </div>

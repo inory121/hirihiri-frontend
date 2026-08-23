@@ -113,13 +113,13 @@
                       videoInfo.user.username
                     }}</span>
                     <span v-if="!props.hideTime" class="video-card__time" style="margin-left: 10px">{{
-                      formatTime(videoInfo.video.createDate)
+                      formatTime(videoInfo.video.createTime)
                     }}</span>
                   </a>
                 </template>
                 <template v-else>
                   <span v-if="!props.hideTime" class="video-card__time">{{
-                    formatTime(videoInfo.video.createDate)
+                    formatTime(videoInfo.video.createTime)
                   }}</span>
                 </template>
               </div>

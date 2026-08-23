@@ -35,11 +35,14 @@ interface ContentPart {
   user?: User
 }
 
-const props = defineProps<{
-  content: string
+const props = withDefaults(defineProps<{
+  // 允许为空（调用方通过 v-if 保证非空，仅用于类型放宽）
+  content?: string
   // 后端随包返回的结构化 @用户（参考 B站 at_details），优先用于本地解析，避免逐个请求
   mentionUsers?: Array<{ uid: number; username: string; nickname?: string; avatar?: string }>
-}>()
+}>(), {
+  content: '',
+})
 
 const userStore = useUserStore()
 const resolvedUsers = ref<Record<string, User | null>>({})
@@ -109,7 +112,7 @@ const resolveMentionUser = (token: string): Promise<User | null> => {
           }
       mentionUserCache.set(token, user)
       return user
-    } catch (e) {
+    } catch {
       mentionUserCache.set(token, null)
       return null
     }

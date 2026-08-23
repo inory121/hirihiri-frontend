@@ -47,7 +47,7 @@ export interface Video {
   descr: string
   duration: number
   mcId: string
-  createDate: string
+  createTime: string
   scId: string
   status: number
   tags: string
@@ -134,7 +134,7 @@ export interface Danmu {
   color: string
   time: number
   state: number
-  createDate?: string
+  createTime?: string
 }
 
 export interface DanmakuApiResponse extends BaseResponse {
@@ -148,6 +148,7 @@ export interface oneDanmakuApiResponse extends BaseResponse {
 export interface Comment {
   id?: number
   vid: number
+  dynamicId?: number | null
   uid: number
   user?: User
   toUser?: User
@@ -163,7 +164,7 @@ export interface Comment {
   liked?: boolean
   disliked?: boolean
   upLiked?: boolean
-  createDate?: string
+  createTime?: string
   isTop?: number
   isDeleted?: number
 }
@@ -191,7 +192,7 @@ export interface User {
   avatar: string
   background: string
   coin: number
-  createDate: string
+  createTime: string
   description: string
   exp: number
   nickname: string
@@ -217,6 +218,69 @@ export interface UserDataApiResponse extends BaseResponse {
 
 export interface UserApiResponse extends BaseResponse {
   data: User
+}
+
+// ======================== 动态系统类型 ========================
+
+// 动态（feed）对象
+export interface Dynamic {
+  id: number
+  uid: number
+  title: string
+  content: string
+  type: 0 | 1 | 2 | 3 // 0 普通动态 1 分享视频 2 投稿视频 3 转发动态
+  vid: number | null
+  parentId: number | null
+  images: string[]
+  isTop: number
+  createTime: string
+  likeCount?: number // 点赞数（列表接口批量回填）
+  liked?: boolean // 当前用户是否已点赞
+  commentCount?: number // 评论数（列表接口批量回填）
+  repostCount?: number // 转发数（列表接口批量回填）
+  user?: User
+  // 视频动态时返回 { video, stat, user }
+  video?: { video: Video; stat: VideoStat; user?: User } | null
+  // 转发动态（type=3）时返回被转发的原动态完整数据
+  parent?: Dynamic | null
+}
+
+// 发布动态请求参数
+export interface DynamicPublishPayload {
+  title?: string
+  content?: string
+  type?: 0 | 1 | 2 | 3
+  vid?: number | null
+  parentId?: number | null
+  images?: string[]
+}
+
+// 动态分页结果
+export interface DynamicPageData {
+  records: Dynamic[]
+  total: number
+}
+
+export interface DynamicPageApiResponse extends BaseResponse {
+  data: DynamicPageData
+}
+
+// 发过动态的UP主
+export interface DynamicUp {
+  uid: number
+  dynamicCount: number
+  latestTime: string
+  user?: User
+}
+
+// UP主分页结果
+export interface DynamicUpPageData {
+  records: DynamicUp[]
+  total: number
+}
+
+export interface DynamicUpPageApiResponse extends BaseResponse {
+  data: DynamicUpPageData
 }
 // 浏览历史接口
 export interface HistoryVideoDTO {

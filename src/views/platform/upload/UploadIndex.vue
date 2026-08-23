@@ -418,7 +418,6 @@ const refreshAutoCoverCropper = () => {
 const cleanupVideoObjectUrl = (
   video: HTMLVideoElement,
   objectUrl: string,
-  source: 'captureCover' | 'generateVideoFrames' | 'updateVideoFrame',
 ) => {
   video.onloadedmetadata = null
   video.oncanplay = null
@@ -617,7 +616,7 @@ const generateVideoFrames = async () => {
     console.error('生成视频帧失败:', error)
   } finally {
     if (video && objectUrl) {
-      cleanupVideoObjectUrl(video, objectUrl, 'generateVideoFrames')
+      cleanupVideoObjectUrl(video, objectUrl)
     }
   }
 }
@@ -650,7 +649,7 @@ const updateVideoFrame = debounce(async () => {
   } catch (error) {
     console.error('更新视频帧失败:', error)
   } finally {
-    cleanupVideoObjectUrl(video, objectUrl, 'updateVideoFrame')
+    cleanupVideoObjectUrl(video, objectUrl)
   }
 }, 300)
 
@@ -838,7 +837,7 @@ const captureCover = async () => {
   } catch (error) {
     console.error('截取封面失败:', error)
   } finally {
-    cleanupVideoObjectUrl(video, objectUrl, 'captureCover')
+    cleanupVideoObjectUrl(video, objectUrl)
   }
 }
 // 移除文件扩展名

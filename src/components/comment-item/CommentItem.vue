@@ -41,7 +41,7 @@
               alt=""
             />
           </div>
-          <div class="user-up" v-if="videoInfo.user.uid === comment.user?.uid">
+          <div class="user-up" v-if="ownerUid === comment.user?.uid">
             <img
               width="24"
               height="24"
@@ -89,7 +89,7 @@
       <!-- 评论底部 -->
       <div class="comment-footer">
         <div class="createDate">
-          {{ formatCommentTime(comment.createDate) }}
+          {{ formatCommentTime(comment.createTime) }}
         </div>
         <div class="like" :class="{ active: comment.liked }" @mousedown.prevent @click="handleLike">
           <i class="iconfont" :class="comment.liked ? 'icon-dianzan_kuai' : 'icon-good'"></i>
@@ -141,27 +141,58 @@
 import {ref, watch, computed} from 'vue'
 import {useUserStore} from '@/stores/userStore'
 import {useCommentStore} from '@/stores/commentStore'
+import {useDynamicCommentStore} from '@/stores/dynamicCommentStore'
 import {storeToRefs} from 'pinia'
 import {formatCommentTime} from '@/utils/utils'
 import {useVideoStore} from '@/stores/videoStore'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
 import MentionContent from '@/components/mention-content/MentionContent.vue'
+import type {User} from '@/types/api'
 
 const videoStore = useVideoStore()
-const {videoInfo} = storeToRefs(videoStore)
 const props = defineProps({
   comment: {
     type: Object,
     required: true,
   },
+  // 资源所属UP主uid（视频评论不传，动态评论传动态作者uid），用于判定UP主身份
+  ownerUid: {
+    type: Number,
+    default: null,
+  },
+  // 评论所属资源id（视频评论不传，动态评论传动态id），用于复制评论链接
+  bizId: {
+    type: Number,
+    default: null,
+  },
+  // 业务类型：video 视频评论（默认） | dynamic 动态评论
+  bizType: {
+    type: String,
+    default: 'video',
+  },
+  // 使用哪个评论store：comment 视频（默认） | dynamicComment 动态
+  store: {
+    type: String,
+    default: 'comment',
+  },
 })
 
 const userStore = useUserStore()
 const commentStore = useCommentStore()
-const {activeReplyCommentId} = storeToRefs(commentStore)
-const {setActiveReplyCommentId} = commentStore
+const dynamicCommentStore = useDynamicCommentStore()
+// 根据 store 类型选择对应的评论操作store
+const activeCommentStore = computed(() =>
+  props.store === 'dynamicComment' ? dynamicCommentStore : commentStore,
+)
+const {activeReplyCommentId} = storeToRefs(activeCommentStore.value)
+const {setActiveReplyCommentId} = activeCommentStore.value
 const {user} = storeToRefs(userStore)
+
+// UP主uid：动态评论用 ownerUid，视频评论用 videoInfo
+const upOwnerUid = computed<number | null | undefined>(() =>
+  props.ownerUid ?? videoStore.videoInfo?.video?.uid,
+)
 
 // 判断是否是子评论
 const isSubComment = ref(props.comment.rootId !== 0 || props.comment.parentId !== 0)
@@ -194,7 +225,7 @@ const handleLike = () => {
     userStore.showLoginWindow = true
     return
   }
-  commentStore.toggleLike(props.comment.id!)
+  activeCommentStore.value.toggleLike(props.comment.id!)
 }
 
 const handleDislike = () => {
@@ -202,7 +233,7 @@ const handleDislike = () => {
     userStore.showLoginWindow = true
     return
   }
-  commentStore.toggleDislike(props.comment.id!)
+  activeCommentStore.value.toggleDislike(props.comment.id!)
 }
 
 const handleFollowUser = async (uid: number) => {
@@ -214,16 +245,16 @@ const handleFollowUser = async (uid: number) => {
 }
 
 const emit = defineEmits<{
-  (e: 'avatar-hover', user: any): void
-  (e: 'avatar-leave', user: any): void
+  (e: 'avatar-hover', user: User): void
+  (e: 'avatar-leave', user: User): void
 }>()
 
-const emitAvatarHover = (user: any) => {
+const emitAvatarHover = (user: User) => {
   if (!user) return
   emit('avatar-hover', user)
 }
 
-const emitAvatarLeave = (user: any) => {
+const emitAvatarLeave = (user: User) => {
   if (!user) return
   emit('avatar-leave', user)
 }
@@ -232,21 +263,19 @@ const emitAvatarLeave = (user: any) => {
 const showMoreMenu = ref(false)
 let closeTimer: ReturnType<typeof setTimeout> | null = null
 
-// 可删除：评论作者本人，或当前视频的投稿者（UP主）
+// 可删除：评论作者本人，或当前资源（视频/动态）的投稿者（UP主）
 const canDelete = computed(() => {
   if (!user.value) return false
   if (props.comment.user && user.value.uid === props.comment.user.uid) return true
-  const videoOwnerUid = videoStore.videoInfo?.video?.uid
-  return videoOwnerUid != null && videoOwnerUid === user.value.uid
+  return upOwnerUid.value != null && upOwnerUid.value === user.value.uid
 })
 
-// 可置顶：仅视频投稿者（UP主）且为根评论
+// 可置顶：仅资源（视频/动态）投稿者（UP主）且为根评论
 const canPin = computed(() => {
   if (!user.value) return false
-  const videoOwnerUid = videoStore.videoInfo?.video?.uid
-  const isVideoOwner = videoOwnerUid != null && videoOwnerUid === user.value.uid
+  const isOwner = upOwnerUid.value != null && upOwnerUid.value === user.value.uid
   const isRoot = props.comment.rootId === 0
-  return isVideoOwner && isRoot
+  return isOwner && isRoot
 })
 
 const isPinned = computed(() => props.comment.isTop === 1)
@@ -273,7 +302,12 @@ const toggleMoreMenu = () => {
 }
 
 const copyCommentLink = async () => {
-  const url = `${window.location.origin}/video/${videoStore.videoInfo?.video?.vid}?commentId=${props.comment.id}`
+  // 动态评论复制动态页评论链接，视频评论复制视频页评论链接
+  const bizPath =
+    props.bizType === 'dynamic'
+      ? `/dynamic?commentId=${props.comment.id}`
+      : `/video/${videoStore.videoInfo?.video?.vid}?commentId=${props.comment.id}`
+  const url = `${window.location.origin}${bizPath}`
   try {
     await navigator.clipboard.writeText(url)
     ElMessage.success('链接已复制')
@@ -300,7 +334,7 @@ const handleDelete = async () => {
   } catch {
     return
   }
-  const ok = await commentStore.deleteComment(props.comment.id!)
+  const ok = await activeCommentStore.value.deleteComment(props.comment.id!)
   if (ok) {
     cancelClose()
     showMoreMenu.value = false
@@ -312,7 +346,7 @@ const handleDelete = async () => {
 
 const handleToggleTop = async () => {
   const next = !isPinned.value
-  const ok = await commentStore.toggleCommentTop(props.comment.id!, next)
+  const ok = await activeCommentStore.value.toggleCommentTop(props.comment.id!, next)
   if (ok) {
     cancelClose()
     showMoreMenu.value = false
@@ -362,7 +396,7 @@ const handleToggleTop = async () => {
 
     .user-avatar {
       position: absolute;
-      left: 15px;
+      left: 20px;
       top: 15px;
       width: 40px;
       height: 40px;

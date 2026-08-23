@@ -59,11 +59,11 @@
             </el-icon>
             女
           </span>
-          <span v-if="userStore.targetUser.createDate" class="user-home__meta-item">
+          <span v-if="userStore.targetUser.createTime" class="user-home__meta-item">
             <el-icon>
               <Calendar/>
             </el-icon>
-            {{ formatDateTime(userStore.targetUser.createDate, 'YYYY-MM-DD') }} 加入
+            {{ formatDateTime(userStore.targetUser.createTime, 'YYYY-MM-DD') }} 加入
           </span>
         </div>
       </div>
@@ -135,13 +135,13 @@
         </el-icon>
         <span>主页</span>
       </div>
-      <div class="user-home__tab" :class="{ 'user-home__tab--active': activeTab === 'favorites' }"
-           @click="switchTab('favorites')">
+      <div class="user-home__tab" :class="{ 'user-home__tab--active': activeTab === 'dynamic' }"
+           @click="switchTab('dynamic')">
         <el-icon class="user-home__tab-icon">
-          <StarFilled/>
+          <ChatDotRound/>
         </el-icon>
-        <span>收藏</span>
-        <span class="user-home__tab-count">{{ folderCount }}</span>
+        <span>动态</span>
+        <span class="user-home__tab-count">{{ dynamicTabTotal }}</span>
       </div>
       <div class="user-home__tab" :class="{ 'user-home__tab--active': activeTab === 'video' }"
            @click="switchTab('video')">
@@ -150,6 +150,14 @@
         </el-icon>
         <span>投稿</span>
         <span class="user-home__tab-count">{{ videoStore.userVideoTotal }}</span>
+      </div>
+      <div class="user-home__tab" :class="{ 'user-home__tab--active': activeTab === 'favorites' }"
+           @click="switchTab('favorites')">
+        <el-icon class="user-home__tab-icon">
+          <StarFilled/>
+        </el-icon>
+        <span>收藏</span>
+        <span class="user-home__tab-count">{{ folderCount }}</span>
       </div>
       <div class="user-home__tab" :class="{ 'user-home__tab--active': activeTab === 'followings' }"
            @click="switchTab('followings')">
@@ -172,6 +180,7 @@
     <div class="user-home__content">
       <!-- 主页 Tab -->
       <div v-if="activeTab === 'home'" class="user-home__home">
+        <div class="user-home__home-main">
         <!-- 置顶视频 -->
         <section class="user-home__section">
           <div class="user-home__section-header">
@@ -203,7 +212,7 @@
                         {{ formatNumber(videoStore.pinnedVideo.stat.danmaku ?? 0) }}
                       </span>
                       <span class="user-home__pinned-stat">
-                        {{ formatTime(videoStore.pinnedVideo.video.createDate) }}
+                        {{ formatTime(videoStore.pinnedVideo.video.createTime) }}
                       </span>
                     </div>
                     <p class="user-home__pinned-descr">{{ videoStore.pinnedVideo.video.descr }}</p>
@@ -327,6 +336,8 @@
             </template>
           </div>
         </section>
+        </div>
+        <RightPlaceholder/>
       </div>
 
       <!-- 收藏 Tab -->
@@ -515,6 +526,52 @@
         </template>
       </div>
 
+      <div v-else-if="activeTab === 'dynamic'" class="user-home__dynamic-tab">
+        <div class="user-home__dynamic-layout">
+          <!-- 左侧：全部 / 视频 切换（参考收藏页切换 tab） -->
+          <aside class="user-home__dynamic-sidebar">
+            <div class="user-home__dynamic-sort">
+              <span
+                class="user-home__video-sort-item user-home__dynamic-sort-item"
+                :class="{ 'user-home__video-sort-item--active': dynamicType === 0 }"
+                @click="handleDynamicTypeChange(0)"
+              >全部</span>
+              <span
+                class="user-home__video-sort-item user-home__dynamic-sort-item"
+                :class="{ 'user-home__video-sort-item--active': dynamicType === 2 }"
+                @click="handleDynamicTypeChange(2)"
+              >视频</span>
+            </div>
+          </aside>
+          <main class="user-home__dynamic-content">
+            <template v-if="dynamicStore.dynamicLoading && dynamicStore.dynamicList.length === 0">
+              <el-skeleton :rows="6" animated/>
+            </template>
+            <template v-else-if="dynamicStore.dynamicList.length > 0">
+              <div class="user-home__dynamic-list">
+                <DynamicCard
+                  v-for="item in dynamicStore.dynamicList"
+                  :key="item.id"
+                  :item="item"
+                  @refresh="resetUserDynamic"
+                />
+              </div>
+              <div v-if="dynamicStore.dynamicList.length > 0" class="user-home__dynamic-more">
+                <span v-if="dynamicLoadingMore" class="user-home__dynamic-more-tip">
+                  <el-icon class="is-loading"><Loading/></el-icon>
+                  加载中…
+                </span>
+                <span v-else-if="!dynamicHasMore" class="user-home__dynamic-more-tip">没有更多动态了</span>
+              </div>
+            </template>
+            <template v-else>
+              <el-empty description="TA 还没有发布过动态" :image-size="80"/>
+            </template>
+          </main>
+          <RightPlaceholder/>
+        </div>
+      </div>
+
       <div v-else-if="activeTab === 'followings' || activeTab === 'followers'"
            class="user-home__follow">
         <template v-if="userStore.followListLoading">
@@ -524,7 +581,7 @@
           <div class="user-home__follow-grid">
             <div v-for="user in userStore.followList" :key="user.uid"
                  class="user-home__follow-item">
-              <a :href="`/space/${user.uid}`" target="_blank" class="user-home__follow-item-link">
+              <div class="user-home__follow-item-link">
                 <UserHoverCard
                   :user="user"
                   :is-following="isFollowingInList(user.uid)"
@@ -534,19 +591,21 @@
                   :offset-y="0"
                   @follow="handleToggleFollow"
                 >
-                  <img
-                    class="user-home__follow-item-avatar"
-                    :src="user.avatar || 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg'"
-                   alt="avatar"/>
+                  <a :href="`/space/${user.uid}`" target="_blank">
+                    <img
+                      class="user-home__follow-item-avatar"
+                      :src="user.avatar || 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg'"
+                     alt="avatar"/>
+                  </a>
                 </UserHoverCard>
                 <div class="user-home__follow-item-info">
-                  <div class="user-home__follow-item-name">{{ user.username }}</div>
+                  <a class="user-home__follow-item-name" :href="`/space/${user.uid}`" target="_blank">{{ user.username }}</a>
                   <div class="user-home__follow-item-desc">{{
                       user.description || '这个人很懒，什么都没有写~'
                     }}
                   </div>
                 </div>
-              </a>
+              </div>
               <div v-if="shouldShowFollowBtn(user.uid)" class="user-home__follow-item-action">
                 <el-button
                   :type="isFollowingInList(user.uid) ? 'default' : 'primary'"
@@ -753,7 +812,7 @@
                 {{ formatNumber(item.stat.view) }}
               </span>
               <span class="pinned-dialog__item-stat">
-                {{ formatTime(item.video.createDate) }}
+                {{ formatTime(item.video.createTime) }}
               </span>
             </div>
           </div>
@@ -771,7 +830,7 @@
 </template>
 
 <script lang="ts" setup>
-import {ref, onMounted, watch, computed} from 'vue'
+import {ref, onMounted, onBeforeUnmount, watch, computed} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {
   formatDateTime,
@@ -783,11 +842,14 @@ import {
 } from '@/utils/utils.ts'
 import {useUserStore} from '@/stores/userStore'
 import {useVideoStore} from '@/stores/videoStore'
+import {useDynamicStore} from '@/stores/dynamicStore'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import HeaderBar from '@/components/header-bar/HeaderBar.vue'
 import VideoCard from '@/components/video-card/VideoCard.vue'
 import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
+import DynamicCard from '@/components/dynamic-card/DynamicCard.vue'
 import CustomPagination from '@/components/pagination/CustomPagination.vue'
+import RightPlaceholder from '@/components/right-placeholder/RightPlaceholder.vue'
 import {
   Coin,
   Male,
@@ -803,17 +865,29 @@ import {
   UserFilled,
   Avatar,
   VideoPlay,
-  ChatDotRound
+  ChatDotRound,
+  Loading
 } from '@element-plus/icons-vue'
-import type {VideoInfo, FavoriteFolder} from '@/types/api'
+import {get} from '@/utils/request'
+import {DYNAMIC_API} from '@/api/dynamic'
+import type {VideoInfo, FavoriteFolder, Dynamic, User, DynamicPageApiResponse} from '@/types/api'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const videoStore = useVideoStore()
-const activeTab = ref<'home' | 'favorites' | 'video' | 'followings' | 'followers'>('home')
+const dynamicStore = useDynamicStore()
+const activeTab = ref<'home' | 'favorites' | 'video' | 'dynamic' | 'followings' | 'followers'>('home')
 const userVideoPageNum = ref(1)
 const userVideoPageSize = ref(42)
+const dynamicPageNum = ref(1)
+const dynamicPageSize = ref(10)
+const dynamicTabTotal = ref(0) // 动态 tab 栏显示的用户动态总数
+const dynamicType = ref<0 | 2>(0) // 动态列表类型：0 全部 2 视频
+// 动态懒加载
+const dynamicHasMore = ref(true)
+const dynamicLoadingMore = ref(false)
+const DYNAMIC_LOAD_MORE_THRESHOLD = 300 // 距底部像素阈值，小于等于开始加载下一页
 
 // 主页相关数据
 const favoriteFolders = ref<FavoriteFolder[]>([]) // 收藏夹列表
@@ -845,7 +919,7 @@ const sortedPinnedVideos = computed<VideoInfo[]>(() => {
     case 'date':
     default:
       list.sort((a, b) =>
-        new Date(b.video.createDate).getTime() - new Date(a.video.createDate).getTime()
+        new Date(b.video.createTime).getTime() - new Date(a.video.createTime).getTime()
       )
   }
   return list
@@ -871,7 +945,7 @@ const sortedHomeVideos = computed<VideoInfo[]>(() => {
     case 'date':
     default:
       return list.sort((a, b) =>
-        new Date(b.video.createDate).getTime() - new Date(a.video.createDate).getTime()
+        new Date(b.video.createTime).getTime() - new Date(a.video.createTime).getTime()
       )
   }
 })
@@ -895,7 +969,7 @@ const sortedFolderVideos = computed<VideoInfo[]>(() => {
       return list.sort((a, b) => (b.stat.view || 0) - (a.stat.view || 0))
     case 'latest-upload':
       return list.sort((a, b) =>
-        new Date(b.video.createDate).getTime() - new Date(a.video.createDate).getTime()
+        new Date(b.video.createTime).getTime() - new Date(a.video.createTime).getTime()
       )
     case 'recent':
     default:
@@ -923,7 +997,7 @@ const loadFolderCount = async (targetUid?: number) => {
   try {
     const folders = await videoStore.getUserFavoriteFolders(undefined, targetUid)
     folderCount.value = folders.length
-  } catch (e) {
+  } catch {
     folderCount.value = 0
   }
 }
@@ -964,7 +1038,7 @@ const initTabFromQuery = () => {
   const tab = route.query.tab as string
   const uid = Number(route.params.uid)
   // tab 为 undefined 或不匹配时回退到 home
-  if (!tab || (tab !== 'home' && tab !== 'favorites' && tab !== 'video' && tab !== 'followings' && tab !== 'followers')) {
+  if (!tab || (tab !== 'home' && tab !== 'favorites' && tab !== 'video' && tab !== 'dynamic' && tab !== 'followings' && tab !== 'followers')) {
     activeTab.value = 'home'
     loadHomeData(uid)
     return
@@ -982,6 +1056,8 @@ const initTabFromQuery = () => {
   } else if (tab === 'video') {
     userVideoPageNum.value = 1
     videoStore.getUserVideos(uid, userVideoPageNum.value, userVideoPageSize.value)
+  } else if (tab === 'dynamic') {
+    resetUserDynamic(uid)
   } else if (tab === 'followings') {
     userStore.getFollowings(uid)
   } else if (tab === 'followers') {
@@ -1014,8 +1090,8 @@ const handleToggleFollow = async (itemUid: number) => {
   await userStore.toggleFollow(itemUid)
 }
 
-// 切换主页 / 收藏 / 投稿 / 关注 / 粉丝 tab，同步到 URL query，数据加载由 watcher 统一处理
-const switchTab = (tab: 'home' | 'favorites' | 'video' | 'followings' | 'followers') => {
+// 切换主页 / 收藏 / 投稿 / 动态 / 关注 / 粉丝 tab，同步到 URL query，数据加载由 watcher 统一处理
+const switchTab = (tab: 'home' | 'favorites' | 'video' | 'dynamic' | 'followings' | 'followers') => {
   activeTab.value = tab
   const uid = Number(route.params.uid)
   // 同步 URL：home 为默认值时不写 query，其他 tab 带上 ?tab=xxx
@@ -1030,7 +1106,91 @@ const switchTab = (tab: 'home' | 'favorites' | 'video' | 'followings' | 'followe
     } else if (tab === 'video') {
       userVideoPageNum.value = 1
       videoStore.getUserVideos(uid, userVideoPageNum.value, userVideoPageSize.value, userVideoSort.value)
+    } else if (tab === 'dynamic') {
+      resetUserDynamic(uid)
     }
+  }
+}
+
+// 递归收集动态（含转发链）中的作者，用于同步关注状态
+const collectDynamicUsers = (item: Dynamic | null | undefined, acc: User[] = []): User[] => {
+  if (!item) {
+    return acc
+  }
+  if (item.user) {
+    acc.push(item.user)
+  }
+  if (item.parent) {
+    collectDynamicUsers(item.parent, acc)
+  }
+  return acc
+}
+
+// 加载指定用户的动态列表，并同步所有作者（含转发链）的关注状态
+const loadUserDynamic = async (targetUid: number, page: number, append: boolean) => {
+  await dynamicStore.getDynamicList(page, dynamicPageSize.value, dynamicType.value, targetUid, append)
+  // tab 栏数字保持"全部动态"总数，不随 全部/视频 切换而变化
+  if (dynamicType.value === 0) {
+    dynamicTabTotal.value = dynamicStore.dynamicTotal
+  }
+  const users: User[] = []
+  for (const item of dynamicStore.dynamicList) {
+    collectDynamicUsers(item, users)
+  }
+  userStore.syncFollowStatusFromList(users)
+}
+
+// 动态列表重置到第一页（切 tab / 切换 全部视频 / 删除刷新）
+const resetUserDynamic = async (targetUid?: number) => {
+  const uid = targetUid ?? Number(route.params.uid)
+  dynamicPageNum.value = 1
+  dynamicHasMore.value = true
+  dynamicLoadingMore.value = false
+  await loadUserDynamic(uid, 1, false)
+}
+
+// 滚动到底部加载下一页（追加模式）
+const loadMoreUserDynamic = async () => {
+  if (dynamicLoadingMore.value || !dynamicHasMore.value) return
+  if (activeTab.value !== 'dynamic') return
+  if (dynamicStore.dynamicList.length === 0) return
+  const next = dynamicPageNum.value + 1
+  dynamicLoadingMore.value = true
+  const prevLen = dynamicStore.dynamicList.length
+  await loadUserDynamic(Number(route.params.uid), next, true)
+  if (dynamicStore.dynamicList.length === prevLen
+      || dynamicStore.dynamicList.length >= dynamicStore.dynamicTotal) {
+    dynamicHasMore.value = false
+  } else {
+    dynamicPageNum.value = next
+  }
+  dynamicLoadingMore.value = false
+}
+
+const onUserHomeScroll = () => {
+  const remain = document.documentElement.scrollHeight - window.innerHeight - window.scrollY
+  if (remain <= DYNAMIC_LOAD_MORE_THRESHOLD) {
+    loadMoreUserDynamic()
+  }
+}
+
+// 动态列表 全部/视频 切换
+const handleDynamicTypeChange = (type: 0 | 2) => {
+  if (dynamicType.value === type) return
+  dynamicType.value = type
+  resetUserDynamic()
+}
+
+// 预加载指定用户的动态总数，供 tab 栏展示
+const loadUserDynamicCount = async (targetUid: number) => {
+  try {
+    const res = await get<DynamicPageApiResponse>(
+      `${DYNAMIC_API.LIST}?pageNum=1&pageSize=1&uid=${targetUid}`,
+    )
+    dynamicTabTotal.value = res.code === 200 ? res.data.total || 0 : 0
+  } catch (e) {
+    console.log('加载动态总数失败:', e)
+    dynamicTabTotal.value = 0
   }
 }
 
@@ -1221,9 +1381,7 @@ const handleDeleteFolder = async (folder: FavoriteFolder) => {
 // 加载主页数据
 const loadHomeData = async (targetUid: number) => {
   try {
-    const [pinned] = await Promise.all([
-      videoStore.getPinnedVideo(targetUid),
-    ])
+    await videoStore.getPinnedVideo(targetUid)
 
     // 并行加载收藏夹、最近投币、最近点赞
     // 传入目标用户uid，如果是自己访问自己主页，API返回自己的数据也正确
@@ -1295,6 +1453,11 @@ const loadFavoritesData = async (targetUid: number) => {
 onMounted(() => {
   // onMounted 不再重复调用逻辑 —— watch(uid, { immediate: true }) 已在组件实例化时同步执行一次 initTabFromQuery
   document.body.style.backgroundColor = '#f4f5f7'
+  window.addEventListener('scroll', onUserHomeScroll, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', onUserHomeScroll)
 })
 
 watch(
@@ -1314,6 +1477,7 @@ watch(
         userVideosPromise.then(() => loadHomeData(parsedUid))
       }
       loadFolderCount(parsedUid)
+      loadUserDynamicCount(parsedUid)
     }
   },
   { immediate: true },
@@ -1595,11 +1759,16 @@ watch(
   grid-gap: 20px;
 }
 
-/* 主页 Tab 样式 */
+/* 主页 Tab 样式：左侧内容 + 右侧占位 */
 .user-home__home {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
 
+.user-home__home-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .user-home__section {
@@ -2109,6 +2278,84 @@ watch(
   display: block;
 }
 
+.user-home__dynamic-tab {
+  display: block;
+}
+
+.user-home__dynamic-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.user-home__dynamic-sidebar {
+  width: 150px;
+  flex-shrink: 0;
+}
+
+.user-home__dynamic-sort {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// 动态内"全部/视频"两个 tab：高固定 50，宽 150~230
+// 宽度按屏幕通过 screen 媒体查询适配（min-width 大的查询写在后面）
+.user-home__dynamic-sort-item {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  min-width: 150px;
+  max-width: 230px;
+}
+
+@media screen and (min-width: 1140px) {
+  .user-home__dynamic-sidebar {
+    width: 220px;
+  }
+
+  .user-home__dynamic-sort-item {
+    max-width: 220px;
+  }
+}
+
+@media screen and (min-width: 1320px) {
+  .user-home__dynamic-sidebar {
+    width: 230px;
+  }
+
+  .user-home__dynamic-sort-item {
+    max-width: 230px;
+  }
+}
+
+.user-home__dynamic-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-home__dynamic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-home__dynamic-more {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+
+  &-tip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #86909c;
+  }
+}
+
 .user-home__follow {
   display: block;
 }
@@ -2139,7 +2386,6 @@ watch(
   gap: 12px;
   flex: 1;
   min-width: 0;
-  cursor: pointer;
   text-decoration: none;
   color: inherit;
 }
@@ -2163,8 +2409,9 @@ watch(
   font-size: 15px;
   font-weight: 500;
   color: #222;
+  text-decoration: none;
 
-  .user-home__follow-item-link:hover & {
+  &:hover {
     color: @pink;
   }
 }

@@ -16,7 +16,12 @@ export default defineConfigWithVueTs(
 
   {
     name: 'app/files-to-ignore',
-    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**'],
+    ignores: [
+      '**/dist/**',
+      '**/dist-ssr/**',
+      '**/coverage/**',
+      'src/assets/js/iconfont.js', // 第三方图标库自动生成文件，不参与 lint
+    ],
   },
 
   pluginVue.configs['flat/essential'],

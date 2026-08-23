@@ -180,7 +180,7 @@ const loadHistory = () => {
     if (data) {
       searchHistory.value = JSON.parse(data)
     }
-  } catch (e) {
+  } catch {
     searchHistory.value = []
   }
 }

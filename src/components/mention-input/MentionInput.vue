@@ -29,7 +29,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:modelValue', val: string): void
-  (e: 'atTrigger', keyword: string | null): void
+  (e: 'atTrigger', keyword: string | null, rect: DOMRect | null): void
   (e: 'input', val: string): void
   (e: 'focus'): void
   (e: 'blur'): void
@@ -110,13 +110,42 @@ const getAtKeywordBeforeCaret = (): string | null => {
   return match ? match[1] : null
 }
 
+// 获取光标在视口下的矩形（用于 @ 面板定位）
+const getCaretRect = (): DOMRect | null => {
+  const editor = editorRef.value
+  const selection = window.getSelection()
+  if (!editor || !selection || selection.rangeCount === 0) return null
+  const range = selection.getRangeAt(0)
+  if (!editor.contains(range.startContainer)) return null
+  // 克隆一个临时 range，不要改动用户选区
+  const tmp = range.cloneRange()
+  tmp.collapse(true)
+  let rect = tmp.getBoundingClientRect()
+  // 空内容时可能是 0 宽高，退回编辑器左上角坐标
+  if (!rect || (rect.width === 0 && rect.height === 0)) {
+    const er = editor.getBoundingClientRect()
+    rect = {
+      top: er.top + 10,
+      left: er.left + 12,
+      right: er.left + 12,
+      bottom: er.top + 34,
+      x: er.left + 12,
+      y: er.top + 10,
+      width: 0,
+      height: 24,
+      toJSON() { return this },
+    } as DOMRect
+  }
+  return rect
+}
+
 let lastAtKeyword: string | null | undefined
 
 const emitAtKeywordBeforeCaret = (force = false) => {
   const keyword = getAtKeywordBeforeCaret()
   if (!force && keyword === lastAtKeyword) return
   lastAtKeyword = keyword
-  emit('atTrigger', keyword)
+  emit('atTrigger', keyword, keyword !== null ? getCaretRect() : null)
 }
 
 const onSelectionChange = () => {
@@ -182,7 +211,7 @@ const insertMention = (username: string, uid: number) => {
   const range = sel.getRangeAt(0)
 
   // 找到当前光标所在文本节点，删除 @ 及其后的搜索关键词
-  let node = range.startContainer
+  const node = range.startContainer
   let offset = range.startOffset
 
   if (node.nodeType === Node.TEXT_NODE) {
@@ -242,7 +271,7 @@ const clear = () => {
   }
   // 复位 @ 关键词状态，关闭可能残留的 @ 候选弹窗（如输入 @ 后未选择直接发布）
   lastAtKeyword = undefined
-  emit('atTrigger', null)
+  emit('atTrigger', null, null)
 }
 
 // 聚焦

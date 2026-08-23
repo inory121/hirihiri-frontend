@@ -78,6 +78,7 @@ onBeforeUnmount(() => {
   --bg-color: #fff;
   --position: fixed;
   --search-display: block;
+  --line_regular: #e3e5e7;
 }
 
 /* 中文标点开头排版对齐（不区分标签与系统） */

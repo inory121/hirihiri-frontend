@@ -4,7 +4,7 @@
       <slot></slot>
     </div>
     <Transition name="hover-card">
-      <div v-show="visible" class="user-hover-card" :class="`placement-${computedPlacement}`" :style="cardStyle">
+      <div v-show="visible" class="user-hover-card" :class="`placement-${computedPlacement}`" :style="cardStyle" @click.stop>
         <div class="user-hover-card__inner">
           <div class="user-hover-card__bg">
             <img :src="user.background || 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/background.png'" alt="" class="user-hover-card__bg-img" />
@@ -27,12 +27,12 @@
                 />
               </div>
               <div class="user-hover-card__stats">
-                <a :href="`/space/${user.uid}/following`" target="_blank" class="stat-item">
+                <a :href="`/space/${user.uid}?tab=followings`" target="_blank" class="stat-item">
                   <span class="stat-num">{{ formatNumber(user.videoCount ?? 0) }}</span>
                   <span class="stat-label">关注</span>
                 </a>
                 <span class="stat-divider"> </span>
-                <a :href="`/space/${user.uid}/fans`" target="_blank" class="stat-item">
+                <a :href="`/space/${user.uid}?tab=followers`" target="_blank" class="stat-item">
                   <span class="stat-num">{{ formatNumber(user.fanCount ?? 0) }}</span>
                   <span class="stat-label">粉丝</span>
                 </a>
@@ -131,23 +131,50 @@ const cardStyle = computed(() => {
   return style
 })
 
-const CARD_MIN_HEIGHT = 240
+const CARD_HEIGHT = 240
+const CARD_WIDTH = 360
 
 const checkSpace = () => {
   if (!props.autoAdjust || !wrapperRef.value) return
   const rect = wrapperRef.value.getBoundingClientRect()
   const topSpace = rect.top
-  const needTop = props.placement.startsWith('top') || props.placement === 'right-top'
-  if (needTop && topSpace < CARD_MIN_HEIGHT + props.offsetY) {
-    // 上方空间不足，翻转为 bottom 版本
-    if (props.placement === 'top') adjustedPlacement.value = 'bottom'
-    else if (props.placement === 'top-left') adjustedPlacement.value = 'bottom-left'
-    else if (props.placement === 'top-right') adjustedPlacement.value = 'bottom-right'
-    else if (props.placement === 'right-top') adjustedPlacement.value = 'right-bottom'
-    else adjustedPlacement.value = 'bottom'
-  } else {
-    adjustedPlacement.value = ''
+  const bottomSpace = window.innerHeight - rect.bottom
+  const leftSpace = rect.left
+  const rightSpace = window.innerWidth - rect.right
+  const needH = CARD_HEIGHT + props.offsetY
+  const needW = CARD_WIDTH + props.offsetX
+
+  const p = props.placement
+  let adjusted = ''
+
+  // 垂直方向：朝上的 placement 上方空间不足 → 翻到下方对应位置
+  if (p === 'top' || p === 'top-left' || p === 'top-right' || p === 'right-top') {
+    if (topSpace < needH) {
+      adjusted = p === 'top' ? 'bottom'
+        : p === 'top-left' ? 'bottom-left'
+        : p === 'top-right' ? 'bottom-right'
+        : 'right-bottom'
+    }
   }
+  // 垂直方向：朝下的 placement 下方空间不足 → 翻到上方对应位置
+  else if (p === 'bottom' || p === 'bottom-left' || p === 'bottom-right' || p === 'right-bottom') {
+    if (bottomSpace < needH) {
+      adjusted = p === 'bottom' ? 'top'
+        : p === 'bottom-left' ? 'top-left'
+        : p === 'bottom-right' ? 'top-right'
+        : 'right-top'
+    }
+  }
+  // 水平方向：朝左 → 左方空间不足翻到右侧
+  else if (p === 'left') {
+    if (leftSpace < needW) adjusted = 'right'
+  }
+  // 水平方向：朝右 → 右方空间不足翻到左侧
+  else if (p === 'right') {
+    if (rightSpace < needW) adjusted = 'left'
+  }
+
+  adjustedPlacement.value = adjusted
 }
 
 const formatNumber = (num: number): string => {

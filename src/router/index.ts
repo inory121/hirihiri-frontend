@@ -105,6 +105,11 @@ const router = createRouter({
       meta: { requestAuth: false },
     },
     {
+      path: '/dynamic',
+      component: () => import('@/views/dynamic/DynamicIndex.vue'),
+      meta: { requestAuth: false },
+    },
+    {
       path: '/history',
       component: () => import('@/views/history/HistoryIndex.vue'),
       meta: { requestAuth: true },

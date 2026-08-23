@@ -5,8 +5,11 @@ export enum VIDEO_API {
   GET_RECENT_LIKES = "/video/interaction/recent/likes",
   GET_FAVORITE_FOLDERS = "/favorite/folders",
   CREATE_FAVORITE_FOLDER = "/favorite/folder",
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
   UPDATE_FAVORITE_FOLDER = "/favorite/folder",
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
   DELETE_FAVORITE_FOLDER = "/favorite/folder",
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
   GET_FOLDER_VIDEOS = "/favorite/folder",
   GET_RECOMMEND_VIDEO = "/video/recommend",
   GET_BY_ID = "/video",
@@ -22,6 +25,5 @@ export enum VIDEO_API {
   // 视频互动
   TOGGLE_LIKE = "/video/interaction/like", // 点赞/取消点赞
   TOGGLE_COIN = "/video/interaction/coin", // 投币/取消投币
-  TOGGLE_COLLECT = "/video/interaction/collect", // 收藏/取消收藏
   GET_INTERACTION_STATUS = "/video/interaction/status", // 获取互动状态
 }

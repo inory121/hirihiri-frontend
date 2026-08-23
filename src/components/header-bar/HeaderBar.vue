@@ -288,8 +288,8 @@
           </div>
         </el-popover>
       </li>
-      <li @click="handleRightEntryClick">
-        <a href="#" class="right-default-entry v-popover-wrap">
+      <li>
+        <a href="/dynamic" target="_blank" class="right-default-entry v-popover-wrap">
           <el-icon class="right-icon">
             <ChromeFilled />
           </el-icon>
@@ -520,7 +520,7 @@ const totalUnreadCount = computed(() => messageStore.unread.totalUnread)
 const messageUnread = computed(() => messageStore.unread)
 const resolvePath = (path: string, query?: Record<string, string | number | null | undefined>) => {
   let realPath = path
-  const realQuery: Record<string, any> = {}
+  const realQuery: Record<string, string | number> = {}
   // 支持 path 中带 "?a=1&b=2" 的写法，自动拆分出来单独传给 query
   if (realPath.includes('?')) {
     const [p, qs] = realPath.split('?')
