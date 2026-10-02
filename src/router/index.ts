@@ -110,6 +110,11 @@ const router = createRouter({
       meta: { requestAuth: false },
     },
     {
+      path: '/dynamic/:dynamicId',
+      component: () => import('@/views/dynamic/DynamicDetail.vue'),
+      meta: { requestAuth: false },
+    },
+    {
       path: '/history',
       component: () => import('@/views/history/HistoryIndex.vue'),
       meta: { requestAuth: true },

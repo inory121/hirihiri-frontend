@@ -5,7 +5,7 @@
       <a href="#" class="channel-icons__item"
         ><img
           class="icon-img"
-          src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
+          :src="SITE_LOGO"
           alt=""
         />
         <span>动态</span></a
@@ -13,7 +13,7 @@
       <a href="#" class="channel-icons__item"
         ><img
           class="icon-img"
-          src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/hot.svg"
+          :src="HOT_ICON"
           alt=""
         /><span>热门</span></a
       >
@@ -91,6 +91,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useCategoryStore } from '@/stores/categoryStore.ts'
 import MyPopover from '@/components/my-popover/MyPopover.vue'
+import { SITE_LOGO, HOT_ICON } from '@/utils/constants'
 
 // 计算每个元素的 placement
 const getPopoverPlacement = (index: number) => {

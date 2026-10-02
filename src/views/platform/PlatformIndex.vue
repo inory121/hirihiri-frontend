@@ -51,7 +51,7 @@
           <a href="#" class="avatar-img">
             <img
               class="hiri-avatar-img"
-              src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/05b340832a490209f185542bb9690fc748bc08f7.png"
+              :src="SITE_LOGO"
               alt=""
             />
           </a>
@@ -152,6 +152,7 @@
 
 <script lang="ts" setup>
 import { useUserStore } from '@/stores/userStore.ts'
+import { SITE_LOGO } from '@/utils/constants'
 
 const userStore = useUserStore()
 </script>

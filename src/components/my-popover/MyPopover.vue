@@ -5,7 +5,7 @@
     @mouseenter="handleMouseEnter"
     @click="handleClick"
   >
-    <div style="position: relative" ref="vPopRef">
+    <div class="v-popover__reference" ref="vPopRef">
       <slot name="reference"></slot>
     </div>
     <div class="v-popover" :class="'to-' + placement" :style="popStyle">
@@ -29,12 +29,18 @@ interface Props {
   placement?: 'top' | 'bottom' | 'left' | 'right'
   trigger?: 'hover' | 'click'
   popStyle?: string
+  // 悬停多久后显示，防止鼠标快速划过时疯狂弹出
+  showAfter?: number
+  // 鼠标离开多久后隐藏，防止轻微抖动导致的反复开关
+  hideAfter?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   placement: 'bottom',
   trigger: 'hover',
   popStyle: '',
+  showAfter: 300,
+  hideAfter: 100,
 })
 
 // Refs
@@ -44,6 +50,7 @@ const popoverDisplay = ref('none')
 const isPopoverShow = ref(false)
 
 let inTimer: ReturnType<typeof setTimeout> | undefined
+let outTimer: ReturnType<typeof setTimeout> | undefined
 
 // 显示气泡框
 const show = () => {
@@ -62,16 +69,22 @@ const hide = () => {
 // 鼠标悬停事件
 const handleMouseEnter = () => {
   if (props.trigger === 'hover') {
+    // 重新进入时取消待隐藏定时器，避免闪烁
+    clearTimeout(outTimer)
+    clearTimeout(inTimer)
+    if (isPopoverShow.value) return
     inTimer = setTimeout(() => {
       show()
-    }, 100)
+    }, props.showAfter)
   }
 }
 
 const handleMouseLeave = () => {
   if (props.trigger === 'hover') {
     clearTimeout(inTimer)
-    hide()
+    outTimer = setTimeout(() => {
+      hide()
+    }, props.hideAfter)
   }
 }
 
@@ -106,6 +119,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  clearTimeout(inTimer)
+  clearTimeout(outTimer)
   if (props.trigger === 'click') {
     window.removeEventListener('click', handleOutsideClick)
   }
@@ -113,6 +128,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="less">
+.v-popover__reference {
+  position: relative;
+  // 触发元素（头像）及其放大/缩小态始终位于弹窗内容之上（弹窗 z-index 为 1）
+  z-index: 2;
+}
+
 .v-popover {
   position: absolute;
   transition: 0.8s;

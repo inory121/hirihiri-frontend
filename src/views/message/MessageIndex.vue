@@ -106,7 +106,7 @@
               </button>
               <img class="ses-avatar" :src="session.peerUser?.avatar || defaultAvatar" alt=""/>
               <div class="ses-body">
-                <p class="ses-name">{{ session.peerUser?.username || '未知用户' }}</p>
+                <p class="ses-name">{{ getUserDisplayName(session.peerUser) }}</p>
                 <p class="ses-preview">{{ session.lastMessage || '暂无消息' }}</p>
               </div>
               <em v-if="session.unreadCount > 0 && currentSessionId !== session.sessionId"
@@ -134,7 +134,7 @@
                     }}条]
                   </template>
                   {{
-                    strangerSessionList[0]?.peerUser?.username || '有新的陌生人消息'
+                    getUserDisplayName(strangerSessionList[0]?.peerUser, '') || '有新的陌生人消息'
                   }}：{{ strangerSessionList[0]?.lastMessage || '' }}
                 </p>
               </div>
@@ -159,7 +159,7 @@
               </button>
               <img class="ses-avatar" :src="session.peerUser?.avatar || defaultAvatar" alt=""/>
               <div class="ses-body">
-                <p class="ses-name">{{ session.peerUser?.username || '未知用户' }}</p>
+                <p class="ses-name">{{ getUserDisplayName(session.peerUser) }}</p>
                 <p class="ses-preview">{{ session.lastMessage || '暂无消息' }}</p>
               </div>
               <em v-if="session.unreadCount > 0 && currentSessionId !== session.sessionId"
@@ -186,7 +186,7 @@
           <div v-if="currentSession && currentSessionId" class="chat-box">
             <div class="chat-top">
               <span class="chat-top-name">{{
-                  currentSession.peerUser?.username || '未知用户'
+                  getUserDisplayName(currentSession.peerUser)
                 }}</span>
               <div class="chat-more-wrap" ref="chatMoreRef">
                 <button class="chat-more-btn" @click.stop="toggleChatMenu" title="更多">
@@ -628,11 +628,17 @@
                 <span v-else class="ntc-thumb-text">查看视频</span>
               </span>
               <span
+                v-else-if="notice.bizType === 'dynamic' && noticeDynamicContent(notice)"
+                class="ntc-thumb ntc-thumb--text"
+                title="查看原动态"
+                @click.stop="goNoticeTarget(notice)"
+              >{{ noticeDynamicContent(notice) }}</span>
+              <span
                 v-else-if="notice.bizId"
                 class="ntc-thumb ntc-thumb--link"
                 @click.stop="goNoticeTarget(notice)"
               >
-                <span class="ntc-thumb-text">查看原评论</span>
+                <span class="ntc-thumb-text">{{ notice.bizType === 'dynamic' ? '查看动态' : '查看原评论' }}</span>
               </span>
               <span v-if="notice.isRead === 0" class="ntc-dot"></span>
             </div>
@@ -763,7 +769,7 @@
               </div>
               <div class="ntc-body">
                 <p class="ntc-title">
-                  <b v-if="notice.actorUser" class="ntc-actor">{{ notice.actorUser.username }}</b>
+                  <b v-if="notice.actorUser" class="ntc-actor">{{ getUserDisplayName(notice.actorUser) }}</b>
                   {{ notice.title }}
                 </p>
                 <p v-if="notice.contentSummary" class="ntc-summary">
@@ -794,9 +800,12 @@ import {useUserStore} from '@/stores/userStore'
 import HeaderBar from '@/components/header-bar/HeaderBar.vue'
 import MentionContent from '@/components/mention-content/MentionContent.vue'
 import LikeDetail from '@/views/message/LikeDetail.vue'
-import type {MessageSession, MessageNotice, MessagePrivateMessage} from '@/types/api'
+import type {MessageSession, MessageNotice, MessagePrivateMessage, Dynamic, DynamicApiResponse} from '@/types/api'
 import {COMMENT_API} from '@/api/comment'
-import {post} from '@/utils/request'
+import {DYNAMIC_API} from '@/api/dynamic'
+import {get, post} from '@/utils/request'
+import {getUserDisplayName} from '@/utils/utils'
+import {ElMessageBox} from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
@@ -827,6 +836,37 @@ const activeReplyNoticeId = ref<number | null>(null)
 const noticeReplyContent = ref('')
 const noticeLikedMap = ref<Record<number, boolean>>({})
 const noticeReplyTextareaRef = ref<HTMLTextAreaElement | null>(null)
+
+// 动态通知对应的动态详情缓存（dynamicId -> Dynamic），用于「回复我的」右侧显示动态正文
+const noticeDynamicMap = ref<Record<number, Dynamic>>({})
+const noticeDynamicPending = new Set<number>()
+
+function noticeDynamicId(notice: MessageNotice): number {
+  return noticeExt(notice).dynamicId || notice.bizId || 0
+}
+
+// 动态正文预览：优先正文，无正文则用标题（拉取失败/为空时返回空串，模板回落到「查看动态」兜底）
+function noticeDynamicContent(notice: MessageNotice): string {
+  const dynamic = noticeDynamicMap.value[noticeDynamicId(notice)]
+  if (!dynamic) return ''
+  return (dynamic.content || dynamic.title || '').trim()
+}
+
+async function loadNoticeDynamic(notice: MessageNotice) {
+  const id = noticeDynamicId(notice)
+  if (!id || noticeDynamicMap.value[id] || noticeDynamicPending.has(id)) return
+  noticeDynamicPending.add(id)
+  try {
+    const res = await get<DynamicApiResponse>(`${DYNAMIC_API.DETAIL}/${id}`)
+    if (res.code === 200 && res.data) {
+      noticeDynamicMap.value[id] = res.data
+    }
+  } catch {
+    // 拉取失败保持空，展示层回落到「查看动态」兜底
+  } finally {
+    noticeDynamicPending.delete(id)
+  }
+}
 // 点赞详情目标：从路由 /like/:bizType/:bizId 派生，使路径可变化、可回退（刷新仍有效）
 const likeDetailBiz = computed(() => {
   const m = route.path.match(/^\/like\/([^/]+)\/(\d+)$/)
@@ -852,6 +892,13 @@ const currentMessages = computed(() => messageStore.currentMessages)
 const currentMessagesLoading = computed(() => messageStore.currentMessagesLoading)
 const notices = computed(() => messageStore.notices)
 const noticesLoading = computed(() => messageStore.noticesLoading)
+
+// 通知列表变化时预取「回复我的」里动态通知对应的动态正文
+watch(() => notices.value, (list) => {
+  list.forEach((n) => {
+    if (n.noticeType === 'reply' && n.bizType === 'dynamic') loadNoticeDynamic(n)
+  })
+}, {immediate: true})
 
 // 左侧“我的消息”仅代表已关注用户的私信；陌生人消息在中间单独分组展示。
 // 不直接使用服务端 privateUnread：服务端汇总可能暂时包含当前已打开会话，
@@ -938,7 +985,7 @@ const groupedLikes = computed<LikeGroup[]>(() => {
       if (n.actorUser && !userMap.has(n.actorUser.uid)) {
         userMap.set(n.actorUser.uid, {
           uid: n.actorUser.uid,
-          username: n.actorUser.username,
+          username: getUserDisplayName(n.actorUser),
           avatar: n.actorUser.avatar
         })
         if (userMap.size >= 2) break
@@ -1040,6 +1087,7 @@ function goToSession(session: MessageSession) {
 
 // 删除会话
 async function deleteSession(session: MessageSession) {
+  if (!(await confirmDeleteNotice())) return
   if (currentSessionId.value === session.sessionId) {
     messageStore.currentSessionId = null
     messageStore.currentSession = null
@@ -1254,6 +1302,8 @@ function noticeExt(notice: MessageNotice): {
   videoId?: number
   videoTitle?: string
   videoCover?: string
+  // 动态评论通知携带的动态ID（bizId 存的是评论ID）
+  dynamicId?: number
   originContent?: string
   originUsername?: string
   originMentionUsers?: MentionUser[]
@@ -1278,11 +1328,14 @@ function likeTargetLabel(notice: MessageNotice): string {
   return notice.title || '内容'
 }
 
-// 回复通知：根据 bizType 区分"回复我的评论"与"对我的视频发表评论"
+// 回复通知：根据 bizType 区分"回复我的评论""对我的视频发表评论"与"对我的动态发表评论"
 function noticeReplyLabel(notice: MessageNotice): string {
-  // bizType=comment：别人回复了我的某条评论；bizType=video：别人对我的视频发表根评论
+  // bizType=comment：别人回复了我的某条评论；bizType=video：别人对我的视频发表根评论；bizType=dynamic：别人对我的动态发表评论
   if (notice.bizType === 'comment') {
     return '回复了我的评论'
+  }
+  if (notice.bizType === 'dynamic') {
+    return '对我的动态发表了评论'
   }
   const count = notice.extJson ? (() => {
     try {
@@ -1349,8 +1402,23 @@ async function likeNoticeComment(notice: MessageNotice) {
   }
 }
 
+// 删除前统一确认弹窗：确认返回 true，取消返回 false
+async function confirmDeleteNotice(): Promise<boolean> {
+  try {
+    await ElMessageBox.confirm('删除该条通知后将无法恢复，是否继续？', '删除确认', {
+      confirmButtonText: '继续',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
 // 删除单条通知（调用后端真实删除）
 async function deleteNotice(notice: MessageNotice) {
+  if (!(await confirmDeleteNotice())) return
   await messageStore.deleteNotice(notice.id)
 }
 
@@ -1358,11 +1426,17 @@ async function deleteNotice(notice: MessageNotice) {
 // 携带 commentId 参数以便视频页自动滚动到目标评论并高亮
 // 注意：window.open 必须在点击同步栈内执行，故先开新页，再异步标记已读（避免 await 后弹窗被拦截）
 function goNoticeTarget(notice: MessageNotice) {
-  // 动态 @ 通知：跳转到动态列表页（动态暂无独立详情页，bizId 为动态 id）
+  // 动态类通知：新标签页打开动态详情页（/dynamic/:id）
   if (notice.bizType === 'dynamic') {
+    // 动态@通知（发布动态时）bizId 即动态id；动态评论通知 bizId 是评论id，动态id 在 extJson.dynamicId
+    const dynamicId = noticeExt(notice).dynamicId || notice.bizId
+    if (!dynamicId) return
     const query: Record<string, string> = {}
-    if (notice.bizId) query.dynamicId = String(notice.bizId)
-    const href = router.resolve({path: '/dynamic', query}).href
+    // 评论/回复/@类通知 bizId 指向具体评论，供详情页定位（动态点赞通知 bizId 是动态id，不携带）
+    if (notice.bizId && (notice.noticeType === 'comment' || notice.noticeType === 'reply' || notice.noticeType === 'at')) {
+      query.commentId = String(notice.bizId)
+    }
+    const href = router.resolve({path: `/dynamic/${dynamicId}`, query}).href
     window.open(href, '_blank')
     if (notice.isRead === 0) {
       messageStore.markNoticeRead(notice.id).catch(() => {
@@ -1388,7 +1462,7 @@ function goNoticeTarget(notice: MessageNotice) {
 
 // 提取通知触发者信息，避免在 v-if 嵌套插值里触发 Volar 对 actorUser 的误缩窄
 function actorName(notice: MessageNotice): string {
-  return notice.actorUser?.username ?? ''
+  return getUserDisplayName(notice.actorUser, '')
 }
 
 function actorUid(notice: MessageNotice): number {
@@ -1409,6 +1483,7 @@ function goLikeDetail(bizType: string, bizId: number | null) {
 
 // 删除点赞分组的所有通知
 async function deleteLikeGroup(group: LikeGroup) {
+  if (!(await confirmDeleteNotice())) return
   for (const notice of group.notices) {
     await messageStore.deleteNotice(notice.id)
   }

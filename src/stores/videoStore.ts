@@ -70,23 +70,30 @@ export const useVideoStore = defineStore('video', {
   },
   actions: {
     async getVideo(vid: number) {
-      await get<OneVideoApiResponse>(`${VIDEO_API.GET_BY_ID}/${vid}`).then((res) => {
-        if (res.code === 200) {
+      try {
+        const res = await get<OneVideoApiResponse>(`${VIDEO_API.GET_BY_ID}/${vid}`)
+        if (res.code === 200 && res.data?.video?.vid) {
           this.isShow = true
           this.videoInfo = res.data
-        } else {
-          ElMessage.error('视频不存在,3秒后跳转到首页')
-          router.replace({
-            path: '/404',
-            query: { from: 'video', vid: vid.toString() },
-          })
-          setTimeout(() => {
-            router.replace({
-              path: '/',
-            })
-          }, 3000)
+          return
         }
-      })
+        // 视频不存在或已被删除：重置残留数据并跳转 404
+        this.isShow = false
+        this.videoInfo = {
+          video: {} as Video,
+          stat: {} as VideoStat,
+          category: {} as SubCategory,
+          user: {} as User,
+        }
+        ElMessage.error('视频不存在或已被删除')
+        router.replace({ name: 'NotFound' })
+      } catch (e) {
+        // 请求异常同样按无效处理，避免页面停在空状态
+        console.log('获取视频信息失败:', e)
+        this.isShow = false
+        ElMessage.error('视频加载失败')
+        router.replace({ name: 'NotFound' })
+      }
     },
     async getSearchVideos(keyword: string, order = 'default', pageNum = 1, pageSize = 36) {
       await get<{ code: number; data: { records: VideoInfo[]; total: number } }>(

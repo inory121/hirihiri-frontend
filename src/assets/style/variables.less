@@ -18,6 +18,9 @@
 @black: #000;
 @bg-page: #f6f7f8; // 后台页面背景（Arco/Element 浅灰）
 
+// OSS 静态资源域名（与 src/utils/constants.ts 的 OSS_BASE 保持一致，仅 CSS url() 拼接用）
+@oss-base: 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com';
+
 // 布局 / 文本 工具 mixin（已全局注入，组件内用 .flex-center(); 调用，不产生重复 CSS 输出）
 .flex-center() {
   display: flex;

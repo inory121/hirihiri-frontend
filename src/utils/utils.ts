@@ -1,4 +1,5 @@
 import { sha256 } from 'js-sha256'
+import { OSS_BASE } from '@/utils/constants'
 // 补零工具函数
 const pad = (n: number): string => n.toString().padStart(2, '0')
 
@@ -111,4 +112,14 @@ export const getLevelByExp = (exp: number): number => {
 
 // 根据等级数字拼接等级图标 URL
 export const getLevelIconUrl = (level?: number): string =>
-  `https://hirihiri2.oss-cn-shanghai.aliyuncs.com/level_${level ?? 0}.svg`
+  `${OSS_BASE}/level_${level ?? 0}.svg`
+
+// 用户对外展示名：统一以 nickname（昵称）为优先，缺失时回退 username，再兜底 UID
+// 注：username 仅作登录账号/@提及句柄，不再作为主展示名（对齐 B 站惯例）
+export const getUserDisplayName = (
+  user?: { nickname?: string; username?: string; uid?: number } | null,
+  fallback = '未知用户',
+): string => {
+  if (!user) return fallback
+  return user.nickname || user.username || (user.uid ? `UID:${user.uid}` : fallback)
+}

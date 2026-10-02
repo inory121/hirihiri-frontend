@@ -15,7 +15,7 @@
                      alt=""/>
                 <div class="user-card__info">
                   <div class="user-card__name">
-                    {{ userStore.user.username }}
+                    {{ getUserDisplayName(userStore.user) }}
                   </div>
                   <div class="user-card__level">
                   <span v-if="userStore.user.vip === 1"
@@ -45,12 +45,12 @@
                     }}</span>
                   <span class="user-card__stat-label">粉丝</span>
                 </a>
-                <div class="user-card__stat">
+                <a class="user-card__stat" :href="`/space/${userStore.user.uid}?tab=dynamic`" target="_blank">
                   <span class="user-card__stat-num">{{
                       formatNumber(dynamicStore.myDynamicTotal)
                     }}</span>
-                  <span class="user-card__stat-label">动态</span>
-                </div>
+                  <span class="user-card__stat-label" >动态</span>
+                </a>
               </div>
             </template>
             <template v-else>
@@ -205,7 +205,7 @@
                   >
                     <img
                       class="dynamic-ups__avatar dynamic-ups__avatar--all"
-                      src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/all-icon.png"
+                      :src="ALL_DYNAMIC_ICON"
                       alt=""
                     />
                     <span class="dynamic-ups__name">全部动态</span>
@@ -220,17 +220,8 @@
                     <img class="dynamic-ups__avatar" :src="up.user?.avatar || defaultAvatar"
                          alt=""/>
                     <span class="dynamic-ups__name">{{
-                        up.user?.username || up.user?.nickname || `UID:${up.uid}`
+                        getUserDisplayName(up.user, `UID:${up.uid}`)
                       }}</span>
-                  </div>
-                  <!-- 末尾加载指示 -->
-                  <div
-                    v-if="upLoadingMore || !upHasMore"
-                    class="dynamic-ups__item dynamic-ups__item--hint"
-                  >
-                    <span v-if="upLoadingMore" class="dynamic-ups__hint-loading">加载中…</span>
-                    <span v-else-if="!upHasMore && dynamicStore.upList.length > 0"
-                          class="dynamic-ups__hint-end">已显示全部</span>
                   </div>
                 </div>
               </div>
@@ -304,10 +295,12 @@ import MentionInput from '@/components/mention-input/MentionInput.vue'
 import DynamicCard from '@/components/dynamic-card/DynamicCard.vue'
 import {useUserStore} from '@/stores/userStore'
 import {useDynamicStore} from '@/stores/dynamicStore'
+import {useMessageStore} from '@/stores/messageStore'
 import {
   formatNumber,
   getLevelByExp,
   getLevelIconUrl,
+  getUserDisplayName,
 } from '@/utils/utils.ts'
 import {
   ArrowLeft,
@@ -316,11 +309,13 @@ import {
   Loading,
 } from '@element-plus/icons-vue'
 import type {Dynamic, User} from '@/types/api'
+import {DEFAULT_AVATAR, ALL_DYNAMIC_ICON} from '@/utils/constants'
 
-const defaultAvatar = 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg'
+const defaultAvatar = DEFAULT_AVATAR
 
 const userStore = useUserStore()
 const dynamicStore = useDynamicStore()
+const messageStore = useMessageStore()
 
 const pageNum = ref(1)
 const pageSize = ref(10)
@@ -670,6 +665,8 @@ onMounted(async () => {
     if (userStore.user.uid) {
       dynamicStore.getMyDynamicCount(userStore.user.uid)
     }
+    // 进入动态页即视为看过：清空「关注的UP主新投稿」未读通知（头部动态红点随之清零）
+    messageStore.markAllNoticesRead('dynamic')
   }
   nextTick(updateUpsEdgeState)
   window.addEventListener('resize', updateUpsEdgeState)
@@ -678,7 +675,7 @@ onMounted(async () => {
 
 <style lang="less" scoped>
 .hiri-header__bar {
-  --search-display: none;
+  --search-display: flex;
   position: fixed;
   top: 0;
   left: 0;

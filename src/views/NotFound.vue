@@ -9,8 +9,8 @@
         <div class="error-panel">
           <img src="//static.hdslb.com/error/very_sorry.png" alt="" />
           <div style="text-align: center">
-            <el-button type="primary" style="width: 120px; height: 40px">
-              <router-link to="/" class="back-home-link">返回首页</router-link>
+            <el-button type="primary" style="width: 120px; height: 40px" @click="goBack">
+              返回上一页
             </el-button>
           </div>
         </div>
@@ -21,6 +21,18 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+// 返回上一页；无浏览历史（如直接打开/刷新本页）时回首页兜底
+const goBack = () => {
+  if (window.history.state?.back) {
+    router.back()
+  } else {
+    router.push('/')
+  }
+}
 
 onMounted(() => {
   document.body.style.backgroundColor = '#f1f2f3'

@@ -243,6 +243,8 @@ export interface Dynamic {
   video?: { video: Video; stat: VideoStat; user?: User } | null
   // 转发动态（type=3）时返回被转发的原动态完整数据
   parent?: Dynamic | null
+  // 是否未读（动态弹窗 unread-list 接口返回：关注的UP主新投稿）
+  unread?: boolean
 }
 
 // 发布动态请求参数
@@ -263,6 +265,30 @@ export interface DynamicPageData {
 
 export interface DynamicPageApiResponse extends BaseResponse {
   data: DynamicPageData
+}
+
+// 动态详情响应（单条）
+export interface DynamicApiResponse extends BaseResponse {
+  data: Dynamic
+}
+
+// 动态「赞与转发」用户列表单项：user 为互动用户，action 区分点赞/转发
+export interface DynamicInteraction {
+  user: User
+  action: 'like' | 'repost'
+  time: string
+}
+
+// 动态「赞与转发」分页数据（赞与转发分开计数、不去重，同一用户既赞又转发会有两条）
+export interface DynamicInteractionPage {
+  records: DynamicInteraction[]
+  total: number
+  likeCount: number
+  repostCount: number
+}
+
+export interface DynamicInteractionApiResponse extends BaseResponse {
+  data: DynamicInteractionPage
 }
 
 // 发过动态的UP主
@@ -358,6 +384,8 @@ export interface MessageUnread {
   atUnread: number
   likeUnread: number
   systemUnread: number
+  // 动态未读数（关注的UP主新投稿，仅驱动头部动态红点，不计入 totalUnread）
+  dynamicUnread: number
 }
 
 export interface MessageSession {

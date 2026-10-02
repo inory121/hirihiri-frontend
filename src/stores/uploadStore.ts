@@ -151,7 +151,7 @@ export const useUploadStore = defineStore('upload', {
       }
       const uploaded = Array.from(this.uploadedChunks).sort((a, b) => a - b)
       this._saveDraftInternal(uploaded, this.draft?.totalChunks || 0)
-      ElMessage.success('草稿已保存')
+      // ElMessage.success('草稿已保存')
     },
 
     // 内部方法：实际保存草稿

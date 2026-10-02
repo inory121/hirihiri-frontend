@@ -85,7 +85,7 @@
                   <a :href="`/space/${item.authorUid}`" target="_blank">
                      <span class="item-author">
                     <img
-                      src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg"
+                      :src="DEFAULT_AVATAR"
                       class="video-card__avatar"
                      alt=""/>
                     {{ item.authorUsername }}</span
@@ -116,6 +116,7 @@ import {Delete} from '@element-plus/icons-vue'
 import type {HistoryVideoDTO} from '@/types/api.ts'
 import {useHistoryStore} from '@/stores/historyStore.ts'
 import {formatDuration} from '@/utils/utils.ts'
+import {DEFAULT_AVATAR} from '@/utils/constants'
 
 const router = useRouter()
 const historyStore = useHistoryStore()

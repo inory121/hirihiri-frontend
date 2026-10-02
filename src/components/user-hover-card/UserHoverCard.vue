@@ -7,7 +7,7 @@
       <div v-show="visible" class="user-hover-card" :class="`placement-${computedPlacement}`" :style="cardStyle" @click.stop>
         <div class="user-hover-card__inner">
           <div class="user-hover-card__bg">
-            <img :src="user.background || 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/background.png'" alt="" class="user-hover-card__bg-img" />
+            <img :src="user.background || DEFAULT_BACKGROUND" alt="" class="user-hover-card__bg-img" />
           </div>
           <div class="user-hover-card__body">
             <div class="user-hover-card__avatar-col">
@@ -17,7 +17,7 @@
             </div>
             <div class="user-hover-card__content-col">
               <div class="user-hover-card__name-row">
-                <a :href="`/space/${user.uid}`" class="user-hover-card__name" target="_blank">{{ user.username }}</a>
+                <a :href="`/space/${user.uid}`" class="user-hover-card__name" target="_blank">{{ getUserDisplayName(user) }}</a>
                 <span v-if="user.sex === 1" class="user-hover-card__sex male">♂</span>
                 <span v-else-if="user.sex === 2" class="user-hover-card__sex female">♀</span>
                 <img
@@ -74,7 +74,8 @@
 import { computed, ref } from 'vue'
 import { ChatDotRound } from '@element-plus/icons-vue'
 import type { User } from '@/types/api'
-import { getLevelByExp, getLevelIconUrl } from '@/utils/utils.ts'
+import { getLevelByExp, getLevelIconUrl, getUserDisplayName } from '@/utils/utils.ts'
+import { DEFAULT_BACKGROUND } from '@/utils/constants'
 
 interface Props {
   user: User

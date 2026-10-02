@@ -119,10 +119,10 @@
       <MyPopover class="avatar-popover-login" v-if="userStore.isLogin">
         <template #content>
           <div class="header-entry-large">
-            <a v-if="userStore.user.uid" :href="`/space/${userStore.user.uid}`" class="nickname-item" target="_blank">{{ userStore.user.username }}</a>
+            <a v-if="userStore.user.uid" :href="`/space/${userStore.user.uid}`" class="nickname-item" target="_blank">{{ getUserDisplayName(userStore.user) }}</a>
             <div class="vip-item">
               <a class="vip-item__label">
-                <img src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/8d4f8bfc713826a5412a0a27eaaac4d6b9ede1d9.png"
+                <img :src="VIP_BADGE_IMG"
                   alt="" />
               </a>
 
@@ -149,8 +149,8 @@
               <a class="single-count-item" @click.prevent="goMySpace('followers')">
                 <span class="counts-item__num">{{ formatNumber(userStore.currentUserFollow.followers) }}</span><span class="counts-item__text">粉丝</span>
               </a>
-              <a class="single-count-item" @click.prevent="goMySpace('video')">
-                <span class="counts-item__num">9999</span><span class="counts-item__text">动态</span>
+              <a class="single-count-item" @click.prevent="goMySpace('dynamic')">
+                <span class="counts-item__num">{{ formatNumber(dynamicStore.myDynamicTotal) }}</span><span class="counts-item__text">动态</span>
               </a>
             </div>
             <div class="vip-entry-container">
@@ -228,6 +228,8 @@
           :show-arrow="false"
           popper-class="message-popover"
           :offset="8"
+          :show-after="300"
+          :hide-after="100"
         >
           <template #reference>
             <a href="/message" class="right-default-entry v-popover-wrap" target="_blank" @click="handleRightEntryClick">
@@ -289,12 +291,79 @@
         </el-popover>
       </li>
       <li>
-        <a href="/dynamic" target="_blank" class="right-default-entry v-popover-wrap">
-          <el-icon class="right-icon">
-            <ChromeFilled />
-          </el-icon>
-          <span class="right-entry-text">动态</span>
-        </a>
+        <el-popover
+          placement="bottom"
+          trigger="hover"
+          :show-arrow="false"
+          popper-class="dynamic-popover"
+          :offset="8"
+          :show-after="300"
+          :hide-after="100"
+          @show="onDynamicPopoverShow"
+        >
+          <template #reference>
+            <a href="/dynamic" target="_blank" class="right-default-entry v-popover-wrap">
+              <el-badge
+                :value="dynamicUnreadCount"
+                :hidden="dynamicUnreadCount === 0"
+                :max="99"
+                class="message-badge"
+              >
+                <el-icon class="right-icon">
+                  <ChromeFilled />
+                </el-icon>
+              </el-badge>
+              <span class="right-entry-text">动态</span>
+            </a>
+          </template>
+          <div class="dynamic-popover-wrap">
+            <div v-if="dynamicPreviewLoading && dynamicPreviewList.length === 0" class="dynamic-popover-empty">
+              <div class="dynamic-popover-spinner"></div>
+              <span>加载中...</span>
+            </div>
+            <div v-else-if="dynamicPreviewList.length === 0" class="dynamic-popover-empty">
+              暂无动态
+            </div>
+            <template v-else>
+              <div ref="dynamicListRef" class="dynamic-popover-list" @scroll="onDynamicListScroll">
+                <template v-for="group in groupedDynamicPreview" :key="group.label">
+                  <div class="dynamic-popover-header">{{ group.label }}</div>
+                  <a
+                    v-for="item in group.items"
+                    :key="item.id"
+                    :href="dynamicItemLink(item)"
+                    target="_blank"
+                    class="dynamic-popover-item"
+                  >
+                    <img :src="item.user?.avatar" class="dynamic-popover-avatar" alt="" />
+                    <div class="dynamic-popover-info">
+                      <span class="dynamic-popover-username">{{
+                        getUserDisplayName(item.user)
+                      }}</span>
+                      <div class="dynamic-popover-title" :title="dynamicItemText(item)">
+                        {{ dynamicItemText(item) }}
+                      </div>
+                      <span class="dynamic-popover-time">{{ formatRelativeTime(item.createTime) }}</span>
+                    </div>
+                    <img
+                      v-if="dynamicItemCover(item)"
+                      :src="dynamicItemCover(item)"
+                      class="dynamic-popover-thumb"
+                      alt=""
+                    />
+                  </a>
+                </template>
+                <div v-if="dynamicPreviewLoadingMore" class="dynamic-popover-loading-more">加载中…</div>
+              </div>
+              <!-- 懒加载：只有到最后一页（没有更多）时才显示查看全部 -->
+              <div v-if="!dynamicPreviewHasMore" class="dynamic-popover-footer">
+                <a :href="resolvePath('/dynamic')" target="_blank" class="dynamic-popover-btn">
+                  查看全部
+                </a>
+              </div>
+            </template>
+          </div>
+        </el-popover>
       </li>
       <li @click="handleRightEntryClick">
         <el-popover
@@ -303,6 +372,8 @@
           :show-arrow="false"
           popper-class="favorite-popover"
           :offset="8"
+          :show-after="300"
+          :hide-after="100"
           @show="fetchFavoritePreview"
         >
           <template #reference>
@@ -371,11 +442,11 @@
                             @click.stop
                           >
                             <img
-                              src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg"
+                              :src="DEFAULT_AVATAR"
                               class="favorite-popover-up-icon"
                               alt=""
                             />
-                            <span>{{ video.user.username }}</span>
+                            <span>{{ getUserDisplayName(video.user) }}</span>
                           </a>
                         </div>
                       </a>
@@ -414,6 +485,8 @@
           :show-arrow="false"
           popper-class="history-popover"
           :offset="8"
+          :show-after="300"
+          :hide-after="100"
           @show="fetchHistoryPreview"
         >
           <template #reference>
@@ -457,7 +530,7 @@
                     <div class="history-popover-time">{{ formatBrowseTime(item.browseTime) }}</div>
                     <div class="history-popover-author">
                       <img
-                        src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg"
+                        :src="DEFAULT_AVATAR"
                         class="history-popover-up-icon"
                         alt=""
                       />
@@ -498,23 +571,39 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import MyPopover from '@/components/my-popover/MyPopover.vue'
 import SearchBox from '@/components/search/SearchBox.vue'
 import { useUserStore } from '@/stores/userStore.ts'
 import { useMessageStore } from '@/stores/messageStore.ts'
 import { useHistoryStore } from '@/stores/historyStore.ts'
 import { useVideoStore } from '@/stores/videoStore.ts'
+import { useDynamicStore } from '@/stores/dynamicStore.ts'
 import { useRouter } from 'vue-router'
-import type { FavoriteFolder, HistoryVideoDTO, VideoInfo } from '@/types/api.ts'
-import { formatNumber, formatDuration, getLevelByExp, getLevelIconUrl } from '@/utils/utils'
+import type { Dynamic, DynamicPageApiResponse, FavoriteFolder, HistoryVideoDTO, VideoInfo } from '@/types/api.ts'
+import { DYNAMIC_API } from '@/api/dynamic'
+import { get } from '@/utils/request'
+import { formatNumber, formatDuration, getLevelByExp, getLevelIconUrl, getUserDisplayName } from '@/utils/utils'
 import { VideoPlay } from '@element-plus/icons-vue'
+import { DEFAULT_AVATAR, VIP_BADGE_IMG } from '@/utils/constants'
 
 const router = useRouter()
 const userStore = useUserStore()
 const messageStore = useMessageStore()
 const historyStore = useHistoryStore()
 const videoStore = useVideoStore()
+const dynamicStore = useDynamicStore()
+
+// 头像卡片"动态"统计：登录后拉取当前用户自己发布的动态总数
+watch(
+  () => userStore.user.uid,
+  (uid) => {
+    if (userStore.isLogin && uid) {
+      dynamicStore.getMyDynamicCount(uid)
+    }
+  },
+  { immediate: true },
+)
 
 const totalUnreadCount = computed(() => messageStore.unread.totalUnread)
 const messageUnread = computed(() => messageStore.unread)
@@ -578,6 +667,166 @@ const selectFavoriteFolder = async (folderId: number) => {
   } finally {
     folderVideoLoading.value = false
   }
+}
+
+// ===== 动态弹窗 =====
+const dynamicPreviewLoading = ref(false)
+const dynamicPreviewList = ref<Dynamic[]>([])
+const dynamicPreviewPage = ref(1)
+const dynamicPreviewHasMore = ref(true)
+const dynamicPreviewLoadingMore = ref(false)
+const DYNAMIC_PREVIEW_PAGE_SIZE = 20
+const dynamicListRef = ref<HTMLElement | null>(null)
+
+// 拉取动态弹窗数据：未读动态（关注的UP主新投稿）排最前，其余视频投稿按时间倒序跟在后面
+const fetchDynamicPreview = async () => {
+  dynamicPreviewLoading.value = true
+  dynamicPreviewPage.value = 1
+  dynamicPreviewHasMore.value = true
+  try {
+    // 先拉未读动态（登录后才有）
+    let unreadItems: Dynamic[] = []
+    if (userStore.isLogin) {
+      try {
+        const unreadRes = await get<DynamicPageApiResponse>(DYNAMIC_API.UNREAD_LIST)
+        if (unreadRes.code === 200) {
+          unreadItems = unreadRes.data.records || []
+        }
+      } catch {
+        // 未读加载失败不影响主列表
+      }
+    }
+    const res = await get<DynamicPageApiResponse>(
+      `${DYNAMIC_API.LIST}?pageNum=1&pageSize=${DYNAMIC_PREVIEW_PAGE_SIZE}&type=2`,
+    )
+    if (res.code === 200) {
+      // 历史动态排除已在未读里展示的，按 id 去重
+      const unreadIds = new Set(unreadItems.map((u) => u.id))
+      const historyItems = (res.data.records || []).filter((it) => !unreadIds.has(it.id))
+      dynamicPreviewList.value = [...unreadItems, ...historyItems]
+      // 未读完一页 或 已加载满总数 = 没有更多
+      if (
+        historyItems.length < DYNAMIC_PREVIEW_PAGE_SIZE ||
+        dynamicPreviewList.value.length >= (res.data.total || 0)
+      ) {
+        dynamicPreviewHasMore.value = false
+      }
+    } else {
+      dynamicPreviewList.value = unreadItems
+      dynamicPreviewHasMore.value = false
+    }
+  } catch (e) {
+    console.error('加载动态列表失败', e)
+    dynamicPreviewList.value = []
+    dynamicPreviewHasMore.value = false
+  } finally {
+    dynamicPreviewLoading.value = false
+  }
+}
+
+// 弹窗打开：拉取列表 + 将未读动态标记为已读（列表已渲染，不影响本次展示；
+// 红点随 fetchUnreadSummary 与 WebSocket UNREAD_UPDATED 同步清零）
+const onDynamicPopoverShow = () => {
+  fetchDynamicPreview()
+  if (userStore.isLogin) {
+    messageStore.markAllNoticesRead('dynamic')
+  }
+}
+
+// 滚动到底部加载下一页（追加模式，按 id 去重）
+const loadMoreDynamics = async () => {
+  if (dynamicPreviewLoadingMore.value || !dynamicPreviewHasMore.value) return
+  dynamicPreviewLoadingMore.value = true
+  try {
+    const next = dynamicPreviewPage.value + 1
+    const res = await get<DynamicPageApiResponse>(
+      `${DYNAMIC_API.LIST}?pageNum=${next}&pageSize=${DYNAMIC_PREVIEW_PAGE_SIZE}&type=2`,
+    )
+    if (res.code === 200) {
+      const records = res.data.records || []
+      const existed = new Set(dynamicPreviewList.value.map((d) => d.id))
+      for (const it of records) {
+        if (!existed.has(it.id)) {
+          existed.add(it.id)
+          dynamicPreviewList.value.push(it)
+        }
+      }
+      dynamicPreviewPage.value = next
+      // 取到的条数不足一页 或 已加载满总数 = 最后一页
+      if (
+        records.length < DYNAMIC_PREVIEW_PAGE_SIZE ||
+        dynamicPreviewList.value.length >= (res.data.total || 0)
+      ) {
+        dynamicPreviewHasMore.value = false
+      }
+    } else {
+      dynamicPreviewHasMore.value = false
+    }
+  } catch (e) {
+    console.error('加载更多动态失败', e)
+  } finally {
+    dynamicPreviewLoadingMore.value = false
+  }
+}
+
+// 列表滚动接近底部时加载下一页
+const onDynamicListScroll = () => {
+  const el = dynamicListRef.value
+  if (!el) return
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+    loadMoreDynamics()
+  }
+}
+
+// 分组：未读的归入“最新动态”（关注的UP主新投稿），其余归入“历史动态”
+const groupedDynamicPreview = computed(() => {
+  const latest: Dynamic[] = []
+  const history: Dynamic[] = []
+  dynamicPreviewList.value.forEach((item) => {
+    if (item.unread) {
+      latest.push(item)
+    } else {
+      history.push(item)
+    }
+  })
+  const groups: { label: string; items: Dynamic[] }[] = []
+  if (latest.length > 0) groups.push({ label: '最新动态', items: latest })
+  if (history.length > 0) groups.push({ label: '历史动态', items: history })
+  return groups
+})
+
+// 头部动态入口红点：关注的UP主新投稿未读数（WebSocket UNREAD_UPDATED 实时更新）
+const dynamicUnreadCount = computed(() => messageStore.unread.dynamicUnread || 0)
+
+// 展示文案：视频动态展示视频标题，转发展示原动态，其余展示标题或内容
+const dynamicItemText = (item: Dynamic): string => {
+  const target = item.parent || item
+  return (target.video?.video.title || target.title || target.content || '').trim()
+}
+
+// 缩略图：优先视频封面，其次动态图片（转发取原动态）
+const dynamicItemCover = (item: Dynamic): string => {
+  const target = item.parent || item
+  return target.video?.video.coverUrl || target.images?.[0] || ''
+}
+
+// 跳转链接：统一去动态详情页（/dynamic/:id，页面内可再跳视频）
+const dynamicItemLink = (item: Dynamic): string => {
+  return resolvePath(`/dynamic/${item.id}`)
+}
+
+// 相对时间：刚刚 / n分钟前 / n小时前 / n天前 / M-D
+const formatRelativeTime = (time: string): string => {
+  const date = new Date(time)
+  const diff = Date.now() - date.getTime()
+  const minute = 60 * 1000
+  const hour = 60 * minute
+  const day = 24 * hour
+  if (diff < minute) return '刚刚'
+  if (diff < hour) return `${Math.floor(diff / minute)}分钟前`
+  if (diff < day) return `${Math.floor(diff / hour)}小时前`
+  if (diff < 30 * day) return `${Math.floor(diff / day)}天前`
+  return `${date.getMonth() + 1}-${date.getDate()}`
 }
 
 // ===== 历史弹窗 =====
@@ -1108,9 +1357,9 @@ const handleRightEntryClick = (event: Event) => {
 
       &:hover .hiri-avatar-img {
         transform: scale(2.5, 2.5) translate(-6px, 12px);
-        z-index: 2;
-        position: relative;
+        // 悬停稍作停留才放大，避免鼠标快速划过时闪烁
         transition: transform 0.5s ease;
+        transition-delay: 0.15s;
       }
 
       .hiri-avatar-img {
@@ -1120,7 +1369,9 @@ const handleRightEntryClick = (event: Event) => {
         height: 38px;
         border-radius: 50%;
         margin-right: 10px;
+        // 离开时立即缩回，无延迟
         transition: transform 0.5s ease;
+        transition-delay: 0s;
       }
     }
 
@@ -1219,7 +1470,7 @@ const handleRightEntryClick = (event: Event) => {
 
       .vip-entry-container {
         cursor: pointer;
-        background-image: url(https://hirihiri2.oss-cn-shanghai.aliyuncs.com/eAwhtOhoSo.png);
+        background-image: url('@{oss-base}/eAwhtOhoSo.png');
         display: flex;
         align-items: center;
         justify-content: space-around;
@@ -1590,7 +1841,7 @@ const handleRightEntryClick = (event: Event) => {
   }
 
   .history-popover-title {
-    font-size: 13px;
+    font-size: 14px;
     color: @text-1;
     line-height: 1.4;
     display: -webkit-box;
@@ -1602,7 +1853,7 @@ const handleRightEntryClick = (event: Event) => {
   }
 
   .history-popover-time {
-    font-size: 11px;
+    font-size: 12px;
     color: @text-3;
     line-height: 1.4;
   }
@@ -1610,7 +1861,7 @@ const handleRightEntryClick = (event: Event) => {
   .history-popover-author {
     display: flex;
     align-items: center;
-    font-size: 11px;
+    font-size: 12px;
     color: @text-3;
     line-height: 1.4;
     text-decoration: none;
@@ -1622,15 +1873,14 @@ const handleRightEntryClick = (event: Event) => {
   }
 
   .history-popover-up-icon {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     vertical-align: middle;
     margin-right: 2px;
   }
 
   .history-popover-footer {
     flex-shrink: 0;
-    border-top: 1px solid @border-color;
     padding: 8px 12px;
   }
 
@@ -1643,13 +1893,203 @@ const handleRightEntryClick = (event: Event) => {
     border-radius: 4px;
     font-size: 13px;
     color: @text-2;
-    background-color: @border-color;
+    background-color: #f6f7f8;
     text-decoration: none;
     transition: color 0.2s;
 
     &:hover {
       color: @blue;
     }
+  }
+}
+
+// 动态弹窗 el-popover 样式（popper 渲染到 body，需非 scoped）
+.dynamic-popover {
+  padding: 0 !important;
+  width: 370px !important;
+  max-width: 370px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 0 30px rgba(0, 0, 0, .1) !important;
+  border: 1px solid @border-color;
+
+  .dynamic-popover-wrap {
+    display: flex;
+    flex-direction: column;
+    max-height: 540px;
+    min-height: 0;
+  }
+
+  .dynamic-popover-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 16px;
+    color: @text-3;
+    font-size: 14px;
+  }
+
+  .dynamic-popover-spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid @pink;
+    border-radius: 50%;
+    animation: hiri-spin 1s linear infinite;
+    margin-bottom: 12px;
+  }
+
+  // 顶部居中标题，两侧装饰线（同 B 站"历史动态"样式）
+  .dynamic-popover-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px 6px;
+    font-size: 12px;
+    color: @text-3;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background-color: @border-color;
+    }
+  }
+
+  .dynamic-popover-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 0 8px;
+    overscroll-behavior: none;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(0, 0, 0, 0.35);
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+  }
+
+  .dynamic-popover-loading-more {
+    padding: 10px 0 4px;
+    text-align: center;
+    font-size: 12px;
+    color: @text-3;
+  }
+
+  .dynamic-popover-item {
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 14px;
+    text-decoration: none;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: @border-color;
+    }
+  }
+
+  .dynamic-popover-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+  }
+
+  .dynamic-popover-info {
+    flex: 1;
+    min-width: 0;
+    margin-left: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 2px 0;
+  }
+
+  .dynamic-popover-username {
+    font-size: 13px;
+    color: @text-2;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dynamic-popover-title {
+    font-size: 14px;
+    color: @text-1;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-all;
+    transition: color 0.2s;
+  }
+
+  .dynamic-popover-time {
+    font-size: 12px;
+    color: @text-3;
+    line-height: 1.4;
+  }
+
+  .dynamic-popover-thumb {
+    width: 100px;
+    height: 64px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    object-fit: cover;
+    margin-left: 10px;
+  }
+
+  .dynamic-popover-footer {
+    flex-shrink: 0;
+    padding: 8px 12px;
+  }
+
+  .dynamic-popover-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 32px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: @text-2;
+    background-color: #f6f7f8;
+    text-decoration: none;
+    transition: color 0.2s;
+
+    &:hover {
+      color: @blue;
+    }
+  }
+}
+
+@keyframes hiri-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
   }
 }
 
@@ -1810,10 +2250,6 @@ const handleRightEntryClick = (event: Event) => {
 
     &:hover {
       background-color: @border-color;
-
-      .favorite-popover-title {
-        color: @blue;
-      }
     }
   }
 
@@ -1857,7 +2293,7 @@ const handleRightEntryClick = (event: Event) => {
 
   .favorite-popover-title {
     margin: 0;
-    font-size: 13px;
+    font-size: 14px;
     color: @text-1;
     line-height: 1.4;
     font-weight: normal;
@@ -1873,7 +2309,7 @@ const handleRightEntryClick = (event: Event) => {
   .favorite-popover-up {
     display: flex;
     align-items: center;
-    font-size: 11px;
+    font-size: 12px;
     color: @text-3;
     text-decoration: none;
     margin-top: 4px;
@@ -1885,8 +2321,8 @@ const handleRightEntryClick = (event: Event) => {
   }
 
   .favorite-popover-up-icon {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     flex-shrink: 0;
     margin-right: 3px;
   }
@@ -1913,7 +2349,7 @@ const handleRightEntryClick = (event: Event) => {
     font-size: 13px;
     color: @text-2;
     text-decoration: none;
-    background-color: @border-color;
+    background-color: #f6f7f8;
     transition: all 0.2s;
 
     &:hover {

@@ -83,8 +83,8 @@
             </a>
             <div class="upname">
               <a :href="`/space/${list.user.uid}`" target="_blank">
-                <img src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg" class="video-card__avatar"  alt=""/>
-                <span class="name" style="margin-left: 3px">{{ list.user.username }}</span>
+                <img :src="DEFAULT_AVATAR" class="video-card__avatar"  alt=""/>
+                <span class="name" style="margin-left: 3px">{{ getUserDisplayName(list.user) }}</span>
                 <span class="create_date"> · {{ formatTime(list.video.createTime) }}</span>
               </a>
             </div>
@@ -129,7 +129,7 @@
           </router-link>
           <div class="user-info">
             <div class="user-name-row">
-              <router-link :to="`/space/${item.uid}`" class="username">{{ item.username }}</router-link>
+              <router-link :to="`/space/${item.uid}`" class="username">{{ getUserDisplayName(item) }}</router-link>
               <img
                 class="level-icon"
                 :src="getLevelIconUrl(item.level)"
@@ -180,11 +180,12 @@ import { onMounted, onUnmounted, ref, watch, computed, nextTick } from 'vue'
 import { useVideoStore } from '@/stores/videoStore.ts'
 import { useUserStore } from '@/stores/userStore.ts'
 import { storeToRefs } from 'pinia'
-import { formatDuration, formatTime, formatNumber, getLevelIconUrl } from '@/utils/utils.ts'
+import { formatDuration, formatTime, formatNumber, getLevelIconUrl, getUserDisplayName } from '@/utils/utils.ts'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import CustomPagination from '@/components/pagination/CustomPagination.vue'
 import SearchBox from '@/components/search/SearchBox.vue'
+import { DEFAULT_AVATAR } from '@/utils/constants'
 
 const route = useRoute()
 

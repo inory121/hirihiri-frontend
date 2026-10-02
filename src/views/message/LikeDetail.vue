@@ -28,7 +28,7 @@
           />
           <div class="liker-body">
             <p class="liker-name-line">
-              <span class="liker-name">{{ item.notice.actorUser?.username || '未知用户' }}</span>
+              <span class="liker-name">{{ getUserDisplayName(item.notice.actorUser) }}</span>
               <span class="liker-action">赞了我</span>
             </p>
             <p class="liker-time">{{ formatTime(item.notice.createTime) }}</p>
@@ -52,6 +52,7 @@ import { useRouter } from 'vue-router'
 import { useMessageStore } from '@/stores/messageStore'
 import { useUserStore } from '@/stores/userStore'
 import { post, get } from '@/utils/request'
+import { getUserDisplayName } from '@/utils/utils'
 import { FOLLOW_API } from '@/api/follow'
 import type { MessageNotice } from '@/types/api'
 

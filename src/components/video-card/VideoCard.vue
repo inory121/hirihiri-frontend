@@ -108,9 +108,9 @@
                 <template v-if="!props.hideAuthor">
                   <a :href="`/space/${videoInfo.video.uid}`" target="_blank" class="video-card__author"
                     style="display: flex; align-items: center">
-                    <img src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg" class="video-card__avatar" />
+                    <img :src="DEFAULT_AVATAR" class="video-card__avatar" />
                     <span class="video-card__username" style="margin-left: 3px">{{
-                      videoInfo.user.username
+                      getUserDisplayName(videoInfo.user)
                     }}</span>
                     <span v-if="!props.hideTime" class="video-card__time" style="margin-left: 10px">{{
                       formatTime(videoInfo.video.createTime)
@@ -134,9 +134,10 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
 import { VideoPlay, ChatDotRound } from '@element-plus/icons-vue'
-import { formatTime, formatDuration, formatNumber } from '@/utils/utils.ts'
+import { formatTime, formatDuration, formatNumber, getUserDisplayName } from '@/utils/utils.ts'
 import type { VideoInfo } from '@/types/api'
 import { useRecommendStore } from '@/stores/recommendStore'
+import { DEFAULT_AVATAR } from '@/utils/constants'
 
 const recommendStore = useRecommendStore()
 // 控制"更多"弹窗显隐；弹窗打开（含鼠标在弹窗上）时三个点保持可见。

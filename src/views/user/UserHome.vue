@@ -6,7 +6,7 @@
     <div class="user-home__banner-bg" :style="{
       backgroundImage: userStore.targetUser?.background
         ? `url(${userStore.targetUser.background})`
-        : `url('https://hirihiri2.oss-cn-shanghai.aliyuncs.com/background.png')`,
+        : `url('${DEFAULT_BACKGROUND}')`,
     }"></div>
     <div class="user-home__banner-mask"></div>
   </div>
@@ -15,11 +15,11 @@
     <div class="user-home__info">
       <div class="user-home__avatar-wrap">
         <img class="user-home__avatar"
-             :src="userStore.targetUser.avatar || 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg'" alt=""/>
+             :src="userStore.targetUser.avatar || DEFAULT_AVATAR" alt=""/>
       </div>
       <div class="user-home__details">
         <h1 class="user-home__name">
-          {{ userStore.targetUser.username }}
+          {{ getUserDisplayName(userStore.targetUser) }}
           <span v-if="userStore.targetUser.vip === 1"
                 class="user-home__badge user-home__badge--vip1">月度大会员</span>
           <span v-else-if="userStore.targetUser.vip === 2"
@@ -287,7 +287,7 @@
                            class="user-home__folder-link"
                            target="_blank">
                 <div class="user-home__folder-cover">
-                  <img :src="folder.coverUrl || 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/b8eb9637fec90527a6dc9737acdc3577e275c7b5.png'" alt=""
+                  <img :src="folder.coverUrl || DEFAULT_FOLDER_COVER" alt=""
                        class="user-home__folder-image"/>
                 </div>
                 <div class="user-home__folder-info">
@@ -374,7 +374,7 @@
                 <div class="user-home__favorites-cover-wrap">
                   <img
                     class="user-home__favorites-cover"
-                    :src="folder.coverUrl || 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/b8eb9637fec90527a6dc9737acdc3577e275c7b5.png'"
+                    :src="folder.coverUrl || DEFAULT_FOLDER_COVER"
                     :alt="folder.name"
                   />
                 </div>
@@ -594,12 +594,12 @@
                   <a :href="`/space/${user.uid}`" target="_blank">
                     <img
                       class="user-home__follow-item-avatar"
-                      :src="user.avatar || 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg'"
+                      :src="user.avatar || DEFAULT_AVATAR"
                      alt="avatar"/>
                   </a>
                 </UserHoverCard>
                 <div class="user-home__follow-item-info">
-                  <a class="user-home__follow-item-name" :href="`/space/${user.uid}`" target="_blank">{{ user.username }}</a>
+                  <a class="user-home__follow-item-name" :href="`/space/${user.uid}`" target="_blank">{{ getUserDisplayName(user) }}</a>
                   <div class="user-home__follow-item-desc">{{
                       user.description || '这个人很懒，什么都没有写~'
                     }}
@@ -838,7 +838,8 @@ import {
   getLevelByExp,
   getLevelIconUrl,
   formatTime,
-  formatDuration
+  formatDuration,
+  getUserDisplayName
 } from '@/utils/utils.ts'
 import {useUserStore} from '@/stores/userStore'
 import {useVideoStore} from '@/stores/videoStore'
@@ -871,6 +872,7 @@ import {
 import {get} from '@/utils/request'
 import {DYNAMIC_API} from '@/api/dynamic'
 import type {VideoInfo, FavoriteFolder, Dynamic, User, DynamicPageApiResponse} from '@/types/api'
+import {DEFAULT_AVATAR, DEFAULT_BACKGROUND, DEFAULT_FOLDER_COVER} from '@/utils/constants'
 
 const route = useRoute()
 const router = useRouter()
@@ -1465,7 +1467,12 @@ watch(
   (newUid) => {
     if (newUid) {
       const parsedUid = Number(newUid)
-      userStore.getTargetUserInfo(parsedUid)
+      // 用户信息单独 await 判断是否存在，不存在则跳转 404；其余加载并行进行，不阻塞 tab 切换
+      userStore.getTargetUserInfo(parsedUid).then(() => {
+        if (!userStore.targetUser?.uid) {
+          router.replace({ name: 'NotFound' })
+        }
+      })
       userStore.getTargetFollowInfo(parsedUid)
       videoStore.getUserVideoStats(parsedUid)
       selectedFolderId.value = 0

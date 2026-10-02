@@ -57,8 +57,8 @@
           class="danmaku-toggle-icon"
           :style="{
             '--icon-url': danmakuEnabled
-              ? 'url(https://hirihiri2.oss-cn-shanghai.aliyuncs.com/danmuopen.svg)'
-              : 'url(https://hirihiri2.oss-cn-shanghai.aliyuncs.com/danmuclose.svg)',
+              ? `url('${DANMU_OPEN_ICON}')`
+              : `url('${DANMU_CLOSE_ICON}')`,
           }"
           @click="toggleDanmaku"
           :title="danmakuEnabled ? '关闭弹幕' : '开启弹幕'"
@@ -234,7 +234,7 @@
           <div class="up-info-right">
             <div class="up-info__detail">
               <a :href="`/space/${videoInfo.user.uid}`" target="_blank" class="up-name">{{
-                  videoInfo.user.username
+                  getUserDisplayName(videoInfo.user)
                 }}</a>
               <a :href="`/message?target=${videoInfo.user.uid}`" target="_blank" class="send-msg">
                 <el-icon>
@@ -339,8 +339,8 @@
               </a>
               <div class="upname">
                 <a :href="`/space/${list.user.uid}`" target="_blank">
-                  <img src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg" alt=""/>
-                  <span class="name">{{ list.user.username || '未知用户' }}</span>
+                  <img :src="DEFAULT_AVATAR" alt=""/>
+                  <span class="name">{{ getUserDisplayName(list.user) }}</span>
                 </a>
               </div>
               <div class="playinfo">
@@ -484,7 +484,7 @@
 <script setup lang="ts">
 import {computed, nextTick, onMounted, onUnmounted, ref, watch} from 'vue'
 import {useRoute} from 'vue-router'
-import {formatDateTime, formatDuration, formatNumber} from '@/utils/utils'
+import {formatDateTime, formatDuration, formatNumber, getUserDisplayName} from '@/utils/utils'
 // 引入Plyr播放器
 import Plyr from 'plyr'
 import 'plyr/dist/plyr.css'
@@ -501,6 +501,7 @@ import {useHistoryStore} from '@/stores/historyStore.ts'
 import {useRecommendStore} from '@/stores/recommendStore.ts'
 import CommentArea from '@/components/comment-area/CommentArea.vue'
 import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
+import {DEFAULT_AVATAR, DANMU_OPEN_ICON, DANMU_CLOSE_ICON} from '@/utils/constants'
 
 const route = useRoute()
 const videoStore = useVideoStore()
@@ -1552,8 +1553,8 @@ onUnmounted(() => {
           width: 100%;
           height: 100%;
           background-color: @text-2;
-          -webkit-mask-image: url('https://hirihiri2.oss-cn-shanghai.aliyuncs.com/danmusetting.svg');
-          mask-image: url('https://hirihiri2.oss-cn-shanghai.aliyuncs.com/danmusetting.svg');
+          -webkit-mask-image: url('@{oss-base}/danmusetting.svg');
+          mask-image: url('@{oss-base}/danmusetting.svg');
           -webkit-mask-size: contain;
           mask-size: contain;
           -webkit-mask-repeat: no-repeat;
