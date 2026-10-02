@@ -85,6 +85,29 @@ export const useDynamicCommentStore = defineStore('dynamicComment', {
       }
     },
     /**
+     * 按评论ID拉取所属评论树，并临时置顶到列表最前
+     * （有置顶评论 isTop=1 时插到置顶之后），用于通知跳转定位。
+     * 返回该楼层的根评论，找不到返回 null。
+     */
+    async pinCommentThread(commentId: number): Promise<Comment | null> {
+      try {
+        const res = await get<oneCommentApiResponse>(`${COMMENT_API.COMMENT_TREE}/${commentId}`)
+        if (res.code !== 200 || !res.data) return null
+        const thread = res.data
+        // 移除列表中已存在的同一楼层，避免重复渲染
+        const rest = this.commentList.filter((c) => c.id !== thread.id)
+        // 插入位置：跳过头部的置顶评论
+        let insertAt = 0
+        while (insertAt < rest.length && rest[insertAt].isTop === 1) insertAt++
+        rest.splice(insertAt, 0, thread)
+        this.commentList = rest
+        return thread
+      } catch (err) {
+        console.log(err)
+        return null
+      }
+    },
+    /**
      * 发送动态评论。dynamicId 必填，parentId/rootId 可选（回复时传入）
      */
     async sendComment(dynamicId: number, content: string, parentId?: number, rootId?: number, toUserId?: number): Promise<Comment | null> {

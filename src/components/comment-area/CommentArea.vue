@@ -29,7 +29,7 @@
       <div class="commentbox">
         <div class="user-avatar">
           <img v-if="userStore.isLogin" :src="user.avatar" alt=""/>
-          <img v-else src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/noface.jpg" alt=""/>
+          <img v-else :src="DEFAULT_NOFACE_AVATAR" alt=""/>
         </div>
         <div class="editor edit" v-if="userStore.isLogin" @focusout="onEditorFocusOut">
           <div class="at-input-wrap">
@@ -320,6 +320,8 @@ import {useVideoStore} from '@/stores/videoStore'
 import CommentItem from '@/components/comment-item/CommentItem.vue'
 import MentionInput from '@/components/mention-input/MentionInput.vue'
 import type {Comment, User} from '@/types/api'
+import {DEFAULT_NOFACE_AVATAR} from '@/utils/constants'
+import {getUserDisplayName} from '@/utils/utils'
 
 const props = defineProps<{
   // 业务类型：video 视频 | dynamic 动态（未来可扩展 column 专栏）
@@ -384,7 +386,7 @@ const {user} = storeToRefs(userStore)
 const comment = ref('')
 const replyContent = ref('')
 const sending = ref(false)
-const defaultAvatar = 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/noface.jpg'
+const defaultAvatar = DEFAULT_NOFACE_AVATAR
 
 // ===== 加载 =====
 const loadComments = async () => {
@@ -776,7 +778,7 @@ const insertRootCommentLocally = (root: Comment) => {
     like: root.like ?? 0,
     dislike: root.dislike ?? 0,
     isTop: root.isTop ?? 0,
-    user: root.user ?? ({ uid: user.value.uid, username: user.value.username, avatar: user.value.avatar } as User),
+    user: root.user ?? ({ uid: user.value.uid, username: user.value.username, nickname: user.value.nickname, avatar: user.value.avatar } as User),
   }
   const rest = store.value.commentList.filter(c => c.id !== normalized.id)
   rest.unshift(normalized)
@@ -1040,14 +1042,13 @@ const getReplyTargetName = (commentId: number | null): string => {
     return null
   }
   const target = findInList(store.value.commentList)
-  return target?.user?.username ?? ''
+  return getUserDisplayName(target?.user, '')
 }
 
-// ===== 滚动到目标评论并高亮（从通知页跳转时使用）=====
+// ===== 滚动到目标评论并高亮（从通知页跳转时使用，视频/动态评论通用）=====
 const scrollToAndHighlightComment = async (commentId: number) => {
-  if (props.bizType !== 'video') return
   // 1. 拉取目标评论树并置顶插入 commentList
-  const thread = await videoCommentStore.pinCommentThread(commentId)
+  const thread = await store.value.pinCommentThread(commentId)
   if (!thread) return
 
   // 2. 如果目标是子评论，展开该楼层回复列表并翻到目标所在页
@@ -1202,7 +1203,7 @@ const scrollToAndHighlightComment = async (commentId: number) => {
         }
 
         .count {
-          margin: 0 30px 0 6px;
+          margin: 0 10px 0 6px;
           font-size: 13px;
           color: @text-3;
         }

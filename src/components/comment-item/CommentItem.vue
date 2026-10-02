@@ -30,22 +30,22 @@
         <div class="comment-header">
           <div class="user-name">
             <a :href="`/space/${comment.user?.uid}`" target="_blank">{{
-                comment.user?.username
+                getUserDisplayName(comment.user)
               }}</a>
           </div>
           <div class="user-level">
             <img
               width="30"
               height="30"
-              src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/level_6.svg"
-              alt=""
+              :src="getLevelIconUrl(getLevelByExp(comment.user?.exp ?? 0))"
+              :alt="`Lv${getLevelByExp(comment.user?.exp ?? 0)}`"
             />
           </div>
           <div class="user-up" v-if="ownerUid === comment.user?.uid">
             <img
               width="24"
               height="24"
-              src="https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg"
+              :src="DEFAULT_AVATAR"
               alt=""/>
           </div>
         </div>
@@ -143,7 +143,8 @@ import {useUserStore} from '@/stores/userStore'
 import {useCommentStore} from '@/stores/commentStore'
 import {useDynamicCommentStore} from '@/stores/dynamicCommentStore'
 import {storeToRefs} from 'pinia'
-import {formatCommentTime} from '@/utils/utils'
+import {formatCommentTime, getLevelByExp, getLevelIconUrl, getUserDisplayName} from '@/utils/utils'
+import {DEFAULT_AVATAR} from '@/utils/constants'
 import {useVideoStore} from '@/stores/videoStore'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'

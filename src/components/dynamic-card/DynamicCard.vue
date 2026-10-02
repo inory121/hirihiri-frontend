@@ -1,5 +1,9 @@
 <template>
   <div class="dynamic-item">
+    <!-- 详情模式（普通动态）：大标题独立于作者行上方，自身不可点击跳转 -->
+    <div v-if="detail && item.type === 0 && item.title"
+         class="dynamic-item__detail-title">{{ item.title }}</div>
+
     <!-- 置顶标记 -->
     <span v-if="item.isTop === 1" class="dynamic-item__top">置顶</span>
 
@@ -55,18 +59,36 @@
 
     <!-- ========== 右侧内容 ========== -->
     <div class="dynamic-item__body">
-      <!-- 顶部信息行：用户名 + 时间（时间在名字下面换行显示） -->
+      <!-- 顶部信息行：用户名 + 时间（视频动态时在时间后标注 投稿了视频/分享了视频） -->
       <div class="dynamic-item__info">
         <a class="dynamic-item__name" :href="`/space/${item.uid}`" target="_blank">
-          {{ item.user?.username || item.user?.nickname || `UID:${item.uid}` }}
+          {{ getUserDisplayName(item.user, `UID:${item.uid}`) }}
         </a>
-        <span class="dynamic-item__time">{{ formatCommentTime(item.createTime) }}</span>
+        <a
+          v-if="!detail"
+          class="dynamic-item__time dynamic-item__linkable"
+          :href="`/dynamic/${item.id}`"
+          target="_blank"
+          title="查看动态详情"
+        >
+          {{ formatTime(item.createTime) }}
+          <template v-if="item.type === 2"> · 投稿了视频</template>
+        </a>
+        <!-- 详情页：当前动态时间不可点击跳转 -->
+        <span v-else class="dynamic-item__time">
+          {{ formatTime(item.createTime) }}
+          <template v-if="item.type === 2"> · 投稿了视频</template>
+        </span>
       </div>
 
-      <!-- ============ 普通动态：标题/内容/图片 ============ -->
-      <template v-if="item.type === 0">
-        <div v-if="item.title" class="dynamic-item__title">{{ item.title }}</div>
-        <div v-if="item.content" class="dynamic-item__content">{{ item.content }}</div>
+      <!-- ============ 普通动态：标题/内容/图片（详情模式下移到根级整行展示） ============ -->
+      <template v-if="item.type === 0 && !detail">
+        <div v-if="item.title" class="dynamic-item__title dynamic-item__linkable"
+             @click="openDynamicPage($event, item.id)">{{ item.title }}
+        </div>
+        <div v-if="item.content" class="dynamic-item__content dynamic-item__linkable"
+             @click="openDynamicPage($event, item.id)">{{ item.content }}
+        </div>
         <div v-if="item.images && item.images.length > 0" class="dynamic-item__images"
              :class="`dynamic-item__images--${Math.min(item.images.length, 3)}`">
           <el-image
@@ -85,7 +107,8 @@
       <!-- ============ 转发动态（type=3）：直接显示转发者自己写的文字 + 内嵌被转发原动态灰卡 ============ -->
       <template v-else-if="item.type === 3">
         <template v-if="item.content && item.content.trim()">
-          <div class="dynamic-item__content dynamic-item__content--repost">
+          <div :class="['dynamic-item__content', 'dynamic-item__content--repost', {'dynamic-item__linkable': !detail}]"
+               @click="openDynamicPage($event, item.id)">
             <template v-for="(part, idx) in splitRepostMentions(item.content, getRepostChainUserMap(item))" :key="idx">
               <UserHoverCard
                 v-if="part.type === 'mention' && part.user"
@@ -110,7 +133,8 @@
           </div>
         </template>
         <template v-else>
-          <div class="dynamic-item__title">转发动态</div>
+          <div :class="['dynamic-item__content', {'dynamic-item__linkable': !detail}]"
+               @click="openDynamicPage($event, item.id)">转发动态</div>
         </template>
         <!-- 内嵌被转发的原动态灰卡（递归到最原始的非转发动态） -->
         <div v-if="item.parent"
@@ -154,7 +178,7 @@
                     :href="`/space/${original.uid}`"
                     target="_blank"
                   >
-                    {{ getDynamicAuthorName(original) }}
+                    {{ getUserDisplayName(original.user, `UID:${original.uid}`) }}
                   </a>
                 </UserHoverCard>
                 <a
@@ -163,16 +187,20 @@
                   :href="`/space/${original.uid}`"
                   target="_blank"
                 >
-                  {{ getDynamicAuthorName(original) }}
+                  {{ getUserDisplayName(original.user, `UID:${original.uid}`) }}
                 </a>
+                <span v-if="original.type === 2" class="dynamic-item__video-topic-tag">投稿了视频</span>
+                <span v-else-if="original.type === 1" class="dynamic-item__video-topic-tag">分享了视频</span>
               </div>
 
               <!-- 原动态：普通动态（type=0） -->
               <template v-if="original.type === 0">
-                <div v-if="original.title" class="dynamic-item__parent-title">
+                <div v-if="original.title" class="dynamic-item__parent-title dynamic-item__linkable"
+                     @click="openDynamicPage($event, original.id)">
                   {{ original.title }}
                 </div>
-                <div v-if="original.content" class="dynamic-item__parent-content">
+                <div v-if="original.content" class="dynamic-item__parent-content dynamic-item__linkable"
+                     @click="openDynamicPage($event, original.id)">
                   {{ original.content }}
                 </div>
                 <div
@@ -195,12 +223,14 @@
 
               <!-- 原动态：视频动态（type=1/2） -->
               <template v-else-if="original.type >= 1 && original.type <= 2 && original.video">
-                <div v-if="original.title" class="dynamic-item__parent-title">
-                  {{ original.title }}
-                </div>
+<!--                <div v-if="original.title" class="dynamic-item__parent-title dynamic-item__linkable"-->
+<!--                     @click="openDynamicPage($event, original.id)">-->
+<!--                  {{ original.title }}-->
+<!--                </div>-->
                 <div
                   v-if="original.content && (original.type === 1 || original.content !== original.video.video.title)"
-                  class="dynamic-item__parent-content"
+                  class="dynamic-item__parent-content dynamic-item__linkable"
+                  @click="openDynamicPage($event, original.id)"
                 >{{ original.content }}
                 </div>
                 <div
@@ -239,38 +269,67 @@
         <div v-else class="dynamic-item__parent-deleted">原动态已被删除</div>
       </template>
 
-      <!-- ============ 视频动态：标题/用户内容 + 灰色内嵌卡片 ============ -->
+      <!-- ============ 视频动态：投稿视频平铺卡片；分享视频与转发视频同构（附言 + 内嵌灰卡） ============ -->
       <template v-else-if="item.video">
-        <!-- 用户标题（如"分享视频"） -->
-        <div v-if="item.title" class="dynamic-item__title">{{ item.title }}</div>
-        <!-- 用户写的正文：投稿视频若与视频标题重复则跳过 -->
-        <div
-          v-if="item.content && (item.type === 1 || item.content !== item.video.video.title)"
-          class="dynamic-item__content"
-        >{{ item.content }}
-        </div>
-
-        <!-- ═══ 内嵌灰色视频卡片容器 ═══ -->
-        <div class="dynamic-item__video-wrap">
-          <!-- 灰卡顶部：小头像 + UP主名 + 投稿了视频（__video-topic 保留类名） -->
-          <div class="dynamic-item__video-topic">
-            <img
-              class="dynamic-item__video-topic-avatar"
-              :src="item.video.user?.avatar || defaultAvatar"
-              alt=""
-            />
-            <a
-              class="dynamic-item__video-topic-name"
-              :href="`/space/${item.video.video.uid}`"
-              target="_blank"
-            >
-              {{
-                item.video.user?.username || item.video.user?.nickname || `UID:${item.video.video.uid}`
-              }}
-            </a>
-            <span class="dynamic-item__video-topic-tag">投稿了视频</span>
+        <!-- 分享视频（type=1）：写了文字显示文字，没写则显示"分享视频"（同转发兜底文案） -->
+        <template v-if="item.type === 1">
+          <div
+            v-if="item.content && item.content.trim()"
+            :class="['dynamic-item__content', {'dynamic-item__linkable': !detail}]"
+            @click="openDynamicPage($event, item.id)"
+          >{{ item.content }}
           </div>
+          <div v-else :class="['dynamic-item__content', {'dynamic-item__linkable': !detail}]"
+               @click="openDynamicPage($event, item.id)">分享视频</div>
 
+          <!-- 内嵌原视频灰卡（与转发动态的原动态灰卡同构） -->
+          <div class="dynamic-item__video-wrap dynamic-item__parent-wrap">
+            <div class="dynamic-item__video-topic">
+              <img
+                class="dynamic-item__video-topic-avatar"
+                :src="item.video.user?.avatar || defaultAvatar"
+                alt=""
+              />
+              <a
+                class="dynamic-item__video-topic-name"
+                :href="`/space/${item.video.video.uid}`"
+                target="_blank"
+              >
+                {{
+                  getUserDisplayName(item.video.user, `UID:${item.video.video.uid}`)
+                }}
+              </a>
+              <span class="dynamic-item__video-topic-tag">投稿了视频</span>
+            </div>
+
+            <!-- 话题标签（el-tag 风格，与视频页简介一致） -->
+            <div
+              v-if="getTagList(item.video.video.tags).length"
+              class="dynamic-item__video-hashtags"
+            >
+              <el-tag
+                v-for="tag in getTagList(item.video.video.tags)"
+                :key="tag"
+                class="dynamic-item__video-hashtag"
+                :disable-transitions="false"
+              >
+                <a
+                  :href="`/search/video?keyword=${tag}`"
+                  target="_blank"
+                >#{{ tag }}#</a>
+              </el-tag>
+            </div>
+
+            <InlineVideoCard
+              class="inline-video-card--plain"
+              :video="item.video.video"
+              :stat="item.video.stat"
+            />
+          </div>
+        </template>
+
+        <!-- 投稿视频（type=2）：话题标签 + 平铺视频卡 -->
+        <template v-else>
           <!-- 话题标签（el-tag 风格，与视频页简介一致） -->
           <div
             v-if="getTagList(item.video.video.tags).length"
@@ -289,17 +348,16 @@
             </el-tag>
           </div>
 
-          <!-- 视频卡（放在内嵌容器里时用 plain 样式，去掉自身灰底 padding） -->
+          <!-- 视频卡（自带灰底与内边距，直接平铺） -->
           <InlineVideoCard
-            class="inline-video-card--plain"
             :video="item.video.video"
             :stat="item.video.stat"
           />
-        </div>
+        </template>
       </template>
 
-      <!-- 底部操作栏（所有动态统一） -->
-      <div class="dynamic-item__actions">
+      <!-- 底部操作栏（所有动态统一；详情页隐藏，用右侧浮动操作栏替代） -->
+      <div v-if="!hideActions" class="dynamic-item__actions">
         <button
           class="dynamic-item__action"
           :class="{ 'is-active': repostOpen }"
@@ -394,6 +452,25 @@
       </div>
     </div>
 
+    <!-- 详情模式（普通动态）：正文/图片独立整行，与标题左对齐，自身不可点击跳转 -->
+    <template v-if="detail && item.type === 0">
+      <div v-if="item.content" class="dynamic-item__content dynamic-item__detail-row">{{ item.content }}
+      </div>
+      <div v-if="item.images && item.images.length > 0" class="dynamic-item__images dynamic-item__detail-row"
+           :class="`dynamic-item__images--${Math.min(item.images.length, 3)}`">
+        <el-image
+          v-for="(img, idx) in item.images"
+          :key="idx"
+          class="dynamic-item__img"
+          :src="img"
+          :preview-src-list="item.images"
+          :initial-index="idx"
+          fit="cover"
+          preview-teleported
+        />
+      </div>
+    </template>
+
     <!-- 评论区（点击评论展开，卡片根部整行，与卡片最左对齐） -->
     <div v-if="commentOpen" class="dynamic-item__comment-area">
       <CommentArea
@@ -409,6 +486,7 @@
 <script lang="ts" setup>
 import {nextTick, ref} from 'vue'
 import type {ComponentPublicInstance} from 'vue'
+import {useRoute} from 'vue-router'
 import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
 import InlineVideoCard from '@/components/inline-video-card/InlineVideoCard.vue'
 import CommentArea from '@/components/comment-area/CommentArea.vue'
@@ -416,13 +494,18 @@ import {useUserStore} from '@/stores/userStore'
 import {useDynamicStore} from '@/stores/dynamicStore'
 import {post} from '@/utils/request'
 import {DYNAMIC_API} from '@/api/dynamic'
-import {formatCommentTime, formatNumber} from '@/utils/utils.ts'
+import {formatNumber, formatTime, getUserDisplayName} from '@/utils/utils.ts'
 import {ChatDotRound, Share} from '@element-plus/icons-vue'
 import {ElMessage} from 'element-plus'
 import type {Dynamic, User} from '@/types/api'
+import {DEFAULT_AVATAR} from '@/utils/constants'
 
 const props = defineProps<{
   item: Dynamic
+  // 详情页隐藏卡片底部操作栏（改用页面右侧浮动操作栏）
+  hideActions?: boolean
+  // 详情页布局：普通动态大标题置顶、正文/图片整行（B 站 t.bilibili.com 风格）
+  detail?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -433,7 +516,21 @@ const emit = defineEmits<{
 const userStore = useUserStore()
 const dynamicStore = useDynamicStore()
 
-const defaultAvatar = 'https://hirihiri2.oss-cn-shanghai.aliyuncs.com/up_pb.svg'
+const defaultAvatar = DEFAULT_AVATAR
+
+const route = useRoute()
+
+// 点击动态文字跳转对应动态详情：文字属于哪条动态就跳哪条
+//（转发者文字→转发动态详情；灰卡内原动态文字→原动态详情）
+// 详情页内当前动态自身文字不可点击，仅嵌套的原动态文字可跳转
+const openDynamicPage = (e: MouseEvent, id?: number) => {
+  if (!id) return
+  // 点击的是卡片内部链接（@用户、话题等 <a>）时不拦截
+  if ((e.target as HTMLElement | null)?.closest?.('a')) return
+  // 详情页内点击当前动态自身文字不跳转（列表页 route.params.dynamicId 为 undefined，不受影响）
+  if (Number(route.params.dynamicId) === id) return
+  window.open(`/dynamic/${id}`, '_blank')
+}
 
 // 本卡片内部状态（互不干扰）
 const commentOpen = ref(false)
@@ -708,7 +805,6 @@ const getTagList = (tags?: string | null): string[] => {
   padding: 16px;
   margin-bottom: 8px;
   background: #fff;
-  border: 1px solid var(--line_regular);
   border-radius: 8px;
 
   &__top {
@@ -816,14 +912,45 @@ const getTagList = (tags?: string | null): string[] => {
   }
 
   &__time {
+    display: inline-block;
     font-size: 13px;
     color: @text-3;
+    text-decoration: none;
+  }
+
+  // 可点击跳转详情的文字（标题/正文/原动态文字），B 站风格 hover 变蓝
+  &__linkable {
+    cursor: pointer;
+    transition: color 0.2s;
+
+    &:hover {
+      color: @blue;
+    }
+  }
+
+  // 详情模式（普通动态）：大标题置顶，字号加粗独立于作者行
+  &__detail-title {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 16px;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: @text-1;
+    word-break: break-word;
+  }
+
+  // 详情模式整行块（正文/图片），与标题左对齐
+  &__detail-row {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 16px;
   }
 
   &__title {
     margin-top: 8px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 700;
     color: @text-1;
     word-break: break-word;
   }
@@ -925,8 +1052,7 @@ const getTagList = (tags?: string | null): string[] => {
     }
 
     &-tag {
-      margin-left: auto;
-      font-size: 12px;
+      font-size: 13px;
       color: @text-3;
     }
   }
@@ -963,6 +1089,7 @@ const getTagList = (tags?: string | null): string[] => {
     flex-wrap: wrap;
     gap: 6px;
     margin-top: 8px;
+    margin-bottom: 8px;
   }
 
   &__video-hashtag {
