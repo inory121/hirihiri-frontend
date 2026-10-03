@@ -1,5 +1,5 @@
 <template>
-  <div style="min-height: 64px" class="hiri-header__bar">
+  <div class="hiri-header__bar">
     <HeaderBar/>
   </div>
   <div class="user-home__banner">
@@ -68,61 +68,56 @@
         </div>
       </div>
       <div class="user-home__actions">
-        <div class="user-home__stats">
-          <div
-            class="user-home__stat-item user-home__stat-item--link"
-            :class="{ 'user-home__stat-item--active': activeTab === 'video' }"
-            @click="switchTab('video')"
-          >
-            <div class="user-home__stat-value">{{ videoStore.userVideoTotal }}</div>
-            <div class="user-home__stat-label">投稿</div>
-          </div>
-          <div
-            class="user-home__stat-item user-home__stat-item--link"
-            :class="{ 'user-home__stat-item--active': activeTab === 'followings' }"
-            @click="switchTab('followings')"
-          >
-            <div class="user-home__stat-value">{{
-                formatNumber(userStore.targetFollow.followings)
-              }}
-            </div>
-            <div class="user-home__stat-label">关注</div>
-          </div>
-          <div
-            class="user-home__stat-item user-home__stat-item--link"
-            :class="{ 'user-home__stat-item--active': activeTab === 'followers' }"
-            @click="switchTab('followers')"
-          >
-            <div class="user-home__stat-value">{{
-                formatNumber(userStore.targetFollow.followers)
-              }}
-            </div>
-            <div class="user-home__stat-label">粉丝</div>
-          </div>
-          <div class="user-home__stat-item">
-            <div class="user-home__stat-value">{{ formatNumber(videoStore.userVideoStats.totalLikes) }}</div>
-            <div class="user-home__stat-label">获赞</div>
-          </div>
-          <div class="user-home__stat-item">
-            <div class="user-home__stat-value">{{ formatNumber(videoStore.userVideoStats.totalViews) }}</div>
-            <div class="user-home__stat-label">播放</div>
-          </div>
-        </div>
         <div v-if="userStore.isLogin && userStore.user.uid !== userStore.targetUser.uid"
              class="user-home__follow-btn">
-          <el-button
-            :type="userStore.targetFollow.isFollowing ? 'default' : 'primary'"
-            @click="userStore.toggleFollow(userStore.targetUser.uid)"
-          >
-            {{ userStore.targetFollow.isFollowing ? '已关注' : '+ 关注' }}
-          </el-button>
-          <a
-            :href="`/message?target=${userStore.targetUser.uid}`"
-            class="user-home__msg-link"
-            target="_blank"
-          >
-            <el-button :icon="ChatDotRound">发消息</el-button>
-          </a>
+          <!-- 我已拉黑对方：主按钮变「移除黑名单」 -->
+          <template v-if="blockedByMe">
+            <el-button
+              type="primary"
+              class="user-home__primary-btn"
+              :loading="blockLoading"
+              @click="handleUnblock"
+            >移除黑名单</el-button>
+            <el-dropdown trigger="click" placement="bottom-end" popper-class="user-home__more-popper">
+              <el-button class="user-home__more-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                  <circle cx="12" cy="5" r="2"/>
+                  <circle cx="12" cy="12" r="2"/>
+                  <circle cx="12" cy="19" r="2"/>
+                </svg>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="handleUnblock">移出黑名单</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </template>
+          <!-- 未拉黑：主按钮=关注/已关注，发消息为独立按钮，⋮=加入黑名单 -->
+          <template v-else>
+            <el-button
+              :type="userStore.targetFollow.isFollowing ? 'default' : 'primary'"
+              class="user-home__primary-btn"
+              @click="handleFollowClick"
+            >
+              {{ userStore.targetFollow.isFollowing ? '已关注' : '+ 关注' }}
+            </el-button>
+            <el-button v-if="!blockingMe" class="user-home__msg-btn" @click="goSendMessage">发消息</el-button>
+            <el-dropdown trigger="click" placement="bottom-end" popper-class="user-home__more-popper">
+              <el-button class="user-home__more-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                  <circle cx="12" cy="5" r="2"/>
+                  <circle cx="12" cy="12" r="2"/>
+                  <circle cx="12" cy="19" r="2"/>
+                </svg>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="handleBlock">加入黑名单</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </template>
         </div>
       </div>
     </div>
@@ -159,25 +154,50 @@
         <span>收藏</span>
         <span class="user-home__tab-count">{{ folderCount }}</span>
       </div>
-      <div class="user-home__tab" :class="{ 'user-home__tab--active': activeTab === 'followings' }"
-           @click="switchTab('followings')">
-        <el-icon class="user-home__tab-icon">
-          <UserFilled/>
-        </el-icon>
-        <span>关注</span>
-        <span class="user-home__tab-count">{{ userStore.targetFollow.followings }}</span>
+      <div class="user-home__tab-search">
+        <el-input
+          v-model="spaceSearchInput"
+          placeholder="搜索动态、视频"
+          clearable
+          @clear="handleSearchClear"
+          @keyup.enter="submitSpaceSearch"
+        >
+          <template #suffix>
+            <el-icon class="user-home__tab-search-icon" @click="submitSpaceSearch">
+              <Search/>
+            </el-icon>
+          </template>
+        </el-input>
       </div>
-      <div class="user-home__tab" :class="{ 'user-home__tab--active': activeTab === 'followers' }"
-           @click="switchTab('followers')">
-        <el-icon class="user-home__tab-icon">
-          <Avatar/>
-        </el-icon>
-        <span>粉丝</span>
-        <span class="user-home__tab-count">{{ userStore.targetFollow.followers }}</span>
+      <div class="user-home__stats">
+        <div
+          class="user-home__stat-item user-home__stat-item--link"
+          :class="{ 'user-home__stat-item--active': activeTab === 'followings' }"
+          @click="switchTab('followings')"
+        >
+          <div class="user-home__stat-label">关注</div>
+          <div class="user-home__stat-value">{{ formatNumber(userStore.targetFollow.followings) }}</div>
+        </div>
+        <div
+          class="user-home__stat-item user-home__stat-item--link"
+          :class="{ 'user-home__stat-item--active': activeTab === 'followers' }"
+          @click="switchTab('followers')"
+        >
+          <div class="user-home__stat-label">粉丝</div>
+          <div class="user-home__stat-value">{{ formatNumber(userStore.targetFollow.followers) }}</div>
+        </div>
+        <div class="user-home__stat-item">
+          <div class="user-home__stat-label">获赞</div>
+          <div class="user-home__stat-value">{{ formatNumber(videoStore.userVideoStats.totalLikes) }}</div>
+        </div>
+        <div class="user-home__stat-item">
+          <div class="user-home__stat-label">播放</div>
+          <div class="user-home__stat-value">{{ formatNumber(videoStore.userVideoStats.totalViews) }}</div>
+        </div>
       </div>
     </div>
 
-    <div class="user-home__content">
+    <div v-if="!isSpaceBlocked" class="user-home__content">
       <!-- 主页 Tab -->
       <div v-if="activeTab === 'home'" class="user-home__home">
         <div class="user-home__home-main">
@@ -439,33 +459,51 @@
                 >最新投稿</span>
               </div>
               <div class="user-home__favorites-actions">
-                <el-input
-                  v-model="favoritesSearchKeyword"
-                  placeholder="请输入关键词"
-                  size="small"
-                  style="width: 200px"
-                  clearable
+                <div class="user-home__folder-search">
+                  <el-select v-model="folderSearchScope" class="user-home__folder-search-scope">
+                    <el-option label="当前" value="current" />
+                    <el-option label="全部" value="all" />
+                  </el-select>
+                  <span class="user-home__folder-search-divider"></span>
+                  <el-input
+                    v-model="favoritesSearchKeyword"
+                    class="user-home__folder-search-input"
+                    placeholder="搜索收藏夹"
+                    clearable
+                    @keyup.enter="handleFolderSearch"
+                    @clear="handleFolderSearchClear"
+                  >
+                    <template #suffix>
+                      <el-icon class="user-home__folder-search-icon" @click="handleFolderSearch">
+                        <Search/>
+                      </el-icon>
+                    </template>
+                  </el-input>
+                </div>
+                <el-button
+                  v-if="isOwnHome"
+                  class="user-home__batch-btn"
+                  @click="batchMode ? exitBatchMode() : enterBatchMode()"
                 >
-                  <template #prefix>
-                    <el-icon>
-                      <Search/>
-                    </el-icon>
-                  </template>
-                </el-input>
-                <el-dropdown v-if="isOwnHome">
-                  <el-button size="small">
-                    批量操作
-                    <el-icon class="el-icon--right">
-                      <ArrowDown/>
-                    </el-icon>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item>删除</el-dropdown-item>
-                      <el-dropdown-item>移动到</el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
+                  {{ batchMode ? '返回' : '批量操作' }}
+                </el-button>
+              </div>
+            </div>
+            <!-- 批量操作工具条 -->
+            <div v-if="batchMode" class="user-home__batch-bar">
+              <div class="user-home__batch-bar-left">
+                <el-checkbox
+                  :model-value="allSelected"
+                  :indeterminate="someSelected"
+                  @change="handleSelectAll"
+                >全选</el-checkbox>
+                <span class="user-home__batch-count">已选择{{ selectedVids.length }}个视频</span>
+              </div>
+              <div class="user-home__batch-bar-right">
+                <el-button size="small" @click="handleClearInvalid">清除失效内容</el-button>
+                <el-button size="small" @click="handleBatchUnfav">取消收藏</el-button>
+                <el-button size="small" @click="openBatchMoveCopy('copy')">复制至</el-button>
+                <el-button size="small" @click="openBatchMoveCopy('move')">移动至</el-button>
               </div>
             </div>
             <div class="user-home__favorites-videos">
@@ -473,6 +511,13 @@
                 <VideoCard
                   :data="sortedFolderVideos"
                   :loading="false"
+                  :show-collect-time="true"
+                  :selectable="batchMode"
+                  :selected="selectedVids"
+                  :show-more-menu="isOwnHome && !batchMode"
+                  :more-menu-items="folderMoreMenuItems"
+                  @toggle-select="toggleSelectVid"
+                  @more-select="(key, vi) => handleFolderCardMore(key, vi)"
                 />
               </template>
               <template v-else>
@@ -622,6 +667,119 @@
           <el-empty :description="activeTab === 'followers' ? '还没有粉丝' : '还没有关注任何人'"/>
         </template>
       </div>
+
+      <!-- 搜索 Tab：展示当前空间内命中关键字的视频/动态（左侧竖排筛选） -->
+      <div v-else-if="activeTab === 'search'" class="user-home__search-tab">
+        <div class="user-home__dynamic-layout">
+          <aside class="user-home__dynamic-sidebar">
+            <div class="user-home__dynamic-sort">
+              <span
+                class="user-home__video-sort-item user-home__dynamic-sort-item"
+                :class="{ 'user-home__video-sort-item--active': searchFilter === 'video' }"
+                @click="searchFilter = 'video'"
+              >视频 {{ videoStore.spaceSearchVideoTotal }}</span>
+              <span
+                class="user-home__video-sort-item user-home__dynamic-sort-item"
+                :class="{ 'user-home__video-sort-item--active': searchFilter === 'dynamic' }"
+                @click="searchFilter = 'dynamic'"
+              >动态 {{ dynamicStore.spaceSearchDynamicTotal }}</span>
+            </div>
+          </aside>
+          <main class="user-home__dynamic-content">
+            <!-- 视频结果 -->
+            <template v-if="searchFilter === 'video'">
+              <div class="user-home__search-header">
+                <h2 class="user-home__search-title">TA的视频</h2>
+                <p class="user-home__search-subtitle">共找到关于"{{ activeSearchKeyword }}"的 {{ videoStore.spaceSearchVideoTotal }} 个视频</p>
+                <div class="user-home__video-sort">
+                  <span
+                    class="user-home__video-sort-item"
+                    :class="{ 'user-home__video-sort-item--active': searchVideoSort === 'date' }"
+                    @click="handleSearchVideoSortChange('date')"
+                  >最新发布</span>
+                  <span
+                    class="user-home__video-sort-item"
+                    :class="{ 'user-home__video-sort-item--active': searchVideoSort === 'view' }"
+                    @click="handleSearchVideoSortChange('view')"
+                  >最多播放</span>
+                  <span
+                    class="user-home__video-sort-item"
+                    :class="{ 'user-home__video-sort-item--active': searchVideoSort === 'favorite' }"
+                    @click="handleSearchVideoSortChange('favorite')"
+                  >最多收藏</span>
+                </div>
+              </div>
+              <template v-if="videoStore.spaceSearchVideoLoading && videoStore.spaceSearchVideos.length === 0">
+                <el-skeleton :rows="6" animated/>
+              </template>
+              <template v-else-if="videoStore.spaceSearchVideos.length > 0">
+                <div class="user-home__search-video-grid">
+                  <VideoCard
+                    :data="videoStore.spaceSearchVideos"
+                    :loading="false"
+                    :hide-author="true"
+                  />
+                </div>
+                <CustomPagination
+                  v-if="videoStore.spaceSearchVideoTotal > SEARCH_VIDEO_PAGE_SIZE"
+                  :current-page="searchVideoPageNum"
+                  :page-size="SEARCH_VIDEO_PAGE_SIZE"
+                  :total="videoStore.spaceSearchVideoTotal"
+                  @current-change="handleSearchVideoPageChange"
+                />
+              </template>
+              <template v-else>
+                <el-empty :description="`没有找到包含「${activeSearchKeyword}」的视频`" :image-size="80"/>
+              </template>
+            </template>
+            <!-- 动态结果 -->
+            <template v-else>
+              <div class="user-home__search-header">
+                <h2 class="user-home__search-title">TA的动态</h2>
+                <p class="user-home__search-subtitle">共找到关于"{{ activeSearchKeyword }}"的 {{ dynamicStore.spaceSearchDynamicTotal }} 条动态</p>
+              </div>
+              <template v-if="dynamicStore.spaceSearchDynamicLoading && dynamicStore.spaceSearchDynamics.length === 0">
+                <el-skeleton :rows="6" animated/>
+              </template>
+              <template v-else-if="dynamicStore.spaceSearchDynamics.length > 0">
+                <div class="user-home__dynamic-list">
+                  <DynamicCard
+                    v-for="item in dynamicStore.spaceSearchDynamics"
+                    :key="item.id"
+                    :item="item"
+                    @refresh="runSpaceSearch(activeSearchKeyword)"
+                  />
+                </div>
+                <div class="user-home__dynamic-more">
+                  <span v-if="searchDynamicLoadingMore" class="user-home__dynamic-more-tip">
+                    <el-icon class="is-loading"><Loading/></el-icon>
+                    加载中…
+                  </span>
+                  <span v-else-if="!searchDynamicHasMore" class="user-home__dynamic-more-tip">你已经到达世界的尽头～</span>
+                </div>
+              </template>
+              <template v-else>
+                <el-empty :description="`没有找到包含「${activeSearchKeyword}」的动态`" :image-size="80"/>
+              </template>
+            </template>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- 命中拉黑关系：tab 栏保留可见，内容区整块提示；我拉黑对方→可移除黑名单，对方拉黑我→仅提示 -->
+    <div v-else class="user-home__blocked">
+      <el-empty
+        :description="blockedByMe ? '无法查看空间内容，请将该用户移除黑名单' : '由于对方隐私设置，无法查看空间内容'"
+        :image-size="120"
+      >
+        <el-button
+          v-if="blockedByMe"
+          type="primary"
+          :loading="blockLoading"
+          @click="handleUnblock"
+        >移除黑名单</el-button>
+      </el-empty>
     </div>
   </main>
 
@@ -827,6 +985,50 @@
       </div>
     </template>
   </el-dialog>
+  <!-- 复制/移动到收藏夹弹窗 -->
+  <el-dialog
+    v-model="moveCopyDialog"
+    :title="moveCopyMode === 'copy' ? '复制到' : '移动到'"
+    width="420px"
+    :close-on-click-modal="false"
+    class="move-copy-dialog"
+  >
+    <div class="move-copy-dialog__create">
+      <el-input
+        v-model="moveCopyNewFolderName"
+        size="default"
+        placeholder="新收藏夹名称"
+        maxlength="20"
+      />
+      <el-button @click="handleDialogCreateFolder">新建</el-button>
+    </div>
+    <div class="move-copy-dialog__list">
+      <div
+        v-for="f in moveCopyTargetFolders"
+        :key="f.id"
+        class="move-copy-dialog__item"
+        :class="{ 'is-active': moveCopyTargetId === f.id }"
+        @click="moveCopyTargetId = f.id"
+      >
+        <el-radio :model-value="moveCopyTargetId" :value="f.id" @click.stop>
+          <span class="move-copy-dialog__name">{{ f.name }}</span>
+        </el-radio>
+        <span class="move-copy-dialog__count">{{ f.videoCount }}</span>
+      </div>
+      <el-empty v-if="moveCopyTargetFolders.length === 0" description="暂无其他收藏夹" :image-size="60" />
+    </div>
+    <template #footer>
+      <div class="move-copy-dialog__footer">
+        <el-button @click="moveCopyDialog = false">取消</el-button>
+        <el-button
+          type="primary"
+          :loading="moveCopySubmitting"
+          :disabled="!moveCopyTargetId"
+          @click="confirmMoveCopy"
+        >确定</el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script lang="ts" setup>
@@ -859,18 +1061,16 @@ import {
   Folder,
   Plus,
   Search,
-  ArrowDown,
   HomeFilled,
   StarFilled,
   VideoCameraFilled,
-  UserFilled,
-  Avatar,
   VideoPlay,
   ChatDotRound,
   Loading
 } from '@element-plus/icons-vue'
-import {get} from '@/utils/request'
+import {get, post, del} from '@/utils/request'
 import {DYNAMIC_API} from '@/api/dynamic'
+import {USER_API} from '@/api/user'
 import type {VideoInfo, FavoriteFolder, Dynamic, User, DynamicPageApiResponse} from '@/types/api'
 import {DEFAULT_AVATAR, DEFAULT_BACKGROUND, DEFAULT_FOLDER_COVER} from '@/utils/constants'
 
@@ -879,7 +1079,7 @@ const router = useRouter()
 const userStore = useUserStore()
 const videoStore = useVideoStore()
 const dynamicStore = useDynamicStore()
-const activeTab = ref<'home' | 'favorites' | 'video' | 'dynamic' | 'followings' | 'followers'>('home')
+const activeTab = ref<'home' | 'favorites' | 'video' | 'dynamic' | 'followings' | 'followers' | 'search'>('home')
 const userVideoPageNum = ref(1)
 const userVideoPageSize = ref(42)
 const dynamicPageNum = ref(1)
@@ -890,6 +1090,101 @@ const dynamicType = ref<0 | 2>(0) // 动态列表类型：0 全部 2 视频
 const dynamicHasMore = ref(true)
 const dynamicLoadingMore = ref(false)
 const DYNAMIC_LOAD_MORE_THRESHOLD = 300 // 距底部像素阈值，小于等于开始加载下一页
+
+// 空间内搜索（tab 栏搜索框）
+const spaceSearchInput = ref('') // 搜索框当前输入
+const activeSearchKeyword = ref('') // 已提交的关键字（用于结果视图标题/空态文案）
+const searchFilter = ref<'video' | 'dynamic'>('video') // 搜索结果左侧筛选类型
+// 进入搜索前所在的 tab（点搜索框 × 清空时回退到它）
+const tabBeforeSearch = ref<'home' | 'favorites' | 'video' | 'dynamic' | 'followings' | 'followers'>('home')
+const SEARCH_VIDEO_PAGE_SIZE = 20 // 视频搜索每页 20（宽 5列×4行 / 窄 4列×5行）
+const SEARCH_DYNAMIC_PAGE_SIZE = 10 // 动态搜索每页 10（懒加载）
+const searchVideoPageNum = ref(1) // 视频搜索当前页
+const searchVideoSort = ref<'date' | 'view' | 'favorite'>('date') // 视频搜索排序
+const searchDynamicPageNum = ref(1) // 动态搜索当前页（懒加载）
+const searchDynamicHasMore = ref(true) // 动态搜索是否还有下一页
+const searchDynamicLoadingMore = ref(false) // 动态搜索追加加载中
+
+// 执行空间搜索：重置分页并并行拉取视频与动态（左侧计数需两者总数）；不重置当前筛选，供删除后刷新复用
+const runSpaceSearch = async (keyword: string) => {
+  const kw = keyword.trim()
+  activeSearchKeyword.value = kw
+  const uid = Number(route.params.uid)
+  searchVideoPageNum.value = 1
+  searchDynamicPageNum.value = 1
+  searchDynamicHasMore.value = true
+  searchDynamicLoadingMore.value = false
+  await Promise.all([
+    videoStore.searchSpaceVideos(uid, kw, 1, SEARCH_VIDEO_PAGE_SIZE, searchVideoSort.value),
+    dynamicStore.searchSpaceDynamics(uid, kw, 1, SEARCH_DYNAMIC_PAGE_SIZE, false),
+  ])
+}
+
+// 提交搜索：切到 search tab 并同步 URL（?tab=search&keyword=xxx）
+const submitSpaceSearch = () => {
+  if (isSpaceBlocked.value) return
+  const kw = spaceSearchInput.value.trim()
+  if (!kw) {
+    ElMessage.warning('请输入搜索关键字')
+    return
+  }
+  // 记录进入搜索前的 tab，供点 × 清空时回退（已在 search 内再次搜索则不覆盖）
+  const prevTab = activeTab.value
+  if (prevTab !== 'search') tabBeforeSearch.value = prevTab
+  activeTab.value = 'search'
+  searchFilter.value = 'video'
+  searchVideoSort.value = 'date'
+  router.replace({ path: `/space/${Number(route.params.uid)}`, query: { tab: 'search', keyword: kw } })
+  runSpaceSearch(kw)
+}
+
+// 点击搜索框 × 清空：回到进入搜索前的 tab（仅在搜索结果页触发）
+const handleSearchClear = () => {
+  activeSearchKeyword.value = ''
+  if (activeTab.value === 'search') {
+    switchTab(tabBeforeSearch.value)
+  }
+}
+
+// 视频搜索：切换排序（重置到第一页）
+const handleSearchVideoSortChange = (sort: 'date' | 'view' | 'favorite') => {
+  if (searchVideoSort.value === sort) return
+  searchVideoSort.value = sort
+  searchVideoPageNum.value = 1
+  videoStore.searchSpaceVideos(
+    Number(route.params.uid), activeSearchKeyword.value, 1, SEARCH_VIDEO_PAGE_SIZE, sort,
+  )
+}
+
+// 视频搜索：翻页
+const handleSearchVideoPageChange = (pageNum: number) => {
+  searchVideoPageNum.value = pageNum
+  videoStore.searchSpaceVideos(
+    Number(route.params.uid), activeSearchKeyword.value, pageNum, SEARCH_VIDEO_PAGE_SIZE, searchVideoSort.value,
+  )
+}
+
+// 动态搜索：滚动到底追加下一页
+const loadMoreSearchDynamic = async () => {
+  if (searchDynamicLoadingMore.value || !searchDynamicHasMore.value) return
+  if (activeTab.value !== 'search' || searchFilter.value !== 'dynamic') return
+  if (dynamicStore.spaceSearchDynamics.length === 0) return
+  const next = searchDynamicPageNum.value + 1
+  searchDynamicLoadingMore.value = true
+  const prevLen = dynamicStore.spaceSearchDynamics.length
+  await dynamicStore.searchSpaceDynamics(
+    Number(route.params.uid), activeSearchKeyword.value, next, SEARCH_DYNAMIC_PAGE_SIZE, true,
+  )
+  if (
+    dynamicStore.spaceSearchDynamics.length === prevLen
+    || dynamicStore.spaceSearchDynamics.length >= dynamicStore.spaceSearchDynamicTotal
+  ) {
+    searchDynamicHasMore.value = false
+  } else {
+    searchDynamicPageNum.value = next
+  }
+  searchDynamicLoadingMore.value = false
+}
 
 // 主页相关数据
 const favoriteFolders = ref<FavoriteFolder[]>([]) // 收藏夹列表
@@ -957,15 +1252,135 @@ const isOwnHome = computed(() => {
   return userStore.isLogin && userStore.user.uid === userStore.targetUser.uid
 })
 
+// 拉黑关系（space 页互访拦截）：blockedByMe=我拉黑了TA，blockingMe=TA拉黑了我
+const blockedByMe = ref(false)
+const blockingMe = ref(false)
+const blockLoading = ref(false)
+// 命中任一方向拉黑关系时隐藏其空间内容（我拉黑对方 或 对方拉黑我；头部资料与 tab 栏仍可见，仅内容区隐藏）
+const isSpaceBlocked = computed(() =>
+  userStore.isLogin && !isOwnHome.value && (blockedByMe.value || blockingMe.value)
+)
+
+// 加载当前用户与目标用户的双向拉黑关系
+const loadBlockRelation = async (targetUid: number) => {
+  blockedByMe.value = false
+  blockingMe.value = false
+  // 未登录或访问自己主页无需拦截
+  if (!userStore.isLogin || userStore.user.uid === targetUid) return
+  try {
+    const res = await get<{ code: number; data: Record<string, boolean> }>(
+      `${USER_API.USER_BLOCK_RELATION}/${targetUid}`
+    )
+    if (res.code === 200 && res.data) {
+      blockedByMe.value = !!res.data.blockedByMe
+      blockingMe.value = !!res.data.blockingMe
+    }
+    // 命中拉黑关系：tab 强制回主页并清理 URL 参数（其余情况尊重 ?tab= 直达）
+    if (isSpaceBlocked.value) {
+      activeTab.value = 'home'
+      if (route.query.tab !== undefined || route.query.folder !== undefined) {
+        router.replace({ path: `/space/${targetUid}`, query: {} })
+      }
+    }
+  } catch (e) {
+    console.log('加载拉黑关系失败:', e)
+  }
+}
+
+// 加入黑名单（后端会自动双向取关）
+const handleBlock = async () => {
+  const uid = userStore.targetUser.uid
+  if (!uid) return
+  try {
+    await ElMessageBox.confirm(
+      `确定将「${getUserDisplayName(userStore.targetUser)}」加入黑名单吗？加入后将取消双方的关注，且你将不再看到对方的空间内容。`,
+      '加入黑名单',
+      { confirmButtonText: '拉黑', cancelButtonText: '取消', type: 'warning' },
+    )
+  } catch {
+    return
+  }
+  blockLoading.value = true
+  try {
+    const res = await post<{ code: number; message: string }>(`${USER_API.USER_BLOCK}/${uid}`)
+    if (res.code === 200) {
+      ElMessage.success(res.message || '已加入黑名单')
+      blockedByMe.value = true
+      // 拉黑会双向取关，刷新关注状态回显
+      await userStore.getTargetFollowInfo(uid)
+    } else {
+      ElMessage.error(res.message || '操作失败')
+    }
+  } catch (e) {
+    console.log('拉黑失败:', e)
+    ElMessage.error('操作失败，请稍后重试')
+  } finally {
+    blockLoading.value = false
+  }
+}
+
+// 移出黑名单
+const handleUnblock = async () => {
+  const uid = userStore.targetUser.uid
+  if (!uid) return
+  blockLoading.value = true
+  try {
+    const res = await del<{ code: number; message: string }>(`${USER_API.USER_BLOCK}/${uid}`)
+    if (res.code === 200) {
+      ElMessage.success(res.message || '已移出黑名单')
+      blockedByMe.value = false
+      // 拦截取消后回到主页，确保主页内容已加载
+      activeTab.value = 'home'
+      loadHomeData(uid)
+    } else {
+      ElMessage.error(res.message || '操作失败')
+    }
+  } catch (e) {
+    console.log('移出黑名单失败:', e)
+    ElMessage.error('操作失败，请稍后重试')
+  } finally {
+    blockLoading.value = false
+  }
+}
+
+// 新标签页打开与该用户的私信
+const goSendMessage = () => {
+  window.open(`/message?target=${userStore.targetUser.uid}`, '_blank')
+}
+
+// 关注按钮：命中「对方拉黑我」时仅提示，不调用关注接口
+const handleFollowClick = async () => {
+  if (blockingMe.value) {
+    ElMessage.warning('因对方隐私设置，你还不能关注')
+    return
+  }
+  await userStore.toggleFollow(userStore.targetUser.uid)
+}
+
 // 收藏tab相关数据
 const selectedFolderId = ref<number>(0) // 当前选中的收藏夹ID
 const favoritesViewMode = ref<'recent' | 'most-played' | 'latest-upload'>('recent') // 收藏视图模式
-const favoritesSearchKeyword = ref('') // 收藏搜索关键词
+const favoritesSearchKeyword = ref('') // 收藏搜索关键词（输入框绑定，未提交）
+const folderSearchScope = ref<'current' | 'all'>('current') // 搜索范围：当前收藏夹 / 全部收藏夹
+const folderSearchAppliedKeyword = ref('') // 已提交的搜索关键字（点搜索/回车才生效，非实时）
+const allFolderVideosCache = ref<VideoInfo[]>([]) // 「全部收藏夹」搜索时合并去重后的所有收藏夹视频
 const selectedFolderVideos = ref<VideoInfo[]>([]) // 当前选中收藏夹的视频
 
-// 收藏夹视频排序
+// 收藏夹视频排序（已提交关键字时按范围过滤：当前收藏夹 or 全部收藏夹缓存）
 const sortedFolderVideos = computed<VideoInfo[]>(() => {
-  const list = [...selectedFolderVideos.value]
+  const kw = folderSearchAppliedKeyword.value.trim().toLowerCase()
+  // 「全部收藏夹」搜索时数据源为所有收藏夹合并结果，否则为当前收藏夹
+  let list = (kw && folderSearchScope.value === 'all')
+    ? [...allFolderVideosCache.value]
+    : [...selectedFolderVideos.value]
+  if (kw) {
+    list = list.filter(v =>
+      (v.video.title || '').toLowerCase().includes(kw)
+      || (v.video.descr || '').toLowerCase().includes(kw)
+      || (v.user?.nickname || '').toLowerCase().includes(kw)
+      || (v.user?.username || '').toLowerCase().includes(kw)
+    )
+  }
   switch (favoritesViewMode.value) {
     case 'most-played':
       return list.sort((a, b) => (b.stat.view || 0) - (a.stat.view || 0))
@@ -979,6 +1394,235 @@ const sortedFolderVideos = computed<VideoInfo[]>(() => {
       return list
   }
 })
+
+// 提交收藏夹搜索（点搜索图标/回车触发，非实时）；「全部收藏夹」时遍历所有收藏夹拉取视频并合并去重
+const handleFolderSearch = async () => {
+  const kw = favoritesSearchKeyword.value.trim()
+  folderSearchAppliedKeyword.value = kw
+  if (kw && folderSearchScope.value === 'all') {
+    try {
+      const lists = await Promise.all(
+        favoriteFolders.value.map(f => videoStore.getFolderVideos(f.id, 1, 200)),
+      )
+      const merged: VideoInfo[] = []
+      const seen = new Set<number>()
+      for (const arr of lists) {
+        for (const v of arr) {
+          if (!seen.has(v.video.vid)) {
+            seen.add(v.video.vid)
+            merged.push(v)
+          }
+        }
+      }
+      allFolderVideosCache.value = merged
+    } catch (e) {
+      console.error('全部收藏夹搜索失败:', e)
+      allFolderVideosCache.value = []
+    }
+  }
+}
+
+// 清空搜索：恢复当前收藏夹列表
+const handleFolderSearchClear = () => {
+  folderSearchAppliedKeyword.value = ''
+  allFolderVideosCache.value = []
+}
+
+// 切换搜索范围时，若已提交过关键字则重新搜索
+watch(folderSearchScope, () => {
+  if (folderSearchAppliedKeyword.value.trim()) handleFolderSearch()
+})
+
+// ===== 收藏夹批量操作 =====
+const batchMode = ref(false) // 是否处于批量操作模式
+const selectedVids = ref<number[]>([]) // 批量模式下选中的视频 vid
+// 复制/移动弹窗
+const moveCopyDialog = ref(false)
+const moveCopyMode = ref<'copy' | 'move'>('copy')
+const moveCopyTargetId = ref<number>(0)
+const moveCopyVids = ref<number[]>([]) // 本次操作的视频（批量=多选，单视频=[vid]）
+const moveCopyNewFolderName = ref('')
+const moveCopySubmitting = ref(false)
+
+const enterBatchMode = () => {
+  batchMode.value = true
+  selectedVids.value = []
+}
+const exitBatchMode = () => {
+  batchMode.value = false
+  selectedVids.value = []
+}
+const toggleSelectVid = (vid: number) => {
+  const i = selectedVids.value.indexOf(vid)
+  if (i > -1) selectedVids.value.splice(i, 1)
+  else selectedVids.value.push(vid)
+}
+const currentFolderVids = computed<number[]>(() => sortedFolderVideos.value.map(v => v.video.vid))
+const allSelected = computed(
+  () => currentFolderVids.value.length > 0 && currentFolderVids.value.every(id => selectedVids.value.includes(id)),
+)
+const someSelected = computed(() => selectedVids.value.length > 0 && !allSelected.value)
+const handleSelectAll = (val: boolean | string | number) => {
+  selectedVids.value = val ? [...currentFolderVids.value] : []
+}
+
+// 刷新当前收藏夹视频与收藏夹列表数量
+const refreshCurrentFolder = async () => {
+  try {
+    selectedFolderVideos.value = await videoStore.getFolderVideos(selectedFolderId.value)
+    const folders = await videoStore.getUserFavoriteFolders(undefined, Number(route.params.uid))
+    favoriteFolders.value = sortFolders(folders)
+    folderCount.value = folders.length
+  } catch (e) {
+    console.error('刷新收藏夹失败:', e)
+  }
+}
+
+const requireSelection = (): boolean => {
+  if (selectedVids.value.length === 0) {
+    ElMessage.warning('请先选择视频')
+    return false
+  }
+  return true
+}
+
+// 批量取消收藏（当前收藏夹）
+const handleBatchUnfav = async () => {
+  if (!requireSelection()) return
+  const vids = [...selectedVids.value]
+  try {
+    for (const vid of vids) await videoStore.collectToFolder(vid, selectedFolderId.value)
+    ElMessage.success(`已取消收藏 ${vids.length} 个视频`)
+    selectedVids.value = []
+    await refreshCurrentFolder()
+  } catch (e) {
+    console.error('取消收藏失败:', e)
+    ElMessage.error('操作失败')
+  }
+}
+
+// 清除失效内容（当前收藏夹中 status 2/3 的视频，无需勾选）
+const handleClearInvalid = async () => {
+  const invalidVids = selectedFolderVideos.value
+    .filter(v => v.video.status === 2 || v.video.status === 3)
+    .map(v => v.video.vid)
+  if (invalidVids.length === 0) {
+    ElMessage.warning('没有失效内容')
+    return
+  }
+  try {
+    await ElMessageBox.confirm(`将清除 ${invalidVids.length} 个失效视频，是否继续？`, '清除失效内容', {
+      confirmButtonText: '清除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    for (const vid of invalidVids) await videoStore.collectToFolder(vid, selectedFolderId.value)
+    ElMessage.success(`已清除 ${invalidVids.length} 个失效视频`)
+    selectedVids.value = selectedVids.value.filter(id => !invalidVids.includes(id))
+    await refreshCurrentFolder()
+  } catch (e) {
+    if (e !== 'cancel') console.error('清除失效内容失败:', e)
+  }
+}
+
+// 打开复制/移动弹窗（vids 为操作对象）
+const openMoveCopyDialog = (mode: 'copy' | 'move', vids: number[]) => {
+  if (vids.length === 0) {
+    ElMessage.warning('请先选择视频')
+    return
+  }
+  moveCopyMode.value = mode
+  moveCopyVids.value = [...vids]
+  moveCopyTargetId.value = 0
+  moveCopyNewFolderName.value = ''
+  moveCopyDialog.value = true
+}
+const openBatchMoveCopy = (mode: 'copy' | 'move') => {
+  if (requireSelection()) openMoveCopyDialog(mode, selectedVids.value)
+}
+
+// 弹窗内新建收藏夹
+const handleDialogCreateFolder = async () => {
+  const name = moveCopyNewFolderName.value.trim()
+  if (!name) {
+    ElMessage.warning('请输入收藏夹名称')
+    return
+  }
+  try {
+    const f = await videoStore.createFolder(name)
+    if (f) {
+      favoriteFolders.value = sortFolders([...favoriteFolders.value, f])
+      moveCopyTargetId.value = f.id
+      moveCopyNewFolderName.value = ''
+      ElMessage.success('已创建')
+    }
+  } catch (e) {
+    console.error('创建收藏夹失败:', e)
+    ElMessage.error('创建失败')
+  }
+}
+
+// 确认复制/移动
+const confirmMoveCopy = async () => {
+  const target = moveCopyTargetId.value
+  if (!target) {
+    ElMessage.warning('请选择目标收藏夹')
+    return
+  }
+  if (target === selectedFolderId.value) {
+    ElMessage.warning(moveCopyMode.value === 'copy' ? '不能复制到当前收藏夹' : '不能移动到当前收藏夹')
+    return
+  }
+  moveCopySubmitting.value = true
+  try {
+    const vids = moveCopyVids.value
+    for (const vid of vids) {
+      if (moveCopyMode.value === 'copy') {
+        await videoStore.collectToFolder(vid, target)
+      } else {
+        await videoStore.collectToFolder(vid, selectedFolderId.value) // 从当前移除
+        await videoStore.collectToFolder(vid, target) // 加入目标
+      }
+    }
+    ElMessage.success(moveCopyMode.value === 'copy' ? '复制成功' : '移动成功')
+    moveCopyDialog.value = false
+    selectedVids.value = []
+    await refreshCurrentFolder()
+  } catch (e) {
+    console.error('复制/移动失败:', e)
+    ElMessage.error('操作失败')
+  } finally {
+    moveCopySubmitting.value = false
+  }
+}
+
+// 可复制/移动的目标收藏夹（排除当前收藏夹）
+const moveCopyTargetFolders = computed(() =>
+  favoriteFolders.value.filter(f => f.id !== selectedFolderId.value),
+)
+
+// 单视频三点菜单项
+const folderMoreMenuItems = [
+  { key: 'unfav', label: '取消收藏' },
+  { key: 'copy', label: '复制至' },
+  { key: 'move', label: '移动至' },
+]
+// 单视频三点菜单操作
+const handleFolderCardMore = (key: string, vi: VideoInfo) => {
+  const vid = vi.video.vid
+  if (key === 'unfav') {
+    videoStore.collectToFolder(vid, selectedFolderId.value)
+      .then(async () => {
+        ElMessage.success('已取消收藏')
+        await refreshCurrentFolder()
+      })
+      .catch(e => console.error('取消收藏失败:', e))
+  } else if (key === 'copy') {
+    openMoveCopyDialog('copy', [vid])
+  } else if (key === 'move') {
+    openMoveCopyDialog('move', [vid])
+  }
+}
 
 const folderCount = ref<number>(0) // 收藏夹数量（tab 栏显示）
 // 新建收藏夹弹窗
@@ -1036,11 +1680,12 @@ const displayedHomeFolders = computed<FavoriteFolder[]>(() => {
 })
 
 // 从 URL query 中读取初始 tab，不匹配时回退到 home
+// （命中拉黑关系时由 loadBlockRelation 强制回 home；页面内手动点 tab 由 switchTab 自行加载）
 const initTabFromQuery = () => {
   const tab = route.query.tab as string
   const uid = Number(route.params.uid)
   // tab 为 undefined 或不匹配时回退到 home
-  if (!tab || (tab !== 'home' && tab !== 'favorites' && tab !== 'video' && tab !== 'dynamic' && tab !== 'followings' && tab !== 'followers')) {
+  if (!tab || (tab !== 'home' && tab !== 'favorites' && tab !== 'video' && tab !== 'dynamic' && tab !== 'followings' && tab !== 'followers' && tab !== 'search')) {
     activeTab.value = 'home'
     loadHomeData(uid)
     return
@@ -1048,6 +1693,17 @@ const initTabFromQuery = () => {
   activeTab.value = tab
   if (tab === 'home') {
     loadHomeData(uid)
+  } else if (tab === 'search') {
+    // 从 URL 恢复搜索：有关键字则回填并执行，否则回退主页
+    const kw = ((route.query.keyword as string) || '').trim()
+    if (kw) {
+      spaceSearchInput.value = kw
+      searchFilter.value = 'video'
+      runSpaceSearch(kw)
+    } else {
+      activeTab.value = 'home'
+      loadHomeData(uid)
+    }
   } else if (tab === 'favorites') {
     // 支持从 URL 直接定位到指定收藏夹
     const folderId = Number(route.query.folder)
@@ -1092,25 +1748,30 @@ const handleToggleFollow = async (itemUid: number) => {
   await userStore.toggleFollow(itemUid)
 }
 
-// 切换主页 / 收藏 / 投稿 / 动态 / 关注 / 粉丝 tab，同步到 URL query，数据加载由 watcher 统一处理
+// 切换主页 / 收藏 / 投稿 / 动态 / 关注 / 粉丝 tab，同步 URL 并自行加载数据
+// （进入页面时 URL 强制回 home，但页面内点击可自由切换）
 const switchTab = (tab: 'home' | 'favorites' | 'video' | 'dynamic' | 'followings' | 'followers') => {
+  // 命中拉黑关系：空间内容被隐藏，禁止切换 tab
+  if (isSpaceBlocked.value) return
   activeTab.value = tab
   const uid = Number(route.params.uid)
   // 同步 URL：home 为默认值时不写 query，其他 tab 带上 ?tab=xxx
   const query: Record<string, string> = tab === 'home' ? {} : {tab}
   router.replace({path: `/space/${uid}`, query})
-  // 如果 tab 没变（重复点击同一个 tab），watcher 不会触发，直接加载
-  if (tab === route.query.tab || (tab === 'home' && !route.query.tab)) {
-    if (tab === 'home') {
-      loadHomeData(uid)
-    } else if (tab === 'favorites') {
-      loadFavoritesData(uid)
-    } else if (tab === 'video') {
-      userVideoPageNum.value = 1
-      videoStore.getUserVideos(uid, userVideoPageNum.value, userVideoPageSize.value, userVideoSort.value)
-    } else if (tab === 'dynamic') {
-      resetUserDynamic(uid)
-    }
+  // 数据加载由本函数直接负责（不再依赖 query.tab watcher）
+  if (tab === 'home') {
+    loadHomeData(uid)
+  } else if (tab === 'favorites') {
+    loadFavoritesData(uid)
+  } else if (tab === 'video') {
+    userVideoPageNum.value = 1
+    videoStore.getUserVideos(uid, userVideoPageNum.value, userVideoPageSize.value, userVideoSort.value)
+  } else if (tab === 'dynamic') {
+    resetUserDynamic(uid)
+  } else if (tab === 'followings') {
+    userStore.getFollowings(uid)
+  } else if (tab === 'followers') {
+    userStore.getFollowers(uid)
   }
 }
 
@@ -1172,7 +1833,12 @@ const loadMoreUserDynamic = async () => {
 const onUserHomeScroll = () => {
   const remain = document.documentElement.scrollHeight - window.innerHeight - window.scrollY
   if (remain <= DYNAMIC_LOAD_MORE_THRESHOLD) {
-    loadMoreUserDynamic()
+    // 搜索 tab 且当前看动态结果时走搜索懒加载，否则走动态 tab 懒加载
+    if (activeTab.value === 'search') {
+      loadMoreSearchDynamic()
+    } else {
+      loadMoreUserDynamic()
+    }
   }
 }
 
@@ -1211,6 +1877,10 @@ const handleUserVideoSortChange = (sort: 'date' | 'view' | 'favorite') => {
 // 选择收藏夹
 const selectFolder = async (folderId: number) => {
   selectedFolderId.value = folderId
+  // 切换收藏夹时重置搜索状态，回到该收藏夹完整列表
+  favoritesSearchKeyword.value = ''
+  folderSearchAppliedKeyword.value = ''
+  allFolderVideosCache.value = []
   try {
     selectedFolderVideos.value = await videoStore.getFolderVideos(folderId)
   } catch (e) {
@@ -1474,6 +2144,8 @@ watch(
         }
       })
       userStore.getTargetFollowInfo(parsedUid)
+      // 加载双向拉黑关系，命中时拦截空间内容
+      loadBlockRelation(parsedUid)
       videoStore.getUserVideoStats(parsedUid)
       selectedFolderId.value = 0
       // 同步先解析 query 设置 tab，不等 getUserVideos 返回 —— 保证打开带 query 的 URL 立即切 tab
@@ -1489,17 +2161,18 @@ watch(
   },
   { immediate: true },
 )
-
-// 监听 URL query.tab 变化，例如从头像悬浮窗点击"关注/粉丝"时切换内容
-watch(
-  () => route.query.tab,
-  () => {
-    initTabFromQuery()
-  }
-)
 </script>
 
 <style scoped lang="less">
+/* 头部透明浮在 banner 上：仅通过 scoped 变量覆盖（向下继承进 HeaderBar 子组件），不影响其他页面 */
+/* --position: absolute 使头部随页面滚走而不吸顶；吸顶交由下方 tab 栏接管 */
+.hiri-header__bar {
+  --position: absolute;
+  --bg-color: transparent;
+  --text-color: #fff;
+  --header-shadow: none;
+}
+
 .user-home__banner {
   position: relative;
   min-height: 200px;
@@ -1514,6 +2187,19 @@ watch(
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+}
+
+/* banner 顶部暗色遮罩：保证透明头部上的白色导航文字可读 */
+.user-home__banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 88px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.35), transparent);
+  z-index: 1;
+  pointer-events: none;
 }
 
 .user-home__banner-mask {
@@ -1637,24 +2323,25 @@ watch(
 
 .user-home__stats {
   display: flex;
-  gap: 24px;
+  align-items: center;
+  gap: 16px;
+  /* 五个数据靠 tab 栏右侧 */
+  margin-left: auto;
 }
 
 .user-home__stat-item {
   text-align: center;
-  min-width: 60px;
+  min-width: 48px;
   padding: 4px 8px;
 
   &--link {
     text-decoration: none;
     border-radius: 6px;
     padding: 4px 8px;
-    transition: background 0.2s, color 0.2s;
+    transition: color 0.2s;
     cursor: pointer;
 
     &:hover {
-      background: #f7f8fa;
-
       .user-home__stat-value,
       .user-home__stat-label {
         color: @pink;
@@ -1663,8 +2350,7 @@ watch(
   }
 
   &--active {
-    background: #ffe6ef;
-
+    /* 选中对应 tab 时仅变文字颜色，不加背景 */
     .user-home__stat-value,
     .user-home__stat-label {
       color: @pink;
@@ -1673,28 +2359,39 @@ watch(
 }
 
 .user-home__stat-value {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 600;
   color: #222;
   line-height: 1.2;
+  margin-top: 4px;
 }
 
 .user-home__stat-label {
   font-size: 12px;
   color: @text-2;
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 .user-home__follow-btn {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
 
-  .el-button {
+  .user-home__primary-btn {
     min-width: 96px;
   }
 
-  .user-home__msg-link {
-    text-decoration: none;
+  .user-home__msg-btn {
+    min-width: 88px;
+    margin-right: 12px;
+  }
+
+  .user-home__more-btn {
+    width: 40px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -1706,6 +2403,10 @@ watch(
   padding: 0 16px;
   margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  /* 本页 tab 栏吸顶：头部滚走后由它固定在顶部（z-index 低于头部 100） */
+  position: sticky;
+  top: 0;
+  z-index: 90;
 }
 
 .user-home__tab {
@@ -1752,11 +2453,91 @@ watch(
   font-weight: normal;
 }
 
+/* tab 栏搜索框：位于左侧 tab 末尾，垂直居中 */
+.user-home__tab-search {
+  display: flex;
+  align-items: center;
+  width: 220px;
+  flex-shrink: 0;
+
+  :deep(.el-input__wrapper) {
+    border-radius: 16px;
+    background: #f4f5f7;
+    box-shadow: none;
+  }
+
+  :deep(.el-input__wrapper.is-focus) {
+    background: #fff;
+    box-shadow: 0 0 0 1px @pink inset;
+  }
+}
+
+.user-home__tab-search-icon {
+  cursor: pointer;
+  color: @text-3;
+  transition: color 0.2s;
+
+  &:hover {
+    color: @pink;
+  }
+}
+
+.user-home__search-tab {
+  display: block;
+}
+
+/* 搜索结果顶部标题区 */
+.user-home__search-header {
+  margin-bottom: 20px;
+}
+
+.user-home__search-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #222;
+  margin: 0 0 8px;
+}
+
+.user-home__search-subtitle {
+  font-size: 14px;
+  color: @text-3;
+  margin: 0 0 16px;
+}
+
+/* 搜索视频网格：基础 4 列，宽屏 5 列（封顶 5 列，每页 20 个） */
+.user-home__search-video-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+
+  & .el-empty {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1100px) {
+  .user-home__search-video-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
 .user-home__content {
   background: #fff;
   border-radius: 8px;
   padding: 20px 20px;
   min-height: 300px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* 拉黑拦截整页提示 */
+.user-home__blocked {
+  background: #fff;
+  border-radius: 8px;
+  padding: 60px 20px;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
@@ -2272,7 +3053,163 @@ watch(
 
 .user-home__favorites-actions {
   display: flex;
+  align-items: center;
   gap: 12px;
+}
+
+/* 收藏夹搜索胶囊：自己用 flex 拼（不用 el-input prepend，避开 select 错位），整体白底大圆角 */
+.user-home__folder-search {
+  display: flex;
+  align-items: center;
+  width: 310px;
+  height: 34px;
+  padding: 0 10px 0 0;
+  background: #fff;
+  border: 1px solid #e5e6eb;
+  border-radius: 8px;
+  font-size: 13px;
+  transition: border-color 0.2s;
+
+  &:focus-within {
+    border-color: @pink;
+  }
+
+  /* 下拉去掉自身边框/背景，融入胶囊 */
+  :deep(.user-home__folder-search-scope .el-select__wrapper) {
+    box-shadow: none;
+    background: transparent;
+    border: none;
+    padding-left: 12px;
+    min-height: 30px;
+    font-size: 13px;
+  }
+
+  /* 输入框去掉自身边框/背景，与下拉共享胶囊外框 */
+  :deep(.user-home__folder-search-input .el-input__wrapper) {
+    box-shadow: none;
+    background: transparent;
+    border-radius: 0;
+    padding-left: 6px;
+  }
+
+  :deep(.user-home__folder-search-input .el-input__inner) {
+    font-size: 13px;
+  }
+}
+
+.user-home__folder-search-scope {
+  width: 72px;
+  flex-shrink: 0;
+}
+
+.user-home__folder-search-divider {
+  width: 1px;
+  height: 14px;
+  background: #e5e6eb;
+  flex-shrink: 0;
+}
+
+.user-home__folder-search-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-home__folder-search-icon {
+  cursor: pointer;
+  color: @text-3;
+
+  &:hover {
+    color: @pink;
+  }
+}
+
+/* 批量操作按钮（高 34） */
+.user-home__batch-btn {
+  height: 34px;
+  flex-shrink: 0;
+}
+
+/* 批量操作工具条 */
+.user-home__batch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  margin-bottom: 12px;
+}
+
+.user-home__batch-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-home__batch-count {
+  font-size: 13px;
+  color: @text-2;
+}
+
+.user-home__batch-bar-right {
+  display: flex;
+  align-items: center;
+
+  :deep(.el-button) {
+    height: 34px;
+  }
+
+  :deep(.el-button + .el-button) {
+    margin-left: 12px;
+  }
+}
+
+/* 复制/移动到收藏夹弹窗 */
+.move-copy-dialog__create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.move-copy-dialog__list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.move-copy-dialog__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f7f8fa;
+  }
+
+  &.is-active {
+    background: rgba(255, 102, 153, 0.08);
+  }
+
+  :deep(.el-radio) {
+    height: auto;
+    margin-right: 0;
+  }
+
+  :deep(.el-radio__label) {
+    padding-left: 4px;
+  }
+}
+
+.move-copy-dialog__name {
+  font-size: 14px;
+  color: @text-1;
+}
+
+.move-copy-dialog__count {
+  font-size: 13px;
+  color: @text-3;
 }
 
 .user-home__favorites-videos {
