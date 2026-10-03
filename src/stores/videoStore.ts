@@ -33,6 +33,9 @@ export const useVideoStore = defineStore('video', {
       searchSuggestList: [] as string[],
       userVideoList: [] as VideoInfo[], // 用户投稿视频列表
       userVideoTotal: 0,
+      spaceSearchVideos: [] as VideoInfo[], // 空间内搜索命中的投稿视频（独立状态，不污染投稿 tab）
+      spaceSearchVideoTotal: 0,
+      spaceSearchVideoLoading: false,
       userVideoStats: {
         totalVideos: 0,
         totalViews: 0,
@@ -59,7 +62,7 @@ export const useVideoStore = defineStore('video', {
       // 视频互动状态
       liked: false,
       disliked: false,
-      coined: false,
+      coined: 0, // 当前用户对本视频的已投币数（0/1/2）
       favorited: false,
     }
   },
@@ -152,6 +155,28 @@ export const useVideoStore = defineStore('video', {
         this.userVideoTotal = 0
       } finally {
         this.userVideoLoading = false
+      }
+    },
+    // 空间内搜索：按关键字过滤该用户投稿视频，结果写入独立状态 spaceSearchVideos
+    async searchSpaceVideos(uid: number, keyword: string, pageNum = 1, pageSize = 20, order = 'date') {
+      this.spaceSearchVideoLoading = true
+      try {
+        const res = await get<{ code: number; data: { records: VideoInfo[]; total: number } }>(`${VIDEO_API.GET_BY_UID}/${uid}`, {
+          params: { pageNum, pageSize, order, keyword },
+        })
+        if (res.code === 200) {
+          this.spaceSearchVideos = res.data.records
+          this.spaceSearchVideoTotal = res.data.total || 0
+        } else {
+          this.spaceSearchVideos = []
+          this.spaceSearchVideoTotal = 0
+        }
+      } catch (e) {
+        console.log('空间搜索投稿视频失败:', e)
+        this.spaceSearchVideos = []
+        this.spaceSearchVideoTotal = 0
+      } finally {
+        this.spaceSearchVideoLoading = false
       }
     },
     async getUserVideoStats(uid: number) {
@@ -260,12 +285,12 @@ export const useVideoStore = defineStore('video', {
       const userStore = useUserStore()
       if (!userStore.isLogin) {
         this.liked = false
-        this.coined = false
+        this.coined = 0
         this.favorited = false
         return
       }
       try {
-        const res = await get<{ code: number; data: [boolean, boolean, boolean, boolean] }>(
+        const res = await get<{ code: number; data: [boolean, boolean, number, boolean] }>(
           `${VIDEO_API.GET_INTERACTION_STATUS}/${vid}`
         )
         if (res.code === 200) {
@@ -286,7 +311,7 @@ export const useVideoStore = defineStore('video', {
         return
       }
       try {
-        const res = await post<{ code: number; data: string }>(
+        const res = await post<{ code: number; data: string; message?: string }>(
           `${VIDEO_API.TOGGLE_LIKE}/${vid}`
         )
         if (res.code === 200) {
@@ -298,6 +323,9 @@ export const useVideoStore = defineStore('video', {
             this.videoInfo.stat.like -= 1
             ElMessage.success('取消点赞')
           }
+        } else {
+          // 被后端拒绝（含拉黑：因对方隐私设置，无法进行互动）
+          ElMessage.warning(res.message || '操作失败')
         }
       } catch (e) {
         console.error('点赞操作失败', e)
@@ -311,7 +339,7 @@ export const useVideoStore = defineStore('video', {
         return
       }
       try {
-        const res = await post<{ code: number; data: string }>(
+        const res = await post<{ code: number; data: string; message?: string }>(
           `${VIDEO_API.TOGGLE_DISLIKE}/${vid}`,
         )
         if (res.code === 200) {
@@ -320,6 +348,9 @@ export const useVideoStore = defineStore('video', {
             0,
             this.videoInfo.stat.dislike + (this.disliked ? 1 : -1),
           )
+        } else {
+          // 被后端拒绝（含拉黑：因对方隐私设置，无法进行互动）
+          ElMessage.warning(res.message || '操作失败')
         }
       } catch (e) {
         console.error('涓嶅枩娆㈡搷浣滃け璐?', e)
@@ -332,21 +363,21 @@ export const useVideoStore = defineStore('video', {
         return
       }
       try {
-        const res = await post<{ code: number; data: string }>(
+        const res = await post<{ code: number; data: string; message: string }>(
           `${VIDEO_API.TOGGLE_COIN}/${vid}?count=${count}`
         )
         if (res.code === 200) {
-          this.coined = !this.coined
-          if (this.coined) {
-            this.videoInfo.stat.coin += count
-            ElMessage.success('投币成功')
-          } else {
-            this.videoInfo.stat.coin -= count
-            ElMessage.success('取消投币')
-          }
+          // 投币为累加（非开关）：已投币数 +count，上限 2
+          this.coined = Math.min(2, (Number(this.coined) || 0) + count)
+          this.videoInfo.stat.coin += count
+          ElMessage.success('投币成功')
+        } else {
+          // 后端业务失败（如硬币不足、不能给自己投币、投币枚数已用完等）：弹出后端 message
+          ElMessage.error(res.message || '投币失败')
         }
       } catch (e) {
         console.error('投币操作失败', e)
+        ElMessage.error('投币失败，请稍后重试')
       }
     },
 // 收藏/取消收藏

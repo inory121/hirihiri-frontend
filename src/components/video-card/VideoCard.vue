@@ -6,6 +6,7 @@
     :key="videoInfo.video?.vid ?? index"
     :data-vid="videoInfo.video?.vid"
     :data-index="index"
+    :class="{ 'is-selected': props.selectable && isSelected(videoInfo.video.vid) }"
   >
     <el-skeleton :loading="props.loading" animated :throttle="{ leading: 500, trailing: 500, initVal: true }">
       <!-- 骨架屏内容 -->
@@ -26,11 +27,19 @@
               :href="`/video/${videoInfo.video.vid}`"
               target="_blank"
               class="video-card__link"
-              @click="handleClick(videoInfo, index)"
+              @click="handleCardClick($event, videoInfo, index)"
             >
               <div class="video-card__cover">
-                <img :src="videoInfo.video.coverUrl" alt="" class="video-card__image" />
-                <div class="video-card__stats">
+                <img :src="isInvalid(videoInfo) ? DEFAULT_INVALID_COVER : videoInfo.video.coverUrl" alt="" class="video-card__image" />
+                <!-- 多选勾选框（仅多选模式显示，左上角） -->
+                <div
+                  v-if="props.selectable"
+                  class="video-card__select"
+                  :class="{ 'is-checked': isSelected(videoInfo.video.vid) }"
+                >
+                  <el-icon v-if="isSelected(videoInfo.video.vid)"><Check /></el-icon>
+                </div>
+                <div v-if="!isInvalid(videoInfo)" class="video-card__stats">
                   <div class="video-card__stat-left">
                     <span class="video-card__stat-item">
                       <el-icon>
@@ -57,10 +66,11 @@
                 :href="`/video/${videoInfo.video.vid}`"
                 target="_blank"
                 class="video-card__title-link"
-                :title="videoInfo.video.title"
-                @click="handleClick(videoInfo, index)"
+                :title="isInvalid(videoInfo) ? '已失效视频' : videoInfo.video.title"
+                :class="{ 'is-invalid': isInvalid(videoInfo) }"
+                @click="handleCardClick($event, videoInfo, index)"
               >{{
-                  videoInfo.video.title }}
+                  isInvalid(videoInfo) ? '已失效视频' : videoInfo.video.title }}
                 </a>
                 <!-- 更多操作：hover 标题区域时显示，hover 三个点时弹出菜单 -->
                 <el-popover
@@ -104,7 +114,10 @@
                   </div>
                 </el-popover>
               </h3>
-              <div class="video-card__meta">
+              <div
+                class="video-card__meta"
+                :title="props.hideAuthor ? undefined : `${getUserDisplayName(videoInfo.user)} · ${displayTimeText(videoInfo)}`"
+              >
                 <template v-if="!props.hideAuthor">
                   <a :href="`/space/${videoInfo.video.uid}`" target="_blank" class="video-card__author"
                     style="display: flex; align-items: center">
@@ -112,14 +125,15 @@
                     <span class="video-card__username" style="margin-left: 3px">{{
                       getUserDisplayName(videoInfo.user)
                     }}</span>
-                    <span v-if="!props.hideTime" class="video-card__time" style="margin-left: 10px">{{
-                      formatTime(videoInfo.video.createTime)
+                    <span v-if="!props.hideTime" class="video-card__dot">·</span>
+                    <span v-if="!props.hideTime" class="video-card__time">{{
+                      displayTimeText(videoInfo)
                     }}</span>
                   </a>
                 </template>
                 <template v-else>
                   <span v-if="!props.hideTime" class="video-card__time">{{
-                    formatTime(videoInfo.video.createTime)
+                    displayTimeText(videoInfo)
                   }}</span>
                 </template>
               </div>
@@ -133,11 +147,11 @@
 
 <script setup lang="ts">
 import { reactive } from 'vue'
-import { VideoPlay, ChatDotRound } from '@element-plus/icons-vue'
-import { formatTime, formatDuration, formatNumber, getUserDisplayName } from '@/utils/utils.ts'
+import { VideoPlay, ChatDotRound, Check } from '@element-plus/icons-vue'
+import { formatTime, formatDuration, formatNumber, formatCollectTime, getUserDisplayName } from '@/utils/utils.ts'
 import type { VideoInfo } from '@/types/api'
 import { useRecommendStore } from '@/stores/recommendStore'
-import { DEFAULT_AVATAR } from '@/utils/constants'
+import { DEFAULT_AVATAR, DEFAULT_INVALID_COVER } from '@/utils/constants'
 
 const recommendStore = useRecommendStore()
 // 控制"更多"弹窗显隐；弹窗打开（含鼠标在弹窗上）时三个点保持可见。
@@ -161,12 +175,18 @@ const props = withDefaults(
     hideTime?: boolean
     showMoreMenu?: boolean
     moreMenuItems?: MoreMenuItem[]
+    showCollectTime?: boolean
+    selectable?: boolean
+    selected?: number[]
   }>(),
   {
     loading: false,
     hideAuthor: false,
     hideTime: false,
     showMoreMenu: false,
+    showCollectTime: false,
+    selectable: false,
+    selected: () => [],
     moreMenuItems: () => [
       { key: 'notInterested', label: '内容不感兴趣' },
       { key: 'blockAuthor', label: '不想看此UP主' },
@@ -177,9 +197,35 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'card-click', videoInfo: VideoInfo, index: number): void
   (e: 'more-select', key: string, videoInfo: VideoInfo, index: number): void
+  (e: 'toggle-select', vid: number): void
 }>()
 
-const handleClick = (videoInfo: VideoInfo, index: number) => {
+// 视频是否已失效（status 2 未通过 / 3 已删除）
+const isInvalid = (videoInfo: VideoInfo): boolean =>
+  videoInfo.video?.status === 2 || videoInfo.video?.status === 3
+
+// 卡片时间文案：收藏模式且存在收藏时间时显示“收藏于…”，否则显示发布时间
+const displayTimeText = (videoInfo: VideoInfo): string => {
+  if (props.showCollectTime && videoInfo.collectTime) {
+    return `收藏于${formatCollectTime(videoInfo.collectTime)}`
+  }
+  return formatTime(videoInfo.video.createTime)
+}
+
+const isSelected = (vid: number): boolean => props.selected.includes(vid)
+
+const handleCardClick = (e: MouseEvent, videoInfo: VideoInfo, index: number) => {
+  // 多选模式：点击切换选中，不跳转
+  if (props.selectable) {
+    e.preventDefault()
+    emit('toggle-select', videoInfo.video.vid)
+    return
+  }
+  // 失效视频无对应详情页，阻止跳转
+  if (isInvalid(videoInfo)) {
+    e.preventDefault()
+    return
+  }
   emit('card-click', videoInfo, index)
 }
 
@@ -205,6 +251,29 @@ const handleMoreMenuSelect = async (key: string, videoInfo: VideoInfo, index: nu
     position: relative;
     overflow: hidden;
     border-radius: 6px;
+  }
+
+  &__select {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1.5px solid rgba(255, 255, 255, 0.9);
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+    z-index: 2;
+    transition: background 0.15s, border-color 0.15s;
+
+    &.is-checked {
+      background: #ff6699;
+      border-color: #ff6699;
+    }
   }
 
   &__image {
@@ -320,14 +389,59 @@ const handleMoreMenuSelect = async (key: string, videoInfo: VideoInfo, index: nu
     font-size: 13px;
     color: @text-3;
     transition: color 0.2s linear;
+    min-width: 0;
+    overflow: hidden;
 
     &:hover {
       color: #ff6699 !important;
     }
   }
 
+  &__meta {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  &__avatar {
+    flex-shrink: 0;
+  }
+
+  &__username {
+    flex-shrink: 0;
+  }
+
+  &__dot {
+    margin: 0 4px;
+    color: @text-3;
+    flex-shrink: 0;
+  }
+
   &__time {
     font-size: 13px;
+    color: @text-3;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* 多选选中态：封面描边高亮 */
+.video-card-container.is-selected {
+  .video-card__cover {
+    box-shadow: 0 0 0 2px #ff6699;
+  }
+}
+
+/* 失效视频标题置灰、不可点击 */
+.video-card__title-link.is-invalid {
+  color: #999;
+  cursor: default;
+
+  &:hover {
+    color: #999 !important;
   }
 }
 </style>

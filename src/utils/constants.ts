@@ -13,6 +13,9 @@ export const DEFAULT_BACKGROUND = `${OSS_BASE}/background.png`
 /** 收藏夹默认封面 */
 export const DEFAULT_FOLDER_COVER = `${OSS_BASE}/b8eb9637fec90527a6dc9737acdc3577e275c7b5.png`
 
+/** 已失效视频占位封面（视频被删除/未通过时展示） */
+export const DEFAULT_INVALID_COVER = `${OSS_BASE}/be27fd62c99036dce67efface486fb0a88ffed06.jpg`
+
 /** 站点 logo（频道栏 / 创作中心） */
 export const SITE_LOGO = `${OSS_BASE}/05b340832a490209f185542bb9690fc748bc08f7.png`
 

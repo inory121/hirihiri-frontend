@@ -83,6 +83,30 @@ export const formatDateTime = (
   return format.replace(/YYYY|MM|DD|HH|mm|ss/g, (match) => formatMap[match] || match)
 }
 
+// 格式化收藏时间为「YYYY年M月D日」（月/日不补零），如 2025年6月30日
+export const formatCollectDate = (isoString?: string): string => {
+  if (!isoString) return ''
+  const d = new Date(isoString)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
+}
+
+// 格式化收藏时间：距今超过 2 年显示「x年前」，其余复用 formatTime（刚刚/分钟前/小时前/昨天/月-日/年-月-日）
+export const formatCollectTime = (isoString?: string): string => {
+  if (!isoString) return ''
+  const target = new Date(isoString)
+  if (Number.isNaN(target.getTime())) return ''
+  const now = new Date()
+  let years = now.getFullYear() - target.getFullYear()
+  // 今年还没到对应月日（未满整年）则减 1
+  const anniversaryNotReached =
+    now.getMonth() < target.getMonth() ||
+    (now.getMonth() === target.getMonth() && now.getDate() < target.getDate())
+  if (anniversaryNotReached) years -= 1
+  if (years >= 2) return `${years}年前`
+  return formatTime(isoString)
+}
+
 // 格式化评论时间（如：刚刚/分钟/小时/昨天/月-日/年-月-日）
 export const formatCommentTime = (isoString: string): string => {
   const target = new Date(isoString)

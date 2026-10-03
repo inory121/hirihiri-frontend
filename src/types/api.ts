@@ -65,6 +65,7 @@ export interface VideoInfo {
   video: Video
   stat: VideoStat
   user: User
+  collectTime?: string // 收藏时间（仅收藏夹视频接口回填，用于显示“收藏于…”）
 }
 
 export interface VideoStat {

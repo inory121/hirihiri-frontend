@@ -179,7 +179,7 @@
                  :class="{ 'active-icon': videoStore.favorited }"></i>
               <span>{{ videoInfo.stat.favorite }}</span>
             </div>
-            <div class="toolbar-left-item">
+            <div class="toolbar-left-item" @click="handleShare">
               <i class="iconfont icon-zhuanfa"></i>
               <span>{{ videoInfo.stat.share }}</span>
             </div>
@@ -360,6 +360,9 @@
     </div>
   </div>
 
+  <!-- 转发/分享弹窗（与动态页共用） -->
+  <ShareDynamicDialog ref="shareDialogRef" />
+
   <!-- 收藏对话框 -->
   <el-dialog
     v-model="showFavoriteDialog"
@@ -473,7 +476,7 @@
     </div>
     <template #footer>
       <div class="coin-dialog-footer">
-        <div class="coin-exp-tip">经验值+{{ selectedCoinCount * 10 }}（每日上限50）</div>
+        <div class="coin-exp-tip">经验值+{{ selectedCoinCount * 10 }}（今日{{ todayCoinExp }}/50）</div>
         <div class="coin-dialog-actions">
           <el-button type="primary" @click="confirmCoin">确定</el-button>
         </div>
@@ -502,6 +505,8 @@ import {useRecommendStore} from '@/stores/recommendStore.ts'
 import CommentArea from '@/components/comment-area/CommentArea.vue'
 import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
 import {DEFAULT_AVATAR, DANMU_OPEN_ICON, DANMU_CLOSE_ICON} from '@/utils/constants'
+import { get } from '@/utils/request'
+import { USER_API } from '@/api/user'
 
 const route = useRoute()
 const videoStore = useVideoStore()
@@ -559,8 +564,22 @@ const newFolderName = ref('')
 const showCoinDialog = ref(false)
 const selectedCoinCount = ref(1)
 const coinWithLike = ref(true)
-// 剩余可投币数：单个用户对单个视频最多 2 币（已投过则还可补投 1 币）
-const remainingCoinCount = computed(() => (videoStore.coined ? 1 : 2))
+// 转发/分享弹窗引用（ShareDynamicDialog 全局自动导入）
+const shareDialogRef = ref()
+// 剩余可投币数：单个用户对单个视频最多 2 币（coined 为已投币数 0/1/2）
+const remainingCoinCount = computed(() => Math.max(0, 2 - (Number(videoStore.coined) || 0)))
+// 今日已获得的投币经验（用于弹窗内「今日xx/50」提示）
+const todayCoinExp = ref(0)
+const loadTodayCoinExp = async () => {
+  try {
+    const res = await get<{ code: number; data: Record<string, number> }>(USER_API.USER_EXP_DAILY)
+    if (res.code === 200 && res.data) {
+      todayCoinExp.value = res.data.coin ?? 0
+    }
+  } catch (e) {
+    console.log('加载今日投币经验失败:', e)
+  }
+}
 
 // 加载当前视频 UP主的关注状态和粉丝数
 const loadUpFollowInfo = async () => {
@@ -750,13 +769,14 @@ const handleDislike = async () => {
 const handleCoin = () => {
   const vid = videoInfo.value.video.vid
   if (!vid) return
-  if (videoStore.coined) {
-    // 已投过币（仿B站：点击可取消投币）
-    ElMessage.warning('已对本稿件投过币')
+  if (remainingCoinCount.value <= 0) {
+    // 已投满 2 币（仿B站：单个用户对单个视频最多投 2 币）
+    ElMessage.warning('对本稿件的投币枚数已用完')
     return
   }
   selectedCoinCount.value = 1
   coinWithLike.value = true
+  loadTodayCoinExp()
   showCoinDialog.value = true
 }
 
@@ -771,6 +791,10 @@ const confirmCoin = async () => {
       await videoStore.toggleLike(vid)
     }
     showCoinDialog.value = false
+    // 投币会扣硬币、加经验，刷新当前用户信息使头部/个人中心即时更新
+    await userStore.getUserInfo()
+    // 同步刷新弹窗「今日xx/50」进度（下次打开即时准确）
+    await loadTodayCoinExp()
   } catch (e) {
     console.error('投币失败:', e)
   }
@@ -794,6 +818,11 @@ const handleCollect = async () => {
     .map(folder => folder.id)
 
   showFavoriteDialog.value = true
+}
+
+// 转发/分享：打开「分享到动态」弹窗（未登录时组件内部会拉起登录框）
+const handleShare = () => {
+  shareDialogRef.value?.open(videoInfo.value)
 }
 
 // 确认收藏操作
