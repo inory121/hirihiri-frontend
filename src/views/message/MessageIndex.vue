@@ -200,7 +200,9 @@
                   <div v-if="showChatMenu" class="chat-menu-dropdown">
                     <button class="menu-item">置顶聊天</button>
                     <button class="menu-item">开启免扰</button>
-                    <button class="menu-item">加入黑名单</button>
+                    <button class="menu-item" @click="handleBlockToggle">
+                      {{ peerBlocked ? '移出黑名单' : '加入黑名单' }}
+                    </button>
                     <button class="menu-item">举报该用户</button>
                     <button class="menu-item">
                       不接收推送
@@ -209,6 +211,11 @@
                   </div>
                 </Transition>
               </div>
+            </div>
+
+            <!-- 我已将对方加入黑名单：顶部横幅提醒（仅 peerBlocked） -->
+            <div v-if="peerBlocked" class="chat-block-banner">
+              (&gt;﹏&lt;) 该用户已经被你加入黑名单
             </div>
 
             <div class="chat-area" ref="chatMessagesRef" @scroll="onChatScroll">
@@ -256,12 +263,16 @@
                   <img v-else-if="msg.senderUid !== myUid"
                        :src="msg.senderUser?.avatar || defaultAvatar"
                        class="msg-avatar" alt=""/>
+                  <span v-if="msg.status === 'failed'" class="msg-failed-icon"
+                        title="发送失败，点击重试" @click="retrySend(msg)">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v7h-2V7zm0 9h2v2h-2v-2z"/>
+                    </svg>
+                  </span>
                   <div class="msg-bubble" :class="{ 'msg-failed': msg.status === 'failed' }"
                        @click="msg.status === 'failed' && retrySend(msg)">
                     <span v-if="msg.status === 'sending'" class="msg-sending-dot"></span>
                     <span class="msg-text"><MentionContent :content="msg.content"/></span>
-                    <span v-if="msg.status === 'failed'"
-                          class="msg-failed-label">发送失败，点击重试</span>
                   </div>
                   <a
                     v-if="msg.senderUid === myUid"
@@ -803,7 +814,8 @@ import LikeDetail from '@/views/message/LikeDetail.vue'
 import type {MessageSession, MessageNotice, MessagePrivateMessage, Dynamic, DynamicApiResponse} from '@/types/api'
 import {COMMENT_API} from '@/api/comment'
 import {DYNAMIC_API} from '@/api/dynamic'
-import {get, post} from '@/utils/request'
+import {USER_API} from '@/api/user'
+import {get, post, del} from '@/utils/request'
 import {getUserDisplayName} from '@/utils/utils'
 import {ElMessageBox} from 'element-plus'
 
@@ -1073,6 +1085,8 @@ async function selectSession(session: MessageSession) {
   messageStore.currentSession = session
   messageStore.currentMessagePage = 1
   hasMoreMessages.value = true
+  // 显式刷新拉黑横幅：重选同一会话/重挂载时 uid 未变，watch 不会重新触发
+  void loadPeerBlocked(session.peerUser?.uid)
   await messageStore.fetchSessionMessages(session.sessionId)
   await messageStore.markSessionRead(session.sessionId)
   // markSessionRead 内部已调用 fetchUnreadSummary()，无需重复
@@ -1099,6 +1113,62 @@ async function deleteSession(session: MessageSession) {
 // 聊天顶部三点菜单
 function toggleChatMenu() {
   showChatMenu.value = !showChatMenu.value
+}
+
+// ===== 黑名单：真拉黑（后端 user_block，私信双向拦截）=====
+// peerBlocked 仅用于顶部横幅与菜单文案；发送是否放行一律交后端裁决（见 handleSend），
+// 避免前端缓存状态陈旧导致「取消拉黑后必须刷新才能发消息」。
+const peerBlocked = ref(false)
+
+// 拉取「我是否已拉黑对方」，用于横幅/菜单回显
+async function loadPeerBlocked(peerUid?: number) {
+  peerBlocked.value = false
+  if (!peerUid) return
+  try {
+    const res = await get<{ code: number; data: { blockedByMe: boolean; blockingMe: boolean } }>(`${USER_API.USER_BLOCK_RELATION}/${peerUid}`)
+    if (res.code === 200 && res.data) {
+      peerBlocked.value = !!res.data.blockedByMe
+    }
+  } catch {
+    // 状态回显失败不阻断菜单使用
+  }
+}
+
+// 切换会话时回显拉黑横幅
+watch(() => currentSession.value?.peerUser?.uid, (peerUid) => {
+  loadPeerBlocked(peerUid)
+})
+
+async function handleBlockToggle() {
+  showChatMenu.value = false
+  const peer = currentSession.value?.peerUser
+  if (!peer?.uid) return
+  const displayName = getUserDisplayName(peer)
+  if (!peerBlocked.value) {
+    try {
+      await ElMessageBox.confirm(
+        `拉黑后「${displayName}」将无法给你发私信，你也无法向其发送私信。确定继续吗？`,
+        '加入黑名单',
+        {confirmButtonText: '拉黑', cancelButtonText: '取消', type: 'warning'},
+      )
+    } catch {
+      return
+    }
+  }
+  try {
+    const res = peerBlocked.value
+      ? await del<{ code: number; message: string }>(`${USER_API.USER_BLOCK}/${peer.uid}`)
+      : await post<{ code: number; message: string }>(`${USER_API.USER_BLOCK}/${peer.uid}`)
+    if (res.code === 200) {
+      peerBlocked.value = !peerBlocked.value
+      ElMessage.success(res.message || (peerBlocked.value ? '已加入黑名单' : '已移出黑名单'))
+    } else {
+      ElMessage.error(res.message)
+    }
+  } catch (e) {
+    console.log('黑名单操作失败:', e)
+    ElMessage.error('操作失败，请稍后重试')
+  }
 }
 
 // 点击菜单外部关闭
@@ -1256,21 +1326,16 @@ async function handleSend() {
   messageStore.mergeIncomingMessage(optimisticMsg)
   await scrollChatToBottom()
 
-  // HTTP 可靠发送（携带 clientMessageId 供 store 精确替换）
-  const msg = await messageStore.sendMessage(targetUid, content, cid)
-  if (msg) {
-    // mergeIncomingMessage 已在 store 中完成替换 + 缓存同步
-    // 本地快速更新会话预览
+  // 交后端做唯一裁决：始终调用发送接口。取消拉黑后无需刷新即可发出；仍被拉黑则后端拒绝并返回原因
+  const result = await messageStore.sendMessage(targetUid, content, cid)
+  if (result.ok) {
+    // mergeIncomingMessage 已在 store 中完成替换 + 缓存同步；本地快速更新会话预览
     messageStore.updateCurrentSessionLocally(content)
   } else {
-    // 发送失败：标记乐观消息为失败状态
-    const failedIdx = messageStore.currentMessages.findIndex((m) => m.clientMessageId === cid)
-    if (failedIdx >= 0) {
-      messageStore.currentMessages[failedIdx] = {
-        ...messageStore.currentMessages[failedIdx],
-        status: 'failed'
-      }
-    }
+    // 发送失败：就地标记乐观消息为失败状态（同步到缓存，避免后续发送时被重建覆盖）
+    const failed = messageStore.currentMessages.find((m) => m.clientMessageId === cid)
+    if (failed) failed.status = 'failed'
+    ElMessage.warning(result.message)
   }
 }
 
@@ -1280,18 +1345,17 @@ async function retrySend(failedMsg: MessagePrivateMessage) {
   const targetUid = messageStore.currentSession?.peerUser?.uid
   if (!targetUid) return
 
-  // 标记为 sending
-  const idx = messageStore.currentMessages.findIndex((m) => m.clientMessageId === failedMsg.clientMessageId)
-  if (idx >= 0) messageStore.currentMessages[idx] = {
-    ...messageStore.currentMessages[idx],
-    status: 'sending'
-  }
+  // 标记为 sending（就地修改，保持与缓存对象同步）
+  const target = messageStore.currentMessages.find((m) => m.clientMessageId === failedMsg.clientMessageId)
+  if (target) target.status = 'sending'
 
-  const msg = await messageStore.sendMessage(targetUid, failedMsg.content, failedMsg.clientMessageId)
-  if (msg) {
+  // 同样交后端裁决：取消拉黑后重发即可成功；仍被拉黑则再次失败并提示
+  const result = await messageStore.sendMessage(targetUid, failedMsg.content, failedMsg.clientMessageId)
+  if (result.ok) {
     messageStore.updateCurrentSessionLocally(failedMsg.content)
-  } else if (idx >= 0) {
-    messageStore.currentMessages[idx] = {...messageStore.currentMessages[idx], status: 'failed'}
+  } else if (target) {
+    target.status = 'failed'
+    ElMessage.warning(result.message)
   }
 }
 
@@ -1432,8 +1496,8 @@ function goNoticeTarget(notice: MessageNotice) {
     const dynamicId = noticeExt(notice).dynamicId || notice.bizId
     if (!dynamicId) return
     const query: Record<string, string> = {}
-    // 评论/回复/@类通知 bizId 指向具体评论，供详情页定位（动态点赞通知 bizId 是动态id，不携带）
-    if (notice.bizId && (notice.noticeType === 'comment' || notice.noticeType === 'reply' || notice.noticeType === 'at')) {
+    // 回复/@类通知 bizId 指向具体评论，供详情页定位（动态点赞通知 bizId 是动态id，不携带）
+    if (notice.bizId && (notice.noticeType === 'reply' || notice.noticeType === 'at')) {
       query.commentId = String(notice.bizId)
     }
     const href = router.resolve({path: `/dynamic/${dynamicId}`, query}).href
@@ -2458,6 +2522,17 @@ watch(() => route.fullPath, () => {
   }
 }
 
+.chat-block-banner {
+  flex-shrink: 0;
+  padding: 8px 20px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #d4380d;
+  background: #fff1f0;
+  border-bottom: 1px solid #ffccc7;
+  text-align: center;
+}
+
 .chat-area {
   flex: 1;
   overflow-y: auto;
@@ -2539,16 +2614,26 @@ watch(() => route.fullPath, () => {
       color: #fff;
       border-radius: 12px 2px 12px 12px;
     }
-
-    .msg-failed {
-      background: #ffebee;
-      border-color: #ef5350;
-    }
   }
 
-  &.failed {
-    .msg-bubble {
-      border-color: #ef5350;
+  .msg-failed-icon {
+    align-self: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ef5350;
+    cursor: pointer;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      color: #d32f2f;
     }
   }
 
@@ -2594,18 +2679,7 @@ watch(() => route.fullPath, () => {
     }
 
     &.msg-failed {
-      background: #ffebee;
-      border-color: #ef5350;
       cursor: pointer;
-      opacity: 0.85;
-
-      .msg-failed-label {
-        color: #ef5350;
-      }
-
-      &:hover {
-        opacity: 1;
-      }
     }
   }
 

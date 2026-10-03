@@ -491,7 +491,7 @@ export const useMessageStore = defineStore('message', {
       targetUid: number,
       content: string,
       clientMessageId?: string,
-    ): Promise<MessagePrivateMessage | null> {
+    ): Promise<{ ok: boolean; message: string; data: MessagePrivateMessage | null }> {
       try {
         const res = await post<MessagePrivateItemApiResponse>(MESSAGE_API.SEND_PRIVATE, {
           targetUid,
@@ -501,12 +501,13 @@ export const useMessageStore = defineStore('message', {
           const msg = res.data
           // 统一走 merge，用 clientMessageId 精确替换乐观消息
           this.mergeIncomingMessage(msg, clientMessageId)
-          return msg
+          return { ok: true, message: res.message || '发送成功', data: msg }
         }
+        // 业务失败（如仍被拉黑）：把后端原因透出，由调用方标记失败并提示
+        return { ok: false, message: res.message || '发送失败', data: null }
       } catch {
-        // ignore
+        return { ok: false, message: '发送失败，请稍后重试', data: null }
       }
-      return null
     },
 
     async markSessionRead(sessionId: number) {
