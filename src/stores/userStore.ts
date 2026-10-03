@@ -134,6 +134,25 @@ export const useUserStore = defineStore('user', {
     setLoginState() {
       this.isLogin = !!localStorage.getItem('hiri_token')
     },
+    // 自助更新公开资料（昵称/头像/背景/性别/个性签名），成功后同步本地 user
+    async updateProfile(
+      payload: Partial<Pick<User, 'nickname' | 'avatar' | 'background' | 'sex' | 'description'>>,
+    ): Promise<boolean> {
+      try {
+        const res = await post<UserApiResponse>(USER_API.USER_PROFILE, payload)
+        if (res.code === 200) {
+          this.user = { ...this.user, ...res.data }
+          ElMessage.success(res.message || '保存成功')
+          return true
+        }
+        ElMessage.error(res.message)
+        return false
+      } catch (e) {
+        console.log('更新资料失败:', e)
+        ElMessage.error('保存失败，请稍后重试')
+        return false
+      }
+    },
     // 根据 uid 获取目标用户信息（他人空间）
     async getTargetUserInfo(uid: number) {
       this.targetUserLoading = true
