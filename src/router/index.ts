@@ -90,6 +90,20 @@ const router = createRouter({
       ],
     },
     {
+      path: '/account',
+      component: () => import('@/views/account/AccountIndex.vue'),
+      redirect: '/account/home',
+      meta: { requestAuth: true, title: '个人中心' },
+      children: [
+        { path: 'home', component: () => import('@/views/account/AccountHome.vue') },
+        { path: 'setting', component: () => import('@/views/account/AccountSetting.vue') },
+        { path: 'avatar', component: () => import('@/views/account/AccountAvatar.vue') },
+        { path: 'blacklist', component: () => import('@/views/account/AccountBlacklist.vue') },
+        { path: 'coin', component: () => import('@/views/account/AccountCoin.vue') },
+        { path: 'record', component: () => import('@/views/account/AccountRecord.vue') },
+      ],
+    },
+    {
       path: '/video/:vid',
       component: () => import('@/views/video/VideoIndex.vue'),
       meta: { requestAuth: false },
