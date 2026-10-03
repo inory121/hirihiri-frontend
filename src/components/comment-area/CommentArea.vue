@@ -31,7 +31,7 @@
           <img v-if="userStore.isLogin" :src="user.avatar" alt=""/>
           <img v-else :src="DEFAULT_NOFACE_AVATAR" alt=""/>
         </div>
-        <div class="editor edit" v-if="userStore.isLogin" @focusout="onEditorFocusOut">
+        <div class="editor edit" v-if="userStore.isLogin && !ownerBlockedMe" @focusout="onEditorFocusOut">
           <div class="at-input-wrap">
             <MentionInput
               ref="rootMentionInput"
@@ -107,6 +107,9 @@
             </el-button>
           </div>
         </div>
+        <div class="edit comment-blocked-tip" v-else-if="ownerBlockedMe">
+          由于UP主隐私设置，你无法评论
+        </div>
         <div class="edit" v-else>
           <span>请先</span>
           <el-button
@@ -130,6 +133,7 @@
             <CommentItem
               :comment="thread.rootComment"
               :owner-uid="ownerUidForItem"
+              :owner-blocked-me="ownerBlockedMe"
               :biz-id="bizId"
               :biz-type="bizType"
               :store="storeName"
@@ -141,6 +145,7 @@
               :key="reply.id"
               :comment="reply"
               :owner-uid="ownerUidForItem"
+              :owner-blocked-me="ownerBlockedMe"
               :biz-id="bizId"
               :biz-type="bizType"
               :store="storeName"
@@ -322,6 +327,8 @@ import MentionInput from '@/components/mention-input/MentionInput.vue'
 import type {Comment, User} from '@/types/api'
 import {DEFAULT_NOFACE_AVATAR} from '@/utils/constants'
 import {getUserDisplayName} from '@/utils/utils'
+import {get} from '@/utils/request'
+import {USER_API} from '@/api/user'
 
 const props = defineProps<{
   // 业务类型：video 视频 | dynamic 动态（未来可扩展 column 专栏）
@@ -365,6 +372,26 @@ const ownerUidForItem = computed<number | undefined>(() => {
   return (videoStore.videoInfo?.video?.uid as number | undefined) ?? props.ownerUid
 })
 
+// UP主是否拉黑了我：命中则禁用主评论框并提示
+const ownerBlockedMe = ref(false)
+async function loadOwnerBlockRelation() {
+  ownerBlockedMe.value = false
+  const owner = ownerUidForItem.value
+  if (!userStore.isLogin || !owner) return
+  if (user.value?.uid === owner) return
+  try {
+    const res = await get<{ code: number; data?: { blockedByMe: boolean; blockingMe: boolean } }>(
+      `${USER_API.USER_BLOCK_RELATION}/${owner}`,
+    )
+    ownerBlockedMe.value = res.code === 200 && !!res.data?.blockingMe
+  } catch {
+    ownerBlockedMe.value = false
+  }
+}
+// 视频UP主信息异步就绪 / 切换资源 / 登录态变化时重新判断
+watch(ownerUidForItem, () => loadOwnerBlockRelation())
+watch(() => userStore.isLogin, () => loadOwnerBlockRelation())
+
 // 分别解构两个 store 的响应式状态，再按 bizType 选取（避免 storeToRefs(computed) 不稳定）
 const {commentList: videoCommentList, activeReplyCommentId: videoActiveReplyId} = storeToRefs(videoCommentStore)
 const {commentList: dynamicCommentList, activeReplyCommentId: dynamicActiveReplyId} = storeToRefs(dynamicCommentStore)
@@ -404,6 +431,7 @@ const loadComments = async () => {
 
 onMounted(() => {
   loadComments()
+  loadOwnerBlockRelation()
   initCommentObserver()
   window.addEventListener('resize', handleAtPanelViewportChange)
   window.addEventListener('scroll', handleAtPanelViewportChange, true)
@@ -1253,6 +1281,13 @@ const scrollToAndHighlightComment = async (commentId: number) => {
       color: @text-3;
       background-color: @bg-gray;
       .flex-center();
+    }
+
+    // 被UP主拉黑提示：父容器仅 min-height，.edit 的 height:100% 无法解析会坍缩，故给固定高度
+    .comment-blocked-tip {
+      height: 48px;
+      min-height: 48px;
+      font-size: 13px;
     }
 
     .editor {

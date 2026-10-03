@@ -15,6 +15,9 @@ export const useDynamicStore = defineStore('dynamic', {
     return {
       dynamicList: [] as Dynamic[], // 当前页动态列表
       dynamicTotal: 0, // 动态总数（按当前查询条件，如全站或某UP过滤）
+      spaceSearchDynamics: [] as Dynamic[], // 空间内搜索命中的动态（独立状态，不污染动态 tab）
+      spaceSearchDynamicTotal: 0,
+      spaceSearchDynamicLoading: false,
       myDynamicTotal: 0, // 当前登录用户自己发布的动态总数（信息卡展示用）
       dynamicLoading: false, // 动态列表加载状态
       publishLoading: false, // 发布动态加载状态
@@ -107,6 +110,44 @@ export const useDynamicStore = defineStore('dynamic', {
         this.dynamicLoading = false
       }
     },
+    // 空间内搜索：按关键字过滤该用户动态，结果写入独立状态 spaceSearchDynamics
+    // append=true 时追加下一页（用于懒加载），按 id 去重
+    async searchSpaceDynamics(uid: number, keyword: string, pageNum = 1, pageSize = 10, append = false) {
+      if (!append) this.spaceSearchDynamicLoading = true
+      try {
+        const res = await get<DynamicPageApiResponse>(
+          `${DYNAMIC_API.LIST}?pageNum=${pageNum}&pageSize=${pageSize}&uid=${uid}&keyword=${encodeURIComponent(keyword)}`,
+        )
+        if (res.code === 200) {
+          const records = res.data.records || []
+          if (append) {
+            const existed = new Set(this.spaceSearchDynamics.map(d => d.id))
+            const merged = [...this.spaceSearchDynamics]
+            for (const it of records) {
+              if (!existed.has(it.id)) {
+                existed.add(it.id)
+                merged.push(it)
+              }
+            }
+            this.spaceSearchDynamics = merged
+          } else {
+            this.spaceSearchDynamics = records
+          }
+          this.spaceSearchDynamicTotal = res.data.total || 0
+        } else if (!append) {
+          this.spaceSearchDynamics = []
+          this.spaceSearchDynamicTotal = 0
+        }
+      } catch (e) {
+        console.log('空间搜索动态失败:', e)
+        if (!append) {
+          this.spaceSearchDynamics = []
+          this.spaceSearchDynamicTotal = 0
+        }
+      } finally {
+        this.spaceSearchDynamicLoading = false
+      }
+    },
     // 获取当前登录用户自己发布的动态总数（信息卡"动态"统计用，区别于全站总数）
     async getMyDynamicCount(uid: number) {
       try {
@@ -175,18 +216,13 @@ export const useDynamicStore = defineStore('dynamic', {
         this.deleteLoading = false
       }
     },
-    // 点赞/取消点赞动态。乐观更新本地 likeCount/liked，接口失败时回滚。
+    // 点赞/取消点赞动态。不做乐观更新：成功后用服务端返回写回，避免被拉黑拒绝时数字“先加一再回滚”的闪烁。
     // 返回是否成功
     async toggleLike(dynamicId: number): Promise<boolean> {
       const item = this.dynamicList.find(d => d.id === dynamicId)
       if (!item) {
         return false
       }
-      const prevLiked = !!item.liked
-      const prevCount = item.likeCount || 0
-      // 乐观更新
-      item.liked = !prevLiked
-      item.likeCount = Math.max(0, prevCount + (prevLiked ? -1 : 1))
       try {
         const res = await post<{
           code: number
@@ -198,16 +234,11 @@ export const useDynamicStore = defineStore('dynamic', {
           item.likeCount = res.data.likeCount ?? item.likeCount
           return true
         }
-        // 失败回滚
-        item.liked = prevLiked
-        item.likeCount = prevCount
-        ElMessage.error(res.message || '点赞失败')
+        // 被拒绝（含拉黑：因对方隐私设置，无法进行互动）：不改动本地状态，数字不闪烁
+        ElMessage.warning(res.message || '点赞失败')
         return false
       } catch (e) {
         console.log('点赞失败:', e)
-        // 失败回滚
-        item.liked = prevLiked
-        item.likeCount = prevCount
         ElMessage.error('点赞失败，请稍后重试')
         return false
       }

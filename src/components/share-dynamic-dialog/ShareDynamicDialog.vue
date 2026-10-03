@@ -256,10 +256,8 @@ const handlePublish = async () => {
     showAtPanel.value = false
     if (dynamicInfo.value) {
       emit('published')
-    } else if (videoInfo.value?.stat) {
-      // 分享数 +1（前端本地刷新即可）
-      videoInfo.value.stat.share = (videoInfo.value.stat.share || 0) + 1
     }
+    // 分享视频（type=1）不再本地 +1：分享数以后端 video_stat 为准（同人重复分享已按 uid+vid 去重），刷新/重进页面读取真实值
   }
 }
 
@@ -283,7 +281,8 @@ const openDynamic = (dynamic: Dynamic) => {
     return
   }
   dynamicInfo.value = dynamic
-  videoInfo.value = dynamic.video ?? null
+  // 动态附带的视频只有 { video, stat, user }，预览不消费 category，此处仅借用字段形状
+  videoInfo.value = (dynamic.video ?? null) as VideoInfo | null
   content.value = ''
   visible.value = true
   nextTick(() => mentionInput.value?.focus())

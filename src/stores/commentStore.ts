@@ -119,10 +119,10 @@ export const useCommentStore = defineStore('comment', {
         return null
       }
     },
-    async toggleLike(commentId: number) {
-      if (!useUserStore().isLogin) return false
-      const res = await post<{ code: number }>(`${COMMENT_API.TOGGLE_LIKE}/${commentId}`)
-      if (res.code !== 200) return false
+    async toggleLike(commentId: number): Promise<{ ok: boolean; message: string }> {
+      if (!useUserStore().isLogin) return { ok: false, message: '' }
+      const res = await post<{ code: number; message?: string }>(`${COMMENT_API.TOGGLE_LIKE}/${commentId}`)
+      if (res.code !== 200) return { ok: false, message: res.message || '操作失败' }
       updateCommentInTree(this.commentList, commentId, (comment) => {
         const liked = !comment.liked
         comment.liked = liked
@@ -132,12 +132,12 @@ export const useCommentStore = defineStore('comment', {
           comment.dislike = Math.max(0, (comment.dislike || 0) - 1)
         }
       })
-      return true
+      return { ok: true, message: '' }
     },
-    async toggleDislike(commentId: number) {
-      if (!useUserStore().isLogin) return false
-      const res = await post<{ code: number }>(`${COMMENT_API.TOGGLE_DISLIKE}/${commentId}`)
-      if (res.code !== 200) return false
+    async toggleDislike(commentId: number): Promise<{ ok: boolean; message: string }> {
+      if (!useUserStore().isLogin) return { ok: false, message: '' }
+      const res = await post<{ code: number; message?: string }>(`${COMMENT_API.TOGGLE_DISLIKE}/${commentId}`)
+      if (res.code !== 200) return { ok: false, message: res.message || '操作失败' }
       updateCommentInTree(this.commentList, commentId, (comment) => {
         const disliked = !comment.disliked
         comment.disliked = disliked
@@ -147,7 +147,7 @@ export const useCommentStore = defineStore('comment', {
           comment.like = Math.max(0, (comment.like || 0) - 1)
         }
       })
-      return true
+      return { ok: true, message: '' }
     },
     /**
      * 删除评论（软删除），成功后从本地列表移除

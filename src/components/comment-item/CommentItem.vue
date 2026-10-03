@@ -116,6 +116,7 @@
               {{ isPinned ? '取消置顶' : '置顶' }}
             </div>
             <div v-if="canDelete" class="more-menu-item danger" @click="handleDelete">删除</div>
+            <div v-if="canBlock" class="more-menu-item danger" @click="openBlockDialog">加入黑名单</div>
           </div>
         </div>
       </div>
@@ -134,6 +135,28 @@
         置顶
       </div>
     </div>
+
+    <!-- 拉黑确认弹窗 -->
+    <el-dialog
+      v-model="showBlockDialog"
+      width="420px"
+      append-to-body
+      align-center
+      custom-class="block-confirm-dialog"
+    >
+      <template #header>
+        <div class="block-dialog-title">拉黑用户</div>
+      </template>
+      <div class="block-dialog-content">
+        加入黑名单后，将自动解除双方的关注关系，禁止该用户与我互动或查看我的空间
+      </div>
+      <template #footer>
+        <div class="block-dialog-footer">
+          <el-button @click="showBlockDialog = false">取消</el-button>
+          <el-button type="primary" :loading="blockLoading" @click="confirmBlock">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -147,6 +170,8 @@ import {formatCommentTime, getLevelByExp, getLevelIconUrl, getUserDisplayName} f
 import {DEFAULT_AVATAR} from '@/utils/constants'
 import {useVideoStore} from '@/stores/videoStore'
 import {ElMessage, ElMessageBox} from 'element-plus'
+import {get, post} from '@/utils/request'
+import {USER_API} from '@/api/user'
 import UserHoverCard from '@/components/user-hover-card/UserHoverCard.vue'
 import MentionContent from '@/components/mention-content/MentionContent.vue'
 import type {User} from '@/types/api'
@@ -161,6 +186,11 @@ const props = defineProps({
   ownerUid: {
     type: Number,
     default: null,
+  },
+  // 内容owner（UP主）是否拉黑了我：命中则本条不允许回复（含对别人的评论）
+  ownerBlockedMe: {
+    type: Boolean,
+    default: false,
   },
   // 评论所属资源id（视频评论不传，动态评论传动态id），用于复制评论链接
   bizId: {
@@ -199,18 +229,48 @@ const upOwnerUid = computed<number | null | undefined>(() =>
 const isSubComment = ref(props.comment.rootId !== 0 || props.comment.parentId !== 0)
 const isSecondSubComment = ref(props.comment.rootId !== props.comment.parentId)
 
-// 切换回复框显示（单例模式）
-const toggleReply = () => {
-  if (userStore.isLogin) {
-    // 如果当前已显示，则关闭
-    if (activeReplyCommentId.value === props.comment.id) {
-      setActiveReplyCommentId(null)
-    } else {
-      setActiveReplyCommentId(props.comment.id)
-    }
-  } else {
+// 切换回复框显示（单例模式）；owner拉黑我 或 评论作者拉黑我 时不弹回复框，只提示
+const toggleReply = async () => {
+  if (!userStore.isLogin) {
     userStore.showLoginWindow = true
+    return
   }
+  // owner级：UP主拉黑我时，本视频/动态下任何评论都不允许回复
+  if (props.ownerBlockedMe) {
+    ElMessage.warning('由于UP主隐私设置，你无法评论')
+    return
+  }
+  // 作者级兜底：非owner场景下评论作者本人拉黑我
+  if (await checkAuthorBlocking()) {
+    ElMessage.warning('因对方隐私设置，无法进行互动')
+    return
+  }
+  // 如果当前已显示，则关闭
+  if (activeReplyCommentId.value === props.comment.id) {
+    setActiveReplyCommentId(null)
+  } else {
+    setActiveReplyCommentId(props.comment.id)
+  }
+}
+
+// 懒加载缓存：当前评论作者是否拉黑了我（null=未查）；避免重复请求
+const authorBlockingMe = ref<boolean | null>(null)
+async function checkAuthorBlocking(): Promise<boolean> {
+  if (authorBlockingMe.value !== null) return authorBlockingMe.value
+  const authorUid = props.comment.user?.uid
+  if (!authorUid) {
+    authorBlockingMe.value = false
+    return false
+  }
+  try {
+    const res = await get<{ code: number; data?: { blockedByMe: boolean; blockingMe: boolean } }>(
+      `${USER_API.USER_BLOCK_RELATION}/${authorUid}`,
+    )
+    authorBlockingMe.value = res.code === 200 && !!res.data?.blockingMe
+  } catch {
+    authorBlockingMe.value = false
+  }
+  return authorBlockingMe.value
 }
 
 const replies = ref([...(props.comment.replies || [])])
@@ -221,20 +281,22 @@ watch(
   },
 )
 
-const handleLike = () => {
+const handleLike = async () => {
   if (!userStore.isLogin) {
     userStore.showLoginWindow = true
     return
   }
-  activeCommentStore.value.toggleLike(props.comment.id!)
+  const res = await activeCommentStore.value.toggleLike(props.comment.id!)
+  if (!res.ok && res.message) ElMessage.warning(res.message)
 }
 
-const handleDislike = () => {
+const handleDislike = async () => {
   if (!userStore.isLogin) {
     userStore.showLoginWindow = true
     return
   }
-  activeCommentStore.value.toggleDislike(props.comment.id!)
+  const res = await activeCommentStore.value.toggleDislike(props.comment.id!)
+  if (!res.ok && res.message) ElMessage.warning(res.message)
 }
 
 const handleFollowUser = async (uid: number) => {
@@ -269,6 +331,13 @@ const canDelete = computed(() => {
   if (!user.value) return false
   if (props.comment.user && user.value.uid === props.comment.user.uid) return true
   return upOwnerUid.value != null && upOwnerUid.value === user.value.uid
+})
+
+// 可拉黑：已登录、评论作者存在且非本人（后端拉黑会自动双向取关）
+const canBlock = computed(() => {
+  if (!user.value) return false
+  const authorUid = props.comment.user?.uid
+  return authorUid != null && authorUid !== user.value.uid
 })
 
 // 可置顶：仅资源（视频/动态）投稿者（UP主）且为根评论
@@ -342,6 +411,41 @@ const handleDelete = async () => {
     ElMessage.success('删除成功')
   } else {
     ElMessage.error('删除失败，请重试')
+  }
+}
+
+// ===== 拉黑确认弹窗 =====
+const showBlockDialog = ref(false)
+const blockLoading = ref(false)
+const blockTarget = ref<{ uid?: number }>({})
+
+// 点击菜单“加入黑名单”：记录目标并打开弹窗
+const openBlockDialog = () => {
+  const authorUid = props.comment.user?.uid
+  if (!authorUid) return
+  blockTarget.value = { uid: authorUid }
+  showBlockDialog.value = true
+  cancelClose()
+  showMoreMenu.value = false
+}
+
+// 确认拉黑：后端会自动双向取关
+const confirmBlock = async () => {
+  const authorUid = blockTarget.value.uid
+  if (!authorUid) return
+  blockLoading.value = true
+  try {
+    const res = await post<{ code: number; message: string }>(`${USER_API.USER_BLOCK}/${authorUid}`)
+    if (res.code === 200) {
+      ElMessage.success(res.message || '已加入黑名单')
+      showBlockDialog.value = false
+    } else {
+      ElMessage.error(res.message || '操作失败')
+    }
+  } catch {
+    ElMessage.error('操作失败，请稍后重试')
+  } finally {
+    blockLoading.value = false
   }
 }
 
@@ -593,6 +697,49 @@ const handleToggleTop = async () => {
     width: 48px;
     height: 48px;
     left: 7px;
+  }
+}
+</style>
+
+<!-- 拉黑确认弹窗样式：el-dialog append-to-body 挂到 body，scoped 无法命中，故用全局 -->
+<style lang="less">
+.block-confirm-dialog {
+  border-radius: 12px;
+
+  .el-dialog__header {
+    margin-right: 0;
+    padding-bottom: 0;
+  }
+
+  .block-dialog-title {
+    width: 100%;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #18191c;
+  }
+
+  .el-dialog__body {
+    padding: 20px 28px 8px;
+  }
+
+  .block-dialog-content {
+    text-align: center;
+    font-size: 14px;
+    line-height: 24px;
+    color: #f59e0b;
+  }
+
+  .block-dialog-footer {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    padding-bottom: 8px;
+
+    .el-button {
+      min-width: 96px;
+      border-radius: 6px;
+    }
   }
 }
 </style>

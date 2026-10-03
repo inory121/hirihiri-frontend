@@ -805,6 +805,7 @@ const getTagList = (tags?: string | null): string[] => {
   padding: 16px;
   margin-bottom: 8px;
   background: #fff;
+  border: 1px solid #e5e6eb;
   border-radius: 8px;
 
   &__top {

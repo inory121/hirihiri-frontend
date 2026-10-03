@@ -143,13 +143,13 @@
               </a>
             </div>
             <div class="counts-item">
-              <a class="single-count-item" @click.prevent="goMySpace('followings')">
+              <a class="single-count-item" :href="resolvePath(`/space/${userStore.user.uid}?tab=followings`)" target="_blank">
                 <span class="counts-item__num">{{ formatNumber(userStore.currentUserFollow.followings) }}</span><span class="counts-item__text">关注</span>
               </a>
-              <a class="single-count-item" @click.prevent="goMySpace('followers')">
+              <a class="single-count-item" :href="resolvePath(`/space/${userStore.user.uid}?tab=followers`)" target="_blank">
                 <span class="counts-item__num">{{ formatNumber(userStore.currentUserFollow.followers) }}</span><span class="counts-item__text">粉丝</span>
               </a>
-              <a class="single-count-item" @click.prevent="goMySpace('dynamic')">
+              <a class="single-count-item" :href="resolvePath(`/space/${userStore.user.uid}?tab=dynamic`)" target="_blank">
                 <span class="counts-item__num">{{ formatNumber(dynamicStore.myDynamicTotal) }}</span><span class="counts-item__text">动态</span>
               </a>
             </div>
@@ -161,7 +161,7 @@
               <div class="vip-entry-btn">会员中心</div>
             </div>
             <div class="links-item">
-              <a v-if="userStore.user.uid" :href="`/space/${userStore.user.uid}`" class="single-link-item" target="_blank">
+              <a v-if="userStore.user.uid" href="/account" class="single-link-item" target="_blank">
                 <div class="link-title">
                   <el-icon :size="20" style="margin-right: 16px">
                     <User />
@@ -169,14 +169,14 @@
                   <span>个人中心</span>
                 </div>
               </a>
-              <router-link to="/platform/upload-manager/article" class="single-link-item">
+              <a :href="resolvePath('/platform/upload-manager/article')" target="_blank" class="single-link-item">
                 <div class="link-title">
                   <el-icon :size="20" style="margin-right: 16px">
                     <Edit />
                   </el-icon>
                   <span>投稿管理</span>
                 </div>
-              </router-link>
+              </a>
               <a href="#" class="single-link-item">
                 <div class="link-title">
                   <el-icon :size="20" style="margin-right: 16px">
@@ -864,11 +864,6 @@ const formatBrowseTime = (time: string): string => {
     return `昨天${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
   }
   return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-}
-
-const goMySpace = (tab: string) => {
-  if (!userStore.user.uid) return
-  router.push({ path: `/space/${userStore.user.uid}`, query: { tab } })
 }
 
 const ensureLogin = () => {

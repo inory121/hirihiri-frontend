@@ -269,7 +269,7 @@ const changeCommentSort = (sort: 'hot' | 'new') => {
   dynamicCommentStore.getComments(item.value.id, sort)
 }
 
-// 点赞/取消点赞：详情动态不在 store 列表内，本地乐观更新 + 接口同步（与 dynamicStore.toggleLike 同构）
+// 点赞/取消点赞：详情动态不在 store 列表内，独立请求；不做乐观更新，成功后用服务端返回写回，避免被拉黑拒绝时数字“先加一再回滚”闪烁
 const handleLike = async () => {
   if (!item.value) return
   if (!userStore.isLogin) {
@@ -277,10 +277,6 @@ const handleLike = async () => {
     return
   }
   const it = item.value
-  const prevLiked = !!it.liked
-  const prevCount = it.likeCount || 0
-  it.liked = !prevLiked
-  it.likeCount = Math.max(0, prevCount + (prevLiked ? -1 : 1))
   try {
     const res = await post<{ code: number; message: string; data: { liked: boolean; likeCount: number } }>(
       `${DYNAMIC_API.LIKE}/${it.id}`,
@@ -290,12 +286,11 @@ const handleLike = async () => {
       it.likeCount = res.data.likeCount ?? it.likeCount
       return
     }
-    it.liked = prevLiked
-    it.likeCount = prevCount
+    // 被拒绝（含拉黑：因对方隐私设置，无法进行互动）：不改动本地状态，数字不闪烁
+    ElMessage.warning(res.message || '点赞失败')
   } catch (e) {
     console.log('动态点赞失败:', e)
-    it.liked = prevLiked
-    it.likeCount = prevCount
+    ElMessage.error('点赞失败，请稍后重试')
   }
 }
 
